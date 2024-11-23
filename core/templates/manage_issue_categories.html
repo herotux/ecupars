@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}مدیریت دسته‌بندی‌ها{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>مدیریت دسته‌بندی‌ها</h1>
+    
+    <div class="mb-3">
+        <input type="text" id="category-input" class="form-control" placeholder="نام دسته‌بندی جدید">
+        <button id="create-category" class="btn btn-primary mt-2">افزودن دسته‌بندی</button>
+    </div>
+    
+    <ul class="list-group">
+        {{ rendered_categories | safe }}
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // پنهان کردن زیردسته‌ها به طور پیش‌فرض
+    $('.subcategories').hide();
+
+    $('.category-toggle').on('click', function() {
+        $(this).siblings('.subcategories').toggle();
+        if ($(this).text().startsWith('+')) {
+            $(this).text($(this).text().replace('+', '-'));
+        } else {
+            $(this).text($(this).text().replace('-', '+'));
+        }
+    });
+
+
+    $('#create-category').on('click', function() {
+        var categoryName = $('#category-input').val(); // نوار ورودی برای نام دسته
+
+        if (categoryName.trim() === '') {
+            alert('لطفاً نام دسته‌بندی را وارد کنید.');
+            return;
+        }
+
+        $.ajax({
+            url: '{% url "categorization" %}',  // آدرس URL ویو شما
+            method: 'POST',
+            data: {
+                'category_name': categoryName,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'  // توکن CSRF در Django
+            },
+            success: function(response) {
+                alert(response.message); // نمایش پیام موفقیت
+
+                // ریلود کردن صفحه
+                location.reload();
+                
+                $('#category-input').val(''); // پاک کردن ورودی
+            },
+            error: function(xhr, status, error) {
+                alert('خطا در ایجاد دسته: ' + error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

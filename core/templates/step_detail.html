@@ -1,0 +1,828 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block header %}
+{{ form.media }}
+{% endblock %}
+
+
+{% block title %}
+{% if step %}
+   مرحله {{ step.letter }} از خطای {{ step.issue.title }}
+{% elif issue %}
+    {{ issue.title }}
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 50px;
+    }
+
+    .content-box {
+        border: 1px solid #007bff;
+        border-radius: 5px;
+        padding: 20px;
+        width: 90%;
+        max-width: 800px;
+        background-color: #f9f9f9;
+        margin-bottom: 20px;
+    }
+
+    h1,
+    h3 {
+        color: #0056b3;
+    }
+
+    .btn {
+        margin-top: 10px;
+    }
+
+    #optionsContainer {
+        margin-top: 20px;
+    }
+
+    .draggable {
+        padding: 10px;
+        margin: 5px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        background-color: #e9ecef;
+        cursor: move;
+    }
+
+    .delete-btn {
+        margin-left: 10px;
+    }
+    
+    .plus {
+        border: none;
+        color: green;
+        padding: 15px 5px;
+        text-align: center;
+        display: inline-block;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <button id="bookmarkButton" title="نشان کردن صفحه">
+        <i id="bookmarkIcon" class="fa fa-bookmark-o"></i> <!-- آیکون توخالی به طور پیش‌فرض -->
+    </button>
+    <div class="content-box">
+        <h1>مرحله {{ step.letter }} از خطای {{step.issue}}</h1>
+        <p>شناسه مرحله: {{ step.id }}</p>
+    </div>
+    
+    {% if step.solution %}
+    <div class="content-box">
+        <h1>{{ step.solution.title }}
+            <span class="float-left">
+                <a class="edit-btn edit-solution btn btn-warning" data-id="{{ step.solution.id }}" data-title="{{ step.solution.title }}" data-description="{{ step.solution.description }}">
+                    <i class="fa fa-edit"></i> 
+                </a>
+            </span>
+        </h1>
+        <p>{{ step.solution.description|safe }}</p>
+        <form id="editSolutionForm" style="display:none;" method="post">
+            <input type="hidden" name="issue_id" value="{{ step.issue.id }}">
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-success">ویرایش راهکار</button>
+        </form>
+    </div>
+    
+    {% else %}
+    <div class="content-box">
+        <form id="thesolutionForm" method="post" role="form">
+
+            <label>راهکار
+                <button type="button" class="plus" id="toggleSolutionForm">+</button>
+            </label>
+            
+           
+        </form>
+        
+        <form id="solutionForm" style="display:none;" method="post" role="form" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="issue_id" value="{{ step.issue.id }}">
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-success">ذخیره</button>
+        </form>
+        
+        
+        
+    </div>
+    {% endif %}
+    
+    
+    {% if step.map %}
+
+    <div class="content-box" style="text-align: center;">
+
+        <form id="editMapForm" style="display:none;" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="step_id" value="{{ step.id }}">
+            <div class="form-group">
+                <label for="mapId">شناسه نقشه:</label>
+                <input type="text" class="form-control" id="mapId" name="map_id" placeholder="شناسه نقشه" required>
+            </div>
+            <button type="submit" class="btn btn-success">ذخیره</button>
+        </form>
+
+        <h1>
+            {{ step.map.title }}
+            <span class="float-left">
+                <a class="edit-btn map btn btn-warning" data-id="{{ step.map.id }}" data-title="{{ step.map.title }}" data-image="{{ step.map.image.url }}">
+                    <i class="fa fa-edit"></i> 
+                </a>
+            </span>
+        </h1>
+        
+        <img src={{ step.map.image.url }}>
+        
+    </div>
+    
+    
+    {% else %}
+        <div class="content-box">
+            <form id="themapForm" method="post" role="form">
+                {% csrf_token %}
+                <input type="hidden" name="step_id" value="{{ step.id }}">
+                <div class="form-group">
+                    <label for="mapId">شناسه نقشه:</label>
+                    <input type="text" class="form-control" id="mapId" name="map_id" placeholder="شناسه نقشه" required>
+                </div>
+                <button type="submit" class="btn btn-success">ذخیره</button>
+            </form>
+        </div>
+    {% endif %}
+
+    <div class="content-box" id="questionContainer">
+        {% if question %}
+        <h4>
+            {{ question.text }}
+            <span class="float-left">
+                <a class="edit-btn question btn btn-warning" data-id="{{ question.id }}" data-text="{{ question.text }}">
+                    <i class="fa fa-edit"></i> 
+                </a>
+            </span>
+            
+            <span class="float-left">
+                <a class="delete-btn delete-btn-question btn btn-danger" data-id="{{ question.id }}">
+                    <i class="fa fa-trash"></i> 
+                </a>
+            </span>
+            
+        </h4>
+    </br>
+        <!-- فرم ویرایش سوال -->
+        <form id="editQuestionForm" class="mt-3" style="display:none;">
+            <div class="form-group">
+                <input type="text" class="form-control" id="editQuestionText" placeholder="متن سوال" required>
+                <input type="hidden" id="editQuestionId" required>
+            </div>
+            <button type="submit" class="btn btn-success">ویرایش سوال</button>
+        </form>
+        <button class="btn btn-primary" id="toggleOptionsForm">افزودن گزینه</button>
+        
+        <form id="optionForm" class="mt-3" style="display:none;">
+            <div class="form-group">
+                <input type="text" class="form-control" id="optionText" placeholder="متن گزینه" required>
+                <div id="stepSelectContainer">
+                    <input type="text" class="form-control" id="stepSelect" placeholder="شناسه مرحله">
+                    <input type="text" class="form-control" id="issueSelect" placeholder="شناسه خطا">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success">اضافه کردن گزینه</button>
+            <button type="button" class="btn btn-primary" id="toggleAddStepButton">افزودن مرحله جدید</button>
+        </form>
+        
+        <div id="optionsContainer"></div>
+
+        {% else %}
+        <h4>ایجاد سوال برای این مرحله</h4>
+        <button class="btn btn-primary" id="toggleQuestionForm">ایجاد سوال</button>
+        <form id="questionForm" class="mt-3" style="display:none;">
+            <div class="form-group">
+                <input type="text" class="form-control" id="questionText" placeholder="متن سوال" required>
+            </div>
+            <button type="submit" class="btn btn-success">ایجاد سوال</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    $(document).ready(function () {
+        loadSolutionsToSelect();
+        loadOptions()
+        // loadStepsToSelect();
+
+        $('#toggleOptionsForm').click(function () {
+            $('#optionForm').toggle();
+        });
+
+        $('#toggleQuestionForm').click(function () {
+            $('#questionForm').toggle();
+        });
+
+        $('#toggleSolutionForm').click(function () {
+            $('#solutionForm').toggle();
+        });
+
+        $('#toggleAddStepButton').click(function () {
+            const button = $(this);
+            if (button.text() === 'افزودن مرحله جدید') {
+                button.text('انتخاب از مراحل پیشین');
+            } else {
+                button.text('افزودن مرحله جدید');
+            }
+
+            $('#stepSelectContainer').toggle();
+        });
+
+        $('.edit-btn.map').click(function () {
+            $('#editMapForm').toggle(); // نمایش/مخفی کردن فرم ویرایش نقشه
+            const mapId = $(this).data('id'); // گرفتن شناسه نقشه
+            $('#editMapForm input[name="map_id"]').val(mapId);
+        });
+
+
+        $('#solutionForm').on('submit', function(event) {
+            event.preventDefault();
+            const formData = $(this).serialize() + '&step_id={{ step.id }}';
+            
+
+            $.ajax({
+                url: '/api/create_solution/',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#solutionForm')[0].reset();
+                        $('#solutionForm').hide();
+                        loadSolutionsToSelect();
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert('خطا: ' + response.errors.title);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Request failed:", status, error);
+                    alert('خطای غیر منتظره: ' + xhr.responseText);
+                }
+            });
+
+        });
+
+
+        $('.edit-btn.edit-solution').click(function () {
+            
+            $('#editSolutionForm').show(); // نمایش فرم ویرایش
+        });
+
+
+
+        // function loadStepsToSelect() {
+        //     const issueId = '{{ step.issue.id }}'; // شناسه مشکل
+        //     $.ajax({
+        //         url: '/api/get_steps/' + issueId, // باید این endpoint را ایجاد کنید که مراحل را به دست آورد
+        //         method: 'GET',
+        //         success: function (data) {
+        //             const select = $('#stepSelect');
+        //             select.empty(); // پاک کردن گزینه‌های فعلی
+        //             data.steps.forEach(function (step) {
+        //                 select.append(new Option(step.letter, step.id)); // اضافه کردن گزینه جدید
+        //             });
+        //         }
+        //     });
+        // }
+
+
+        function loadSolutionsToSelect() {
+            const issueId = '{{ step.issue.id }}';
+            $.ajax({
+                url: '/api/get_solutions/' + issueId,
+                method: 'GET',
+                success: function (data) {
+                    const select = $('#solutionSelect');
+                    select.empty(); // پاک کردن گزینه‌های فعلی
+                    data.solutions.forEach(function (solution) {
+                        select.append(new Option(solution.title, solution.id)); // اضافه کردن گزینه جدید
+                    });
+                }
+            });
+        }
+
+
+
+        function loadOptions() {
+            const stepId = '{{ step.id }}';
+            $.ajax({
+                url: '/api/get_step_options/' + stepId,
+                method: 'GET',
+                success: function (data) {
+                    if (data.status === 'success') {
+                        $('#optionsContainer').empty(); // پاک کردن محتوای قبلی
+                        if (data.options.length === 0) {
+                            $('#optionsContainer').html('هیچ گزینه‌ای موجود نیست.');
+                            return;
+                        }
+
+                       // ایجاد HTML برای هر گزینه به صورت کارت
+                        data.options.forEach(function (option) {
+                            console.log(option)
+
+                            
+                            const optionCard = `
+                                <div class="card" style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;">
+                                    <a href="${option.option_url}">${option.text}</a>
+                                    <div style="margin-top: 10px;">
+                                        <button class="edit-btn option btn btn-warning" data-id="${option.id}">ویرایش</button>
+                                        <button class="delete-btn delete-btn-option btn btn-danger" data-id="${option.id}">حذف</button>
+                                    </div>
+                                </div>
+                            `;
+                            $('#optionsContainer').append(optionCard);
+                        });
+
+                    }
+                },
+            });
+        }
+
+
+
+
+
+
+        $('#questionForm').on('submit', function (event) {
+            event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
+            const questionText = $('#questionText').val();
+            const stepId = '{{ step.id }}'; // شناسه step
+            const questionId = $(this).data('editing-id'); // دریافت شناسه ویرایش شده
+  
+            $.ajax({
+                url: '/api/create_step_question/',
+                method: 'POST',
+                data: {
+                    text: questionText,
+                    step_id: stepId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF برای امنیت
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        // بعد از موفقیت، می‌توانید UI را به‌روز کنید
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert(response.message); // نمایش پیام خطا
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert('خطا در ایجاد سوال: ' + error);
+                }
+            });
+            
+        });
+
+
+        $('#questionContainer').on('click', '.edit-btn.question', function () {
+            const questionId = $(this).data('id');
+            const questionText = $(this).data('text'); // گرفتن متن سوال
+
+            $('#editQuestionText').val(questionText); // قرار دادن متن سوال در فیلد ویرایش
+            $('#editQuestionId').val(questionId); // قرار دادن شناسه سوال برای ویرایش
+            $('#editQuestionForm').show(); // نمایش فرم ویرایش
+            $('#questionForm').hide(); // مخفی کردن فرم ایجاد سوال
+        });
+
+        $('#optionsContainer').on('click', '.edit-btn.option', function () {
+            const optionId = $(this).data('id');
+            const optionText = $(this).closest('.card').find('a').text();
+            $('#optionText').val(optionText);
+            $('#optionForm').data('editing-id', optionId).show(); // ذخیره شناسه در فرم
+        });
+
+        $('#optionsContainer').on('click', '.delete-btn-option', function () {
+            const optionId = $(this).data('id');
+            if (confirm('آیا مطمئن هستید که می‌خواهید این گزینه را حذف کنید؟')) {
+                $.ajax({
+                    url: '/api/delete_option/' + optionId + '/',
+                    method: 'DELETE',
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            loadOptions(); // بارگذاری مجدد گزینه‌ها
+                        } else {
+                            alert('خطا: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('خطایی در حذف گزینه وجود دارد.');
+                    }
+                });
+            }
+        });
+
+        $('#optionForm').on('submit', function (event) {
+            event.preventDefault(); // جلوگیری از بارگذاری مجدد صفحه
+            const optionId = $(this).data('editing-id'); // دریافت شناسه ویرایش شده
+
+            const optionText = $('#optionText').val();
+            const stepId = $('#stepSelect').val(); // شناسه مرحله
+            const nextissueId = $('#issueSelect').val();
+            const solutionId = $('#solutionSelect').val(); // شناسه راهکار
+            const issueId = '{{ step.issue.id }}'; // شناسه مشکل
+            const questionId = '{{ question.id }}';
+
+            const data = {
+                text: optionText,
+                issue_id: issueId,
+                nextissueId: nextissueId,
+                question_id: questionId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            };
+
+
+
+            if (optionId) {
+                // اگر شناسه موجود باشد، یعنی می‌خواهیم ویرایش کنیم
+                data.id = optionId; // شناسه گزینه برای ویرایش
+                $.ajax({
+                    url: '/api/update_option/' + optionId + '/',
+                    method: 'POST',
+                    data: data,
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            loadOptions(); // بارگذاری مجدد گزینه‌ها
+                            $('#optionText').val(''); // خالی کردن فیلد ویرایش
+                            $('#optionForm').removeData('editing-id'); // حذف شناسه
+                            $('#optionForm').hide(); // مخفی کردن فرم ویرایش
+                        } else {
+                            alert(response.message); // نمایش خطا در ویرایش
+                        }
+                    },
+                    error: function () {
+                        alert('خطایی در ویرایش گزینه وجود دارد.');
+                    }
+                });
+            } else {
+                // اگر فیلد مرحله فعال باشد، بررسی می‌کنیم
+                if ($('#stepSelectContainer').is(':visible') && stepId) {
+                    data.step_id = stepId; // اضافه کردن شناسه مرحله
+                }
+
+                if ($('#stepSelectContainer').is(':visible') && nextissueId) {
+                    data.nextissueId = nextissueId; // اضافه کردن شناسه خطا
+                }
+
+                // اگر فیلد راهکار فعال باشد، بررسی می‌کنیم
+                if ($('#solutionContainer').is(':visible') && solutionId) {
+                    data.solution_id = solutionId; // اضافه کردن شناسه راهکار
+                }
+                // اگر شناسه وجود نداشته باشد، اضافه کردن گزینه جدید
+                $.ajax({
+                    url: '/api/add_option/',
+                    method: 'POST',
+                    data: data,
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            loadOptions(); // بارگذاری مجدد گزینه‌ها
+                            $('#optionText').val(''); // خالی کردن فیلد
+                            $('#optionForm').hide(); // مخفی کردن فرم
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('خطایی در ایجاد گزینه وجود دارد.');
+                    }
+                });
+            }
+        });
+
+    });
+
+    $(document).ready(function () {
+        $('#addTagButton').click(function () {
+            const newTag = $('#newTag').val();
+            if (newTag) {
+                $.ajax({
+                    url: '/api/add_tag/',
+                    method: 'POST',
+                    data: {
+                        name: newTag,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            // تگ جدید را به انتخاب‌گر اضافه کن
+                            $('#tagSelect').append(new Option(newTag, response.tag.id));
+                            $('#newTag').val(''); // ورودی را پاک کن
+                        } else {
+                            alert('خطا: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('خطای غیر منتظره!');
+                    }
+                });
+            } else {
+                alert('لطفاً یک تگ معتبر وارد کنید.');
+            }
+        });
+    });
+
+    $(document).ready(function () {
+        // بارگذاری مقادیر نقشه‌ها هنگام بارگذاری صفحه
+        loadMaps();
+
+        $('#toggleMapForm').click(function () {
+            $('#mapForm').toggle(); // مخفی یا نمایش فرم
+        });
+
+        $('#mapForm').on('submit', function (event) {
+            event.preventDefault(); // جلوگیری از بارگذاری مجدد صفحه
+
+            // جمع‌آوری داده‌های فرم
+            const formData = new FormData();
+            formData.append('title', $('#mapTitle').val());
+            formData.append('image', $('#mapImage')[0].files[0]);
+            formData.append('category', $('#mapCategory').val());
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            // ارسال داده‌ها با استفاده از AJAX
+            $.ajax({
+                url: '/api/add_map/', // باید این endpoint را ایجاد کنید
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#mapForm')[0].reset(); // خالی کردن فرم
+                        loadMaps(); // بارگذاری مجدد نقشه‌ها
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert('خطا: ' + response.errors.title);
+                    }
+                },
+                error: function () {
+                    alert('خطای غیرمنتظره. لطفا دوباره تلاش کنید.');
+                }
+            });
+        });
+
+        // تابع بارگذاری نقشه‌ها
+        function loadMaps() {
+            $.ajax({
+                url: '/api/get_maps/', // Endpoint برای دریافت لیست نقشه‌ها
+                method: 'GET',
+                success: function (data) {
+
+
+                    const select = $('#mapSelect');
+                    select.empty(); // پاک کردن گزینه‌های فعلی
+                    data.maps.forEach(function (map) {
+                        select.append(new Option(map.title, map.id)); // اضافه کردن گزینه جدید
+                    });
+
+                },
+            });
+        }
+
+        // ارسال AJAX برای set_solution
+        $('#thesolutionForm').on('submit', function(event) {
+            event.preventDefault();
+
+            const formData = {
+                solution_id: $('#solutionSelect').val(), // فرض بر این است که یک فیلد با id 'solutionSelect' دارید
+                step_id: '{{ step.id }}',
+                csrfmiddlewaretoken: '{{ csrf_token }}' // افزودن CSRF Token
+            };
+
+            $.ajax({
+                url: '/api/set_solution/',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#thesolutionForm')[0].reset(); // پاک کردن فرم
+                        loadSolutionsToSelect(); // بارگذاری مجدد راهکارها
+                        location.reload();
+                    } else {
+                        alert('خطا: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Request failed:", status, error);
+                    alert('خطا: ' + xhr.responseText);
+                }
+            });
+        });
+
+        // ارسال AJAX برای set_map
+        $('#themapForm').on('submit', function(event) {
+            event.preventDefault();
+
+            const formData = {
+                map_id: $('#mapId').val(), // فرض بر این است که یک فیلد با id 'mapSelect' دارید
+                step_id: '{{ step.id }}',
+                csrfmiddlewaretoken: '{{ csrf_token }}' // افزودن CSRF Token
+            };
+
+            $.ajax({
+                url: '/api/set_map/',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#themapForm')[0].reset(); // پاک کردن فرم
+                        loadMaps(); // بارگذاری مجدد نقشه‌ها
+                        location.reload();
+                    } else {
+                        alert('خطا: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Request failed:", status, error);
+                    alert('خطا: ' + xhr.responseText);
+                }
+            });
+        });
+
+
+        // ارسال AJAX برای set_map
+        $('#editMapForm').on('submit', function(event) {
+            event.preventDefault();
+
+            const formData = {
+                map_id: $('#mapId').val(), // فرض بر این است که یک فیلد با id 'mapSelect' دارید
+                step_id: '{{ step.id }}',
+                csrfmiddlewaretoken: '{{ csrf_token }}' // افزودن CSRF Token
+            };
+
+            $.ajax({
+                url: '/api/set_map/',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#editMapForm')[0].reset(); // پاک کردن فرم
+                        loadMaps(); // بارگذاری مجدد نقشه‌ها
+                        location.reload();
+                    } else {
+                        alert('خطا: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Request failed:", status, error);
+                    alert('خطا: ' + xhr.responseText);
+                }
+            });
+        });
+
+
+        $(document).on('click', '.delete-btn-question', function() {
+            const questionId = $(this).data('id');
+
+            if (confirm('آیا مطمئن هستید که می‌خواهید این سوال را حذف کنید؟')) {
+                $.ajax({
+                    url: `/api/delete_question/${questionId}/`,
+                    method: 'POST',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            location.reload(); // بارگذاری مجدد صفحه
+                        } else {
+                            alert('خطا در حذف سوال');
+                        }
+                    },
+                    error: function() {
+                        alert('خطا در حذف سوال');
+                    }
+                });
+            }
+        });
+
+        // فرم ویرایش سوال
+        $('#editQuestionForm').on('submit', function (event) {
+            event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
+            const question_id = $('#editQuestionId').val();
+            const editQuestionText = $('#editQuestionText').val();
+            const stepId = '{{ step.id }}'; // شناسه مرحله
+            
+            $.ajax({
+                url: '/api/update_question/' + question_id + '/',
+                method: 'POST',
+                data: {
+                    text: editQuestionText,
+                    step_id: stepId,
+                    question_id: question_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}', // توکن CSRF برای امنیت
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert(response.message); // نمایش خطا در ویرایش
+                    }
+                },
+                error: function () {
+                    alert('خطایی در ویرایش سوال وجود دارد.');
+                }
+            });
+        });
+
+
+        // بعد از این که فرم ویرایش باز شد
+        $('#editSolutionForm').on('submit', function(event) {
+            event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
+            const solutionId = '{{ step.solution.id }}';
+            const formData = {
+                id: solutionId,
+                title: $(this).find('input[name="title"]').val(),
+                description: $(this).find('textarea[name="description"]').val(),
+                csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF برای امنیت
+            };
+
+            $.ajax({
+                url: '/api/edit_solution/', // آدرس ویو
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // آپدیت UI بر اساس واکنش
+                        $('.edit-solution[data-id="' + formData.id + '"]').data('title', formData.title);
+                        $('.edit-solution[data-id="' + formData.id + '"]').data('description', formData.description);
+                        $('.edit-solution[data-id="' + formData.id + '"]').parent().siblings().text(formData.title);
+                        location.reload(); // بارگذاری مجدد صفحه
+                        $('#editSolutionForm').hide(); // مخفی کردن فرم
+                    } else {
+                        alert('خطا: ' + response.message); // نمایش پیام خطا
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Request failed:", status, error);
+                    alert('خطای غیر منتظره: ' + xhr.responseText);
+                }
+            });
+        });
+
+
+    });
+
+
+    $(document).ready(function () {
+        var currentUrl = '{{ request.build_absolute_uri }}'; // گرفتن URL فعلی
+    
+
+
+        $.ajax({
+            url: '/check_bookmark/', // آدرس API
+            method: 'GET',
+            data: { url: currentUrl },
+            success: function(response) {
+                if (response.exists) {
+                    $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+                } 
+                // نیازی به هیچ کاری در حالت عدم بوکمارک نیست
+            }
+        });
+
+        // اضافه کردن قابلیت بوکمارک
+        $('#bookmarkButton').click(function() {
+            $.ajax({
+                url: '/bookmarks/create/', // یا آدرس ویو شما برای ایجاد بوکمارک
+                method: 'POST',
+                data: {
+                    url: currentUrl,
+                    title: document.title, // ارسال عنوان
+                    csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+                    } else {
+                        alert('خطا در اضافه کردن بوکمارک.');
+                    }
+                }
+            });
+        });
+    });
+
+
+</script>
+{% endblock %}

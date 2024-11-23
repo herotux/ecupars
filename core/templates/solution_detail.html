@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{{ solution.title }}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container {
+        flex-direction: column;
+        align-items: center;
+        margin-top: 50px;
+    }
+
+    .blog-post {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .blog-post h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+    .blog-post p {
+        line-height: 1.6;
+    }
+    button {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5em;
+        color: #007bff;
+        transition: color 0.2s;
+    }
+    button:hover {
+        color: #0056b3;
+    }
+    img {
+    max-width: 100%;
+    height: auto !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="blog-post">
+        <button id="bookmarkButton" title="نشان کردن صفحه">
+            <i id="bookmarkIcon" class="fa fa-bookmark-o"></i> <!-- آیکون توخالی به طور پیش‌فرض -->
+        </button>
+        <h1> {{ solution.title }} </h1>
+        <p> {{ solution.description|safe }}</p>
+    </div>
+</div>
+    
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function () {
+    var currentUrl = '{{ request.build_absolute_uri }}'; // گرفتن URL فعلی
+
+
+
+    $.ajax({
+        url: '/check_bookmark/', // آدرس API
+        method: 'GET',
+        data: { url: currentUrl },
+        success: function(response) {
+            if (response.exists) {
+                $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+            } 
+            // نیازی به هیچ کاری در حالت عدم بوکمارک نیست
+        }
+    });
+
+    // اضافه کردن قابلیت بوکمارک
+    $('#bookmarkButton').click(function() {
+        $.ajax({
+            url: '/bookmarks/create/', // یا آدرس ویو شما برای ایجاد بوکمارک
+            method: 'POST',
+            data: {
+                url: currentUrl,
+                title: document.title, // ارسال عنوان
+                csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+                } else {
+                    alert('خطا در اضافه کردن بوکمارک.');
+                }
+            }
+        });
+    });
+});
+
+</script>
+{% endblock %}

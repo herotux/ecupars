@@ -1,0 +1,492 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block header %}
+    {{ form.media }}
+{% endblock %}
+{% block title %}صفحه خطا{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .container {
+        display: flex;
+        flex-wrap: wrap; /* اجازه می‌دهد تا ستون‌ها در کوچک‌ترین سایزها زیر هم بروند */
+        justify-content: space-between; /* ایجاد فضا بین ستون‌ها */
+        margin-top: 50px;
+    }
+
+    .column {
+        flex: 1;
+        min-width: 300px; /* حداقل عرض ستون‌ها */
+        margin: 10px; /* فاصله بین ستون‌ها */
+    }
+
+    .box {
+        border: 1px solid #007bff;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
+    }
+
+    /* برای اندازه‌های مختلف */
+    @media (min-width: 576px) { 
+        .box {
+            width: 90%; /* برای سایز‌های بزرگتر از متوسط */
+        }
+    }
+    
+    @media (min-width: 768px) {
+        .box {
+            width: 80%;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .box {
+            width: 100%; /* برای سایز‌های بزرگ */
+        }
+    }
+
+    .draggable {
+        padding: 10px;
+        margin: 5px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        background-color: #e9ecef;
+        cursor: move;
+    }
+    .droppable {
+        border: 2px dashed #007bff;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        margin-top: 10px;
+    }
+    .single-box {
+        display: flex;
+        flex-direction: column;
+    }
+    .placeholder {
+        border: 2px dashed #999;
+        height: 40px; /* ارتفاع ثابت برای placeholder */
+    }
+    .delete-btn {
+        margin-left: 10px; /* فاصله بین متن و دکمه */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="column">
+        <h1>{{ issue.title }}</h1>
+        {{ issue.description|safe }}
+    </div>
+</div>
+
+<div class="container">
+    <div class="column"> 
+        {% if question %}
+            <h3>{{ question.text }}</h3>
+            <div class="box">
+                <h4>اضافه کردن گزینه به سوال</h4>
+                <button class="btn btn-primary" id="toggleOptionsForm">افزودن گزینه</button>
+                <form id="optionForm" class="mt-3" style="display:none;">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="optionText" placeholder="متن گزینه" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">اضافه کردن گزینه</button>
+                </form>
+
+                <form id="solutionForm" style="display:none;" method="post" role="form" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-success">ذخیره</button>
+                </form>
+            </div>
+
+            {% for option in question.options.all %}
+                <div class="box single-box droppable" id="option-{{ option.id }}" data-option-id="{{ option.id }}">
+                    <h4>{{ option.text }}</h4>
+                    <div class="solutions-box"></div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="box">
+                <h4>ایجاد سوال برای این خطا</h4>
+                <button class="btn btn-primary" id="toggleQuestionForm">ایجاد سوال</button>
+                <form id="questionForm" class="mt-3" style="display:none;">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="questionText" placeholder="متن سوال" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">ایجاد سوال</button>
+                </form>
+            </div>
+            <div class="box single-box droppable" id="singleBox" data-option-id="none">
+                <h4>راهکارها</h4>
+                <div class="solutions-box"></div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="column"> 
+
+        <div class="box">
+            <h4>اضافه کردن راهکار به خطا</h4>
+            <button class="btn btn-primary" id="toggleSolutionForm">افزودن راهکار</button>
+            <form id="solutionForm" style="display:none;" method="post" role="form" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                {{ form|crispy  }}
+                <button type="submit" class="btn btn-primary">ذخیره</button>
+            </form>
+        </div>
+        <div class="box" id="solutionsBox">
+            <h4>لیست راهکارها:</h4>
+            <div id="solutions"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    $(document).ready(function() {
+        loadSolutions();
+        loadSelectedSolutions();
+
+        $('#toggleOptionsForm').click(function() {
+            $('#optionForm').toggle();
+        });
+
+        $('#toggleQuestionForm').click(function() {
+            $('#questionForm').toggle();
+        });
+
+        $('#toggleSolutionForm').click(function() {
+            $('#solutionForm').toggle();
+        });
+
+        $('#solutionForm').on('submit', function(event) {
+            event.preventDefault();
+            const formDataArray = $(this).serializeArray();
+            const formData = {};
+            $.each(formDataArray, function() {
+                formData[this.name] = this.value;
+            });
+
+            $.ajax({
+                url: '/api/create_solution/',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#solutions').append(`
+                            <div class="draggable" data-id="${response.solution.id}">
+                                ${response.solution.title}
+                                <button class="delete-btn btn btn-danger" data-id="${response.solution.id}">حذف</button>
+                            </div>
+                        `);
+                        $('#solutionForm')[0].reset();
+                        $('#solutionForm').hide();
+                    } else {
+                        alert('خطا: ' + response.errors.title);
+                    }
+                },
+                error: function(response) {
+                    alert('خطای غیر منتظره. لطفا دوباره تلاش کنید.');
+                }
+            });
+        });
+
+
+
+
+        function loadSolutions() {
+            $.ajax({
+                url: '/api/get_solutions/',
+                method: 'GET',
+                success: function(data) {
+                    $('#solutions').empty();
+                    data.solutions.forEach(function(solution) {
+                        let hierarchyHtml = '<ul>';
+                        for (const [issueTitle, fullCategoryName] of Object.entries(solution.hierarchy)) {
+                            hierarchyHtml += `<li>${issueTitle} - ${fullCategoryName}</li>`;
+                        }
+                        hierarchyHtml += '</ul>';
+
+                        $('#solutions').append(`
+                            <div class="draggable" data-id="${solution.id}">
+                                ${solution.title}
+                                <div class="hierarchy">${hierarchyHtml}</div>
+                            </div>
+                        `);
+                    });
+                    addSortableEvents();
+                }
+            });
+        }
+
+        const defaultPlaceholder = `<div class="draggable placeholder">اینجا خالی است. یک گزینه اضافه کنید</div>`;
+
+        function loadSelectedSolutions() {
+            const issueId = '{{ issue.id }}'; 
+            $.ajax({
+                url: '/api/get_selected_solutions/' + issueId,
+                method: 'GET',
+                success: function(data) {
+                    
+                    
+                    data.selected.forEach(function(option) {
+                        
+                        if (option.id) {
+                            const optionBox = $('#option-' + option.id + ' .solutions-box');
+                            option.solutions.forEach(function(solution) {
+                                showPlaceholderForEmptyBoxes();
+                                removePlaceholderIfNotEmpty(optionBox);
+                                optionBox.append(`
+                                    <div class="draggable" data-id="${solution.id}">
+                                        ${solution.solution_title} 
+                                        <button class="delete-btn btn btn-danger" data-id="${solution.id}">حذف</button>
+                                    </div>
+                                `);
+                            });
+                            
+                        } else {
+                            showPlaceholderForEmptyBoxes();
+                            const defaultBox = $('#singleBox .solutions-box');
+                            option.solutions.forEach(function(solution) {
+                                
+                                removePlaceholderIfNotEmpty(defaultBox);
+                                defaultBox.append(`
+                                    <div class="draggable" data-id="${solution.id}">
+                                        ${solution.solution_title} 
+                                        <button class="delete-btn btn btn-danger" data-id="${solution.id}">حذف</button>
+                                    </div>
+                                `);
+                            });
+                        }
+                    });
+                    addSortableEvents();
+                }
+            });
+        }
+
+        function showPlaceholderForEmptyBoxes() {
+            $('.solutions-box').each(function() {
+                if ($(this).children().length === 0) {
+                    $(this).append(defaultPlaceholder);
+                }
+            });
+        }
+
+        function removePlaceholderIfNotEmpty(container) {
+            if ($(container).children().length > 0) {
+                $(container).find('.placeholder').first().remove(); // حذف placeholder
+            }
+        }
+
+        function addSortableEvents() {
+            const containers = document.querySelectorAll('.droppable .solutions-box');
+            const solutionsSortable = new Sortable(document.getElementById('solutions'), {
+                group: 'shared',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onAdd: function(evt) {
+                    const container = evt.from; 
+                    const optionId = container.closest('.droppable').dataset.optionId; 
+                    const emptyBox = $(container).find('.draggable').length === 0;
+
+                    if (emptyBox) {
+                        const itemHtml = createDraggableItem(evt.item.dataset.id, evt.item.innerHTML);
+                        $(container).append(itemHtml);
+                    } else {
+                        saveSelection(evt.item.dataset.id, optionId);
+                    }
+                    
+                }
+            });
+
+            // تنظیم sortable برای باکس‌های گزینه‌ها
+            containers.forEach(container => {
+                new Sortable(container, {
+                    group: 'shared', // گروه مشترک برای جابجایی
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onAdd: function (evt) {
+                        const optionId = container.closest('.droppable').dataset.optionId; // optionId ای که راهکار به آن اضافه می‌شود
+                        
+                        // بررسی خالی بودن باکس
+                        const emptyBox = $(container).find('.draggable').length === 0;
+
+                        // اگر باکس خالی باشد
+                        if (emptyBox) {
+                            $(container).append(`<div class="draggable" data-id="${evt.item.dataset.id}">
+                                ${evt.item.innerHTML}
+                                <button class="delete-btn btn btn-danger" data-id="${evt.item.dataset.id}">حذف</button>
+                            </div>`);
+                            // نیازی به ذخیره‌سازی ندارد چون این اولین انتخاب است
+                        } else {
+                            removePlaceholderIfNotEmpty(container);
+                            // اگر باکس خالی نباشد
+                            saveSelection(evt.item.dataset.id, optionId);
+                            
+                        }
+                    },
+
+                    onUpdate: function (evt) {
+                        const optionId = container.closest('.droppable').dataset.optionId; // optionId ای که در آن تغییر در ترتیب رخ داده
+                        updateOrder(optionId);
+                    },
+                });
+            });
+
+            const singleBoxContainer = document.querySelector('#singleBox .solutions-box');
+            if (singleBoxContainer) {
+                new Sortable(singleBoxContainer, {
+                    group: 'shared',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onAdd: function(evt) {
+                        const optionId = 'none'; 
+                        const emptyBox = $(singleBoxContainer).find('.draggable').length === 0;
+
+                        if (emptyBox) {
+                            const itemHtml = createDraggableItem(evt.item.dataset.id, evt.item.innerHTML);
+                            $(singleBoxContainer).append(itemHtml);
+                        } else {
+                            saveSelection(evt.item.dataset.id, optionId);
+                        }
+                        removePlaceholderIfNotEmpty(singleBoxContainer); // حذف Placeholder
+                    }
+                });
+            }
+
+            $('.solutions-box').on('click', '.delete-btn', function() {
+                const solutionId = $(this).data('id');
+                const optionId = $(this).closest('.droppable').data('option-id');
+                deleteSelection(solutionId, optionId);
+            });
+        }
+
+        function createDraggableItem(id, content) {
+            return `<div class="draggable" data-id="${id}">
+                        ${content}
+                        <button class="delete-btn btn btn-danger" data-id="${id}">حذف</button>
+                    </div>`;
+        }
+
+        function saveSelection(solutionId, optionId) {
+            const issueId = '{{ issue.id }}'; 
+            $.post("/api/update_selection/", {
+                id: solutionId,
+                issue_id: issueId,
+                option_id: optionId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            }, function(response) {
+                console.log(response);
+            });
+        }
+
+        function deleteSelection(solutionId, optionId) {
+            const issueId = '{{ issue.id }}'; 
+            $.post("/api/delete_selection/", {
+                id: solutionId,
+                issue_id: issueId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            }, function(response) {
+                if (response.status === 'success') {
+                    $('.draggable[data-id="' + solutionId + '"]').remove();
+                    updateOrder(optionId);
+                    showPlaceholderForEmptyBoxes(); // نمایش دوباره placeholder
+                } else {
+                    alert('خطا در حذف آیتم');
+                }
+            });
+        }
+
+        function updateOrder(optionId) {
+            const orderData = [];
+            if (optionId === 'none') {
+                $('#singleBox .draggable').each(function(index) {
+                    orderData.push({id: $(this).data('id'), order: index + 1});
+                });
+            } else {
+                $('#option-' + optionId + ' .draggable').each(function(index) {
+                    orderData.push({id: $(this).data('id'), order: index + 1});
+                });
+            }
+
+            $.post("/api/update_order/", {
+                order: JSON.stringify(orderData),
+                option_id: optionId,
+                issue_id: '{{ issue.id }}',
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            }, function(response) {
+                console.log('Order updated:', response);
+            });
+        }
+
+
+        $('#questionForm').on('submit', function(event) {
+            event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
+            const questionText = $('#questionText').val();
+            const issueId = '{{ issue.id }}'; // شناسه مشکل
+
+            $.ajax({
+                url: '/api/create_question/',
+                method: 'POST',
+                data: {
+                    text: questionText,
+                    issue_id: issueId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF برای امنیت
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // بعد از موفقیت، می‌توانید UI را به‌روز کنید
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert(response.message); // نمایش پیام خطا
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('خطا در ایجاد سوال: ' + error);
+                }
+            });
+        });
+
+
+        $('#optionForm').on('submit', function(event) {
+            event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
+            const optionText = $('#optionText').val();
+            const issueId = '{{ issue.id }}'; // شناسه مشکل
+
+            $.ajax({
+                url: '/api/add_option/',
+                method: 'POST',
+                data: {
+                    text: optionText,
+                    issue_id: issueId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF برای امنیت
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // پس از موفقیت، UI را به‌روز کنید
+                        location.reload(); // بارگذاری مجدد صفحه
+                    } else {
+                        alert(response.message); // نمایش پیام خطا
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('خطا در ایجاد گزینه: ' + error);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

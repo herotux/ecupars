@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}مدیریت دسته‌بندی‌ها{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>مدیریت نقشه ها</h1>
+
+    <button id="toggle-search" class="btn btn-secondary mb-3">جستجو</button> <!-- دکمه جستجو -->
+    
+    <div class="mb-3" id="search-container" style="display: none;"> <!-- فیلد جستجو به صورت مخفی -->
+        <input type="text" id="search-input" class="form-control" placeholder="جستجوی نقشه‌ها...">
+    </div>
+    
+    <div class="mb-3 addcat">
+        <input type="text" id="category-input" class="form-control" placeholder="نام دسته‌بندی جدید">
+        <button id="create-category" class="btn btn-primary mt-2">افزودن دسته‌بندی</button>
+    </div>
+    
+    <ul class="list-group cats">
+        {{ rendered_categories | safe }}
+    </ul>
+    <ul class="list-group mapres">
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // پنهان کردن فیلد جستجو به طور پیش‌فرض
+    $('#search-container').hide();
+
+    $('#toggle-search').on('click', function() {
+        $('#search-container').toggle(); // نمایش یا پنهان کردن فیلد جستجو
+        $('#search-input').val(''); // پاکسازی فیلد جستجو در صورت پنهان کردن
+        $('.mapres').hide(); // پنهان کردن نتایج جستجو
+        $('.addcat').toggle();
+    });
+
+    // پنهان کردن زیردسته‌ها به طور پیش‌فرض
+    $('.subcategories').hide();
+
+    $('.category-toggle').on('click', function() {
+        $(this).siblings('.subcategories').toggle();
+        if ($(this).text().startsWith('+')) {
+            $(this).text($(this).text().replace('+', '-'));
+        } else {
+            $(this).text($(this).text().replace('-', '+'));
+        }
+    });
+
+    $('#create-category').on('click', function() {
+        var categoryName = $('#category-input').val(); // نوار ورودی برای نام دسته
+
+        if (categoryName.trim() === '') {
+            alert('لطفاً نام دسته‌بندی را وارد کنید.');
+            return;
+        }
+
+        $.ajax({
+            url: '{% url "mapcategorization" %}',  // آدرس URL ویو شما
+            method: 'POST',
+            data: {
+                'category_name': categoryName,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'  // توکن CSRF در Django
+            },
+            success: function(response) {
+                alert(response.message); // نمایش پیام موفقیت
+
+                // ریلود کردن صفحه
+                location.reload();
+                
+                $('#category-input').val(''); // پاک کردن ورودی
+            },
+            error: function(xhr, status, error) {
+                alert('خطا در ایجاد دسته: ' + error);
+            }
+        });
+    });
+
+    $('#search-input').on('input', function() {
+        var searchTerm = $(this).val(); // متن جستجو
+
+        if (searchTerm.trim() === '') {
+            // اگر فیلد جستجو خالی است، نتایج را پنهان کنیم
+            $('.mapres').hide();
+            $('.cats').show();
+        } else {
+            // اگر فیلد پر است، نتایج را نمایش دهیم
+            $('.mapres').show();
+            
+
+            $.ajax({
+                url: '{% url "search_maps" %}', // آدرس URL ویو برای جستجو
+                method: 'GET',
+                data: {
+                    'q': searchTerm
+                },
+                success: function(response) {
+                    // فرض بر این است که response یک رشته HTML است
+                    // که شامل نتایج جستجو است
+                    $('.mapres').html(response); // به‌روزرسانی نتایج
+                    $('.cats').hide();
+                },
+                error: function(xhr, status, error) {
+                    alert('خطا در جستجو: ' + error);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

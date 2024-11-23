@@ -1,0 +1,25 @@
+{% block search_results %}
+<ul>
+    {% for result in results %}
+        <li>
+            {% if result.map_title %} 
+                {{ result.full_category_name }} - 
+                {{ result.map_title }} - 
+                <a href="{% url 'user_map_detail' result.map.id %}">جزئیات</a>
+            {% elif result.solution_title %} 
+                {{ result.full_category_name }} - 
+                {{ result.solution_title }} - 
+                <a href="{% url 'user_solution_detail' result.solution.id %}">جزئیات</a>
+            {% elif result.issue_title %}
+                {{ result.full_category_name }} - 
+                {{ result.issue_title }} - 
+                <a href="{% url 'user_issue_detail' result.issue.id %}">جزئیات</a>
+            {% elif result.tag %}
+                {{ result.tag.name }} - 
+            {% else %}
+                <li>{{ result.car.name }} - <a href="{% url 'user_car_detail' result.car.id %}">جزئیات</a></li>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

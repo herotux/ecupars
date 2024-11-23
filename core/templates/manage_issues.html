@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %} خطاها {% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1>مدیریت خطاها</h1>
+
+
+        <ul class="list-group">
+            {% for issue in issues %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ issue.category.get_full_category_name }} - {{ issue.title }} </span>
+                    <span>
+                        <a href="{% url 'issue_detail' issue.id %}" class="btn btn-warning btn-sm">مشاهده</a>
+                        <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">ویرایش</a>
+                        <a href="{% url 'issue_delete' issue.id %}" class="btn btn-danger btn-sm">حذف</a>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

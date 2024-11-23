@@ -1,0 +1,40 @@
+{% extends 'base2.html' %}
+{% block title %} داشبورد مدیر{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">فرایند عیب‌یابی برای {{ issue.title }}</h1>
+
+    <!-- نمایش توضیحات خطا -->
+    <div class="card mb-4">
+        <div class="card-header">
+            توضیحات خطا
+        </div>
+        <div class="card-body">
+            <h1> {{ issue.title }} </h1>
+             <p> {{ issue.description|safe }}</p>
+        </div>
+    </div>
+
+    
+
+        <!-- نمایش لیست مراحل راهکارها -->
+        <h3>{{ step.solution.title }}</h3>
+        
+        
+        {{ step.solution.description|safe }}
+
+
+
+    <!-- دکمه برای ثبت وضعیت رفع مشکل -->
+
+    <div class="mt-4">
+        
+    </div>
+
+    <div class="mt-4 text-center">
+        <a href="{% url 'option_diagnostic_steps' issue_id option_id order %}" class="btn btn-danger"> خطا هنوز پابرجاست</a>
+        <a href="/" class="btn btn-success">رفع مشکل</a>
+    </div>
+</div>
+
+{% endblock %}

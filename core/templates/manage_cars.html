@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %} داشبورد مدیر{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1>لیست خودرو ها</h1>
+        <a href="{% url 'issue_category_create' %}" class="btn btn-primary mb-3">اضافه کردن خودروی جدید</a>
+        <ul class="list-group">
+            {% for car in cars %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{% url 'car_detail' car.id %}">{{ car.name }}</a>
+                    <div>
+                        <a href="" class="btn btn-warning btn-sm">ویرایش</a>
+                        <a href="" class="btn btn-danger btn-sm">حذف</a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

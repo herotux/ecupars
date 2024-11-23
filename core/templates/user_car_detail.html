@@ -1,0 +1,48 @@
+{% extends 'base2.html' %}
+{% block title %} اپلیکیشن عیب یابی خودرو {% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">{{ car.name }}</h1>
+        
+        {% if issue_categories %}
+        <h2 class="my-4">دسته‌بندی‌های مربوط:</h2>
+        
+        <ul class="list-group mb-4">
+            {% for category in issue_categories %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'user_car_detail' category.id %}" class="text-decoration-none">{{ category.name }}</a>
+                {% if user.is_staff %}
+                    <div>
+                        <a href="" class="btn btn-warning btn-sm">ویرایش</a>
+                        <a href="" class="btn btn-danger btn-sm">حذف</a>
+                    </div>
+                {% endif %}
+            </li>
+            {% empty %}
+                <li class="list-group-item text-center">دسته‌بندی‌ای موجود نیست.</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% if issues %}
+        <h2 class="my-4">خطاها:</h2>
+        <ul class="list-group mb-4">
+            {% for issue in issues %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'user_issue_detail' issue.id %}" class="text-decoration-none">{{ issue.title }}</a>
+                {% if user.is_staff %}
+                <div>
+                    <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">ویرایش</a>
+                    <a href="{% url 'issue_delete' issue.id %}" class="btn btn-danger btn-sm">حذف</a>
+                </div>
+                {% endif %}
+            </li>
+            {% empty %}
+                <li class="list-group-item text-center">خطایی در این دسته وجود ندارد.</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+    </div>
+{% endblock %}

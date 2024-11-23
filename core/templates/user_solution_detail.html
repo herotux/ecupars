@@ -1,0 +1,33 @@
+{% extends 'base2.html' %}
+
+
+{% block title %}  {% endblock %}
+{% block extra_css %}
+<style>
+    .blog-post {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .blog-post h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+    .blog-post p {
+        line-height: 1.6;
+    }
+    img {
+    max-width: 100%;
+    height: auto !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="blog-post">
+        <h1> {{ solution.title }} </h1>
+        <p> {{ solution.description|safe }}</p>
+    </div>
+{% endblock %}
+

@@ -1,0 +1,161 @@
+{% extends 'base2.html' %}
+{% block title %} صفحه   {{ issue.title }} {% endblock %}
+{% block extra_css %}
+<style>
+    * {
+            box-sizing: border-box;
+        }
+    .blog-post {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .blog-post h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+
+    .blog-post p {
+        line-height: 1.6;
+    }
+
+    button {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5em;
+        color: #007bff;
+        transition: color 0.2s;
+    }
+
+    button:hover {
+        color: #0056b3;
+    }
+
+
+
+    #optionsContainer {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    
+    <div class="blog-post">
+        <button id="bookmarkButton" title="نشان کردن صفحه">
+            <i id="bookmarkIcon" class="fa fa-bookmark-o"></i> <!-- آیکون توخالی به طور پیش‌فرض -->
+        </button>
+
+        
+        {% if issue %}
+            <h1> {{ issue.title }} </h1>
+            <p> {{ issue.description|safe }}</p>
+        {% elif step %}
+            <h1>{{ step.solution.title }}</h1>
+            <p>{{ step.solution.description|safe }}</p>
+        {% endif %}
+    </div>
+    {% if step.map %}
+    <div class="blog-post" style="text-align: center;">
+        <h1>{{ step.map.title }}</h1>
+        <img src={{ step.map.image.url }}> 
+    </div>
+    {% endif %}
+</div>
+
+<div class="container mt-5 text-center">
+    {% if question %}
+    <h2>{{ question.text }}</h2>
+    <div id="optionsContainer"></div>
+    {% else %}
+    <ul class="list-unstyled">
+        <li class="my-3">
+            <p>هنوز عیب یابی تعریف نشده</p>
+        </li>
+    </ul>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+$(document).ready(function () {
+
+    loadOptions()
+
+    function loadOptions() {
+        const questionId = '{{ question.id }}';
+        $.ajax({
+            url: '/api/get_options/' + questionId,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                if (data.options.length === 0) {
+                    $('#optionsContainer').html('هیچ گزینه‌ای موجود نیست.');
+                    return;
+                }
+
+                let optionsHtml = data.options.map(option => `
+                    <div class="card" style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;">
+                        <a href="${option.user_option_url}">${option.text}</a>
+                    </div>
+                `).join('');
+
+                $('#optionsContainer').html(optionsHtml);
+            },
+            error: function (xhr, status, error) {
+                console.error('خطا در دریافت گزینه‌ها:', error);
+                $('#optionsContainer').html('خطا در دریافت گزینه‌ها.');
+            }
+        });
+    }
+    
+        
+});
+
+$(document).ready(function () {
+        var currentUrl = '{{ request.build_absolute_uri }}'; // گرفتن URL فعلی
+    
+
+
+        $.ajax({
+            url: '/check_bookmark/', // آدرس API
+            method: 'GET',
+            data: { url: currentUrl },
+            success: function(response) {
+                if (response.exists) {
+                    $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+                } 
+                // نیازی به هیچ کاری در حالت عدم بوکمارک نیست
+            }
+        });
+
+        // اضافه کردن قابلیت بوکمارک
+        $('#bookmarkButton').click(function() {
+            $.ajax({
+                url: '/bookmarks/create/', // یا آدرس ویو شما برای ایجاد بوکمارک
+                method: 'POST',
+                data: {
+                    url: currentUrl,
+                    title: document.title, // ارسال عنوان
+                    csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#bookmarkIcon').removeClass('fa-bookmark-o').addClass('fa-bookmark'); // تغییر به آیکون پر
+                    } else {
+                        alert('خطا در اضافه کردن بوکمارک.');
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

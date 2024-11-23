@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}  راهکارها{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1>مدیریت راهکارها</h1>
+
+        <ul class="list-group">
+            {% for solution in solutions %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ solution.title }}</span>
+                    <span>
+                        <ul>
+                            {% for issue_title, category_name in solution.get_issue_hierarchy.items %}
+                                <li> {{ category_name }} > {{ issue_title }}</li>
+                            {% endfor %}
+                        </ul>
+                    </span>
+                    <span>
+                        <a href="{% url 'solution_update' solution.id %}" class="btn btn-warning btn-sm">ویرایش</a>
+                        <a href="{% url 'solution_delete' solution.id %}" class="btn btn-danger btn-sm">حذف</a>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

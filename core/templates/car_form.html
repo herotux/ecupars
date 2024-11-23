@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}ایجاد/ویرایش خودرو{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>{% if form.instance.pk %}ویرایش خودرو{% else %}ایجاد خودرو{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form|crispy }}
+        </div>
+        <button type="submit" class="btn btn-primary">ذخیره</button>
+        <a href="{% url 'manage_cars' %}" class="btn btn-secondary">لغو</a>
+    </form>
+</div>
+
+{% endblock %}

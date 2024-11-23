@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}مدیریت نشان ها{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>لیست نشان ها</h1>
+    <ul class="list-group">
+        {% for bookmark in bookmarks %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{{ bookmark.url }}">{{ bookmark.title }}</a> 
+                <div>
+                    <form action="{% url 'bookmark_delete' bookmark.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit">حذف</button>
+                    </form>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

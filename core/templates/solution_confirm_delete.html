@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}تأیید حذف راه حل{% endblock %}
+
+{% block content %}
+<h2>آیا مطمئن هستید که می‌خواهید این راه حل حذف شود؟</h2>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">بله، حذف کن</button>
+    <a href="{% url 'manage_solutions' %}" class="btn btn-secondary">لغو</a>
+</form>
+{% endblock %}

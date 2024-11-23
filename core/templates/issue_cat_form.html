@@ -1,0 +1,26 @@
+<!-- HTML Template -->
+{% extends 'base.html' %}
+{% block header %}
+    {{ form.media }}
+{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block title %}ایجاد/ویرایش خطا{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>{% if form.instance.pk %}ویرایش خطا{% else %}ایجاد خطا{% endif %}</h2>
+        <form id="issue-form" method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group mb-3">
+                {{ form|crispy }}
+            </div>
+
+            <div class="d-flex justify-content-between mb-3">
+                <button type="submit" class="btn btn-success">ذخیره</button>
+                <a href="{% url 'manage_issues' %}" class="btn btn-secondary">لغو</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base2.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">لیست خودروها</h2>
+    <ul id="car-list" class="list-group mt-4">
+        {% for car in cars %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'user_car_detail' car.id %}" class="text-decoration-none">{{ car.name }}</a>
+                <span class="badge bg-primary rounded-pill">جزئیات</span>
+            </li>
+        {% endfor %}
+    </ul>
+    {% if not cars %}
+        <div class="alert alert-warning mt-4" role="alert">
+            هیچ خودرویی برای نمایش وجود ندارد!
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block customjs %}
+{% endblock %}

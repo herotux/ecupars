@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block header %}
+    {{ form.media }}
+{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block title %}ایجاد/ویرایش خطا{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>{% if form.instance.pk %}ویرایش خطا{% else %}ایجاد خطا{% endif %}</h2>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {{ form|crispy }}
+            
+            <button type="submit" class="btn btn-primary">ذخیره</button>
+            <a href="{% url 'manage_issues' %}" class="btn btn-secondary">لغو</a>
+        </form>
+    </div>
+{% endblock %} 
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#addTagButton').click(function() {
+            const newTag = $('#newTag').val();
+            if (newTag) {
+                $.ajax({
+                    url: '/api/add_tag/',
+                    method: 'POST',
+                    data: {
+                        name: newTag,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // تگ جدید را به انتخاب‌گر اضافه کن
+                            $('#tagSelect').append(new Option(newTag, response.tag.id));
+                            $('#newTag').val(''); // ورودی را پاک کن
+                        } else {
+                            alert('خطا: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('خطای غیر منتظره!');
+                    }
+                });
+            } else {
+                alert('لطفاً یک تگ معتبر وارد کنید.');
+            }
+        });
+    });
+</script>
+{% endblock %} 

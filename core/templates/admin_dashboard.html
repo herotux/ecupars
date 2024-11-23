@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %} داشبورد مدیر{% endblock %}
+
+{% block content %}
+    <h1>داشبورد مدیر</h1>
+    <div class="container mt-5">
+        <p>سلام {{ user.first_name }} خوش اومدی </p>
+
+        <h1>لیست فعالیت‌های کاربران</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>کاربر</th>
+                <th>عملیات</th>
+                <th>مدل</th>
+                <th>شناسه شیء</th>
+                <th>زمان</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for activity in activities %}
+            <tr>
+                <td>{{ activity.user.username }}</td>
+                <td>{{ activity.action }}</td>
+                <td>{{ activity.model_name }}</td>
+                <td>{{ activity.object_id }}</td>
+                <td>{{ activity.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>    
+
+
+{% endblock %}

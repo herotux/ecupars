@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Car Troubleshooting System</h1>
+        <form id="search-form">
+            <input type="text" class="form-control" id="search-box" placeholder="Search for a car...">
+        </form>
+        <ul id="search-results" class="list-group mt-3"></ul>
+    </div>
+
+    <script>
+        $('#search-box').on('keyup', function() {
+            const query = $(this).val();
+            $.ajax({
+                url: "{% url 'search' %}",
+                data: {'q': query},
+                success: function(data) {
+                    $('#search-results').html(data);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

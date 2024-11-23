@@ -1,0 +1,6 @@
+{% for map in maps %}
+    <a class="list-group-item mapres" href="/map/{{ map.id }}">{{ map.title }} ___________ شناسه نقشه:    {{ map.id }}</a>
+   
+{% empty %}
+    <li class="list-group-item mapres">نتیجه‌ای یافت نشد.</li>
+{% endfor %}

@@ -1,0 +1,24 @@
+<!-- HTML Template -->
+{% extends 'base.html' %}
+{% block header %}
+    {{ form.media }}
+{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block title %}ایجاد/ویرایش نقشه{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>{% if form.instance.pk %}ویرایش نقشه{% else %}ایجاد نقشه{% endif %}</h2>
+        <form method="post" enctype="multipart/form-data">  
+            {% csrf_token %}
+            <div class="form-group mb-3">
+                {{ form|crispy }}
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <button type="submit" class="btn btn-success">ذخیره</button>
+                <a href="{% url 'manage_maps' %}" class="btn btn-secondary">لغو</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

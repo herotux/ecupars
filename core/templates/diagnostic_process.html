@@ -1,0 +1,42 @@
+<!-- diagnostic_process.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="diagnostic-container">
+    {% if issue %}
+        <h2>{{ issue.title }}</h2>
+        {{ issue.description|safe }}
+        <div id="current-question" data-question-id="{{ question.id }}">
+            <p>{{ question.text }}</p>
+            <ul>
+                {% for option in question.options.all %}
+                <li>
+                    <a class="option-link" href="{% url 'load_next_step' option.id %}">{{ option.text }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    {% if solution %}
+        <h2>{{ solution.title }}</h2>
+        {{ solution.description|safe }}
+        <div id="current-question" data-question-id="{{ question.id }}">
+            <p>{{ question_text }}</p>
+            <ul>
+                {% for option in options %}
+                <li>
+                    <a class="option-link" href="{% url 'load_next_step' option.id %}">{{ option.text }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+
+    <div id="solution-container" style="display: none;">
+        <h3 id="solution-title"></h3>
+        <p id="solution-description"></p>
+        <button id="continue-cycle" style="display: none;">Continue to First Step</button>
+    </div>
+</div>
+{% endblock %}

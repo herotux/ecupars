@@ -1,0 +1,18 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ category.name }}</h1>
+<h2>زیر دسته ها:</h2>
+<ul>
+    {% for subcategory in subcategories %}
+        <li>{{ subcategory.name }}</li>
+    {% empty %}
+        <li>No subcategories available.</li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'issue_category_update' category.id %}">ویرایش</a>
+<a href="{% url 'issue_category_delete' category.id %}">حذف</a>
+
+{% endblock %}

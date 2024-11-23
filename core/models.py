@@ -1,0 +1,269 @@
+from django.db import models
+from django_ckeditor_5.fields import CKEditor5Field
+from django.core.validators import RegexValidator
+from django.db.models import Q
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, Permission
+import string
+import uuid
+from django.utils import timezone
+from django_jalali.db import models as jmodels
+
+
+
+
+
+
+class CustomUser(AbstractUser):
+    ROLE_CHOICES = (
+        ('admin', 'مدیر'),
+        ('normal', 'کاربر'),
+        ('premium', 'کاربر ویژه'),
+    )
+
+    ACCESS_LEVEL_CHOICES = (
+        (1, 'کاربر سطح 1'),
+        (2, 'کاربر سطح 2'),
+        (3, 'کاربر سطح 3'),
+        (4, 'کاربر سطح 4'),
+    )
+    
+    access_level = models.IntegerField(choices=ACCESS_LEVEL_CHOICES, default=1)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='normal')
+    national_id = models.CharField(max_length=10, unique=True)
+    city = models.CharField(max_length=50)
+    job = models.CharField(max_length=50)
+    phone_number = models.CharField(
+        max_length=15,
+        unique=True,
+        validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')]
+    )
+    hardware_id = models.CharField(max_length=255, null=True, blank=True)
+    license_key = models.CharField(max_length=255, null=True, blank=True)
+    groups = models.ManyToManyField(
+        Group,
+        related_name='customuser_set',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups'
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='customuser_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions'
+    )
+
+    def __str__(self):
+        return self.username
+
+
+class LoginSession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    session_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    otp = models.CharField(max_length=6, null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Session {self.session_id} for {self.user.username}"
+
+
+class IssueCategory(models.Model):
+    name = models.CharField(max_length=100)
+    parent_category = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subcategories')
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_category_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_category_updaters")
+    logo = models.FileField(upload_to='logos/issue_categories/', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def get_full_category_name(self):
+        names = []
+        current_category = self
+        while current_category:
+            names.append(current_category.name)
+            current_category = current_category.parent_category
+        return ' > '.join(reversed(names))
+
+
+class MapCategory(models.Model):
+    name = models.CharField(max_length=100)
+    parent_category = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subcategories')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_category_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_category_updaters")
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    
+    logo = models.FileField(upload_to='logos/map_categories/', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def get_full_category_name(self):
+        names = []
+        current_category = self
+        while current_category:
+            names.append(current_category.name)
+            current_category = current_category.parent_category
+        return ' > '.join(reversed(names))
+
+
+class Issue(models.Model):
+    title = models.CharField(max_length=200)
+    description = CKEditor5Field('Text', config_name='extends')
+    category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
+    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True)
+    tags = models.ManyToManyField('Tag', related_name='issues', blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_updaters")
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+    
+    def delete(self, *args, **kwargs):
+        if self.question:
+            self.question.delete()
+        super(Issue, self).delete(*args, **kwargs)
+
+
+class Solution(models.Model):
+    issues = models.ManyToManyField(Issue, related_name='solutions', blank=True)
+    title = models.CharField(max_length=200)
+    description = CKEditor5Field('Text', config_name='extends')
+    tags = models.ManyToManyField('Tag', related_name='solutions', blank=True)
+    is_public = models.BooleanField(default=False)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="solution_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="solution_updaters")
+
+    def __str__(self):
+        return self.title
+    
+    @classmethod
+    def get_filtered_solutions(cls, issue_id=None):
+        if issue_id is not None:
+            return cls.objects.filter(Q(is_public=True) | Q(issues__id=issue_id)).distinct()
+        else:
+            return cls.objects.filter(is_public=True)
+
+    def get_issue_hierarchy(self):
+        hierarchy = {}
+        for issue in self.issues.all():
+            hierarchy[issue.title] = issue.category.get_full_category_name()
+        return hierarchy
+
+    def get_solution_title_by_issue_id(self, issue_id):
+        solutions = self.objects.filter(issues__id=issue_id)
+        titles = [solution.title for solution in solutions]
+        return titles
+
+
+class Map(models.Model):
+    title = models.CharField(max_length=255)
+    image = models.ImageField(upload_to='maps/')
+    category = models.ForeignKey(MapCategory, on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', related_name='maps', blank=True)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_updaters")
+
+    def __str__(self):
+        return self.title
+
+
+class DiagnosticStep(models.Model):
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='diagnostic_steps')
+    solution = models.ForeignKey(Solution, on_delete=models.SET_NULL, blank=True, null=True)
+    letter = models.CharField(max_length=1, editable=False)
+    map = models.ForeignKey(Map, on_delete=models.SET_NULL, blank=True, null=True, related_name='diagnostic_steps')
+    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True)
+    has_cycle = models.BooleanField(default=False)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="diagnostic_step_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="diagnostic_step_updaters")
+
+    def save(self, *args, **kwargs):
+        if not self.letter:
+            steps = DiagnosticStep.objects.filter(issue=self.issue)
+            if steps.exists():
+                used_letters = set(step.letter for step in steps)
+                for letter in string.ascii_uppercase:
+                    if letter not in used_letters:
+                        self.letter = letter
+                        break
+            else:
+                self.letter = 'A'
+        super().save(*args, **kwargs)
+
+
+class Subscription(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    access_level = models.IntegerField(choices=CustomUser.ACCESS_LEVEL_CHOICES, default=1)
+    active = models.BooleanField(default=False)
+    expiry_date = models.DateTimeField()  
+
+    def is_active(self):
+        return self.active and (self.expiry_date is None or self.expiry_date >= timezone.now())
+
+
+class Bookmark(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookmarks')
+    url = models.URLField()
+    title = models.CharField(max_length=200)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} by {self.user.username}"
+
+
+class Question(models.Model):
+    text = models.CharField(max_length=255)
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="question_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="question_updaters")
+
+    def __str__(self):
+        return self.text
+
+
+class Option(models.Model):
+    text = models.CharField(max_length=255)
+    question = models.ForeignKey(Question, related_name='options', on_delete=models.CASCADE)
+    next_step = models.ForeignKey('DiagnosticStep', null=True, blank=True, on_delete=models.SET_NULL, related_name='prev_options')
+    issue = models.ForeignKey(Issue, null=True, blank=True, on_delete=models.SET_NULL, related_name='back_to_issue')
+    created_at = jmodels.jDateTimeField(auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="option_creators")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="option_updaters")
+
+    def __str__(self):
+        return self.text
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    login_time = models.DateTimeField(auto_now_add=True)
+    logout_time = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Activity for {self.user.username} - Login: {self.login_time}, Logout: {self.logout_time}"

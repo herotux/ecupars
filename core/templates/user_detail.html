@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %} داشبورد مدیر{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1> کاربر</h1>
+        <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    {{ user.username }} - {{ user.email }}
+                </span>
+            </li>
+        </ul>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>ساعت ورود</th>
+                    <th>ساعت خروج</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in user_activities %}
+                <tr>
+                    <td>{{ activity.login_time_shamsi.strftime("%Y/%m/%d") }}</td>
+                    <td>{{ activity.login_time_shamsi.strftime("%H:%M:%S") }}</td>
+                    <td>{{ activity.logout_time_shamsi.strftime("%H:%M:%S") if activity.logout_time_shamsi else "-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">هیچ فعالیتی برای نمایش وجود ندارد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

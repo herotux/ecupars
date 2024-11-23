@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>پنل مدیریت | صفحه ثبت نام</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% load static %}
+  {% load crispy_forms_tags %}
+  <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.min.css' %}">
+  <!-- <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"> -->
+  <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/iCheck/flat/blue.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/morris/morris.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/jvectormap/jquery-jvectormap-1.2.2.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/datepicker/datepicker3.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/daterangepicker/daterangepicker-bs3.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css' %}">
+  <!-- <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet"> -->
+  <link rel="stylesheet" href="{% static 'dist/css/bootstrap-rtl.min.css' %}">
+  <link rel="stylesheet" href="{% static 'dist/css/custom-style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
+  
+  {% block extra_css %}
+  
+  <style>
+    .help-text {
+        display: none;
+    }
+
+  </style>
+  {% endblock %}
+</head>
+<body class="hold-transition register-page">
+  <div class="register-box">
+      <div class="register-logo">
+          <b>ثبت نام در سایت</b>
+      </div>
+  
+      <div class="card">
+          <div class="register-card-body">
+              {% if messages %}
+                  {% for message in messages %}
+                      <div class="alert alert-{{ message.tags }}">
+                          {{ message }}
+                      </div>
+                  {% endfor %}
+              {% endif %}
+              <p class="login-box-msg">ثبت نام کاربر جدید</p>
+              <form id="registrationForm" method="post" action="{% url 'register' %}">
+                  {% csrf_token %}
+                  {{ form|crispy }}
+                  <div class="col-4">
+                      <button type="submit" class="btn btn-primary btn-block btn-flat">ثبت نام</button>
+                  </div>
+              </form>
+          </div>
+          <a href="/login" class="text-center">من قبلا ثبت نام کرده ام</a>
+      </div>
+  </div>
+  
+  <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          // تابع اعتبارسنجی فرم
+          document.getElementById('registrationForm').addEventListener('submit', function(event) {
+              let valid = true;
+              let errorMessage = '';
+  
+              const inputs = this.querySelectorAll('input[required]');
+              inputs.forEach(input => {
+                  if (!input.value) {
+                      valid = false;
+                      errorMessage += `فیلد ${input.placeholder || input.name} نمی‌تواند خالی باشد.\n`;
+                  }
+              });
+  
+              if (!valid) {
+                  event.preventDefault(); // از ارسال فرم جلوگیری می‌کند
+                  alert(errorMessage); // پیام خطا را نمایش می‌دهد
+              }
+          });
+      });
+  </script>
+  </body>
+  </html>

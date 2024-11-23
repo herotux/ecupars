@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}ایجاد/ویرایش دسته‌بندی مسئله{% endblock %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+<h2>{% if form.instance.pk %}ویرایش دسته‌بندی{% else %}ایجاد دسته‌بندی{% endif %}</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form|crispy }}  
+    <button type="submit" class="btn btn-primary">ذخیره</button>
+    <a href="{% url 'manage_issue_categories' %}" class="btn btn-secondary">لغو</a>
+</form>
+</div>
+{% endblock %}
