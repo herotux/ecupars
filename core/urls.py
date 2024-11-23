@@ -37,6 +37,7 @@ urlpatterns = [
     
     path('user_issue/<int:issue_id>/', views.user_issue_detail, name='user_issue_detail'),
     path('issue_categories/create/', views.issue_category_create, name='issue_category_create'),
+    path('add_subcategory/', views.add_subcategory, name='issue_category_create'),
     path('issue_categories/update/<int:category_id>/', views.issue_category_update, name='issue_category_update'),
     path('issue_categories/delete/<int:category_id>/', views.issue_category_delete, name='issue_category_delete'),
 

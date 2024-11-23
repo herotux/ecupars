@@ -33,6 +33,22 @@
             <i class="fa fa-file-upload"></i> اضافه کردن خطا از فایل اکسل
         </a>
         <input type="file" id="excel-file" style="display:none">
+
+        <a href="#" id="add-subcategory" class="btn btn-primary mb-3">
+            <i class="fa fa-plus"></i> افزودن زیر دسته
+        </a>
+        
+        <div id="subcategory-form" style="display:none;">
+            <form id="new-subcategory-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="subcategory_name" class="form-label">نام زیر دسته:</label>
+                    <input type="text" class="form-control" id="subcategory_name" name="subcategory_name" required>
+                </div>
+                <input type="hidden" name="parent_category_id" value="{{ car.id }}">
+                <button type="submit" class="btn btn-success">افزودن زیر دسته</button>
+            </form>
+        </div>
     
         {% if issues %}
             <h2>خطاها:</h2>
@@ -237,6 +253,38 @@ $(document).ready(function() {
         $('#categoryModal').modal('hide'); // بستن مدال پس از تأیید
     });
 
+
+});
+
+$(document).ready(function() {
+
+    // نمایش و پنهان کردن فرم افزودن زیر دسته
+    $('#add-subcategory').click(function(e) {
+        e.preventDefault();
+        $('#subcategory-form').toggle(); // نمایش و پنهان کردن فرم
+    });
+
+    // ارسال فرم اضافه کردن زیر دسته
+    $('#new-subcategory-form').submit(function(e) {
+        e.preventDefault(); // جلوگیری از ارسال پیش‌فرض فرم
+
+        // جمع‌آوری داده‌ها
+        var formData = $(this).serialize();
+
+        $.ajax({
+            url: '{% url "issue_category_create" %}', // به URL درست برای ایجاد زیر دسته
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                // بررسی نتیجه و به‌روزرسانی صفحه
+                alert('زیر دسته با موفقیت اضافه شد.');
+                location.reload(); // بارگذاری مجدد برای نمایش زیر دسته جدید
+            },
+            error: function(xhr, status, error) {
+                alert('خطا در افزودن زیر دسته: ' + xhr.responseText);
+            }
+        });
+    });
 
 });
 

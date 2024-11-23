@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
-from .forms import MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
+from .forms import SubCategoryForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import MapSerializer, IssueCategorySerializer, IssueSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -206,6 +206,25 @@ def issue_category_create(request):
     else:
         form = IssueCategoryForm()
     return render(request, 'issue_category_form.html', {'form': form, 'page_title': page_title})
+
+
+
+
+def add_subcategory(request):
+    if request.method == 'POST':
+        name = request.POST.get('subcategory_name')
+        parent_category_id = request.POST.get('parent_category_id')
+        parent_category = IssueCategory.objects.get(id=parent_category_id)
+
+        new_category = IssueCategory(name=name, parent_category=parent_category, created_by=request.user)
+        new_category.save()
+
+        return JsonResponse({'status': 'success', 'message': 'زیر دسته با موفقیت اضافه شد.'})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر است.'})
+
+
+
 
 
 @user_passes_test(is_admin)
