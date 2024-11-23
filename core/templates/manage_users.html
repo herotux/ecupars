@@ -16,7 +16,7 @@
                         <h5 class="card-title">{{ user.email }}</h5>
                         {% with last_login=user_last_login|get_item:user.pk %}
                             {% if last_login %}
-                                <p class="card-text">آخرین ورود: <strong>{{ last_login"  }}</strong></p>
+                                <p class="card-text">آخرین ورود: <strong>{{ last_login|jformat:"%Y/%m/%d ساعت %H:%M"  }}</strong></p>
                             {% else %}
                                 <p class="card-text">ورودی ثبت نشده</p>
                             {% endif %}
