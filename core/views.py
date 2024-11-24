@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
-from .forms import SubCategoryForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
+from .forms import MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import MapSerializer, IssueCategorySerializer, IssueSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -37,6 +37,7 @@ from django.http import Http404
 from .serializer import DiagnosticStepSerializer, OptionSerializer
 from django.contrib.auth.views import LogoutView as AuthLogoutView
 from django.contrib.auth import login
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.utils import timezone
 
@@ -1920,7 +1921,15 @@ def verify_otp_view(request):
         if session.otp == otp:
             session.is_verified = True
             session.save()
-            return Response({"login_status": "success"})
+
+           
+            refresh = RefreshToken.for_user(session.user)
+
+            return Response({
+                "login_status": "success",
+                "access_token": str(refresh.access_token),   
+                "refresh_token": str(refresh),            
+            })
 
         return Response({"login_status": "failed", "error": "Invalid OTP."}, status=400)
     except LoginSession.DoesNotExist:
