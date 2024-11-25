@@ -23,7 +23,7 @@ import pandas as pd
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+import logging
 import random
 from django.contrib.auth import authenticate
 from .models import LoginSession
@@ -41,12 +41,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.utils import timezone
 
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 
 
 
-
+logger = logging.getLogger('core')
 
 
 
@@ -1940,61 +1941,83 @@ def verify_otp_view(request):
 
 
 
-class HomeAPIView(generics.ListAPIView):
+class HomeAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = IssueCategorySerializer
-
-    def get_queryset(self):
-        return IssueCategory.objects.filter(parent_category__isnull=True)
-
-    def list(self, request, *args, **kwargs):
-        cars = self.get_queryset()
-       
-        return Response({
-            'cars': IssueCategorySerializer(cars, many=True).data,
-        })
-
-
-
-
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request, *args, **kwargs):
+        logger.info(f"User {request.user} accessed the car list.")  # ثبت لاگ دسترسی
+        try:
+            cars = IssueCategory.objects.filter(parent_category__isnull=True)
+            logger.debug(f"Fetched {cars.count()} cars.")  # ثبت لاگ دیباگ
+            serializer = IssueCategorySerializer(cars, many=True)
+            return Response({'cars': serializer.data})
+        except Exception as e:
+            logger.error(f"Error fetching car list: {e}")  # ثبت لاگ خطا
+            return Response({'error': 'Unable to fetch car list.'}, status=500)
 
 
 class UserCarDetail(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request, cat_id):
-        user = request.user
-        car = get_object_or_404(IssueCategory, id=cat_id)
-        issue_categories = IssueCategory.objects.filter(parent_category=cat_id) 
-        issues = Issue.objects.filter(category=cat_id)
+        logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
+        try:
+            # پیدا کردن دسته‌بندی اصلی
+            category = IssueCategory.objects.get(id=cat_id)
 
+            # پیدا کردن تمام دسته‌های مرتبط (بازگشتی)
+            def get_all_related_categories(category):
+                categories = [category]
+                subcategories = IssueCategory.objects.filter(parent_category=category)
+                for subcategory in subcategories:
+                    categories.extend(get_all_related_categories(subcategory))
+                return categories
 
+            all_categories = get_all_related_categories(category)
 
-        # Serialize داده‌ها
-        cat_serializer = IssueCategorySerializer(car)
-        issues_serializer = IssueSerializer(issues, many=True)
-        categories_serializer = IssueCategorySerializer(issue_categories, many=True)
+            # دریافت مشکلات مربوط به تمام دسته‌بندی‌ها
+            issues = Issue.objects.filter(category__in=all_categories).distinct()
 
-        return Response({
-            'car': cat_serializer.data,
-            'issue_categories': categories_serializer.data,
-            'issues': issues_serializer.data,
-        })
+            # سریالایز داده‌ها
+            category_serializer = IssueCategorySerializer(category)
+            all_categories_serializer = IssueCategorySerializer(all_categories, many=True)
+            issues_serializer = IssueSerializer(issues, many=True)
+
+            logger.debug(f"Category {cat_id} returned {len(all_categories)} related categories and {issues.count()} issues.")
+
+            return Response({
+                'category': category_serializer.data,
+                'all_related_categories': all_categories_serializer.data,
+                'issues': issues_serializer.data,
+            })
+
+        except IssueCategory.DoesNotExist:
+            logger.warning(f"Category with ID {cat_id} not found.")
+            return Response({'error': 'Category not found.'}, status=404)
+
+        except ValueError as ve:
+            logger.error(f"ValueError occurred for category ID {cat_id}: {ve}")
+            return Response({'error': 'Invalid input provided.'}, status=400)
+
+        except Exception as e:
+            logger.error(f"Unexpected error for category ID {cat_id}: {e}")
+            return Response({'error': 'An unexpected error occurred.'}, status=500)
 
 
 
 class UserIssueDetailView(generics.RetrieveAPIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = IssueSerializer
     queryset = Issue.objects.all()
 
     def get(self, request, *args, **kwargs):
         issue = self.get_object()
-        issue_categories = IssueCategory.objects.all()
         
         data = {
             'issue': self.get_serializer(issue).data,
-            'issue_categories': issue_categories.values(),
         }
 
         if issue.question:
@@ -2010,27 +2033,27 @@ class UserIssueDetailView(generics.RetrieveAPIView):
 
 
     
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_step_detail(request, step_id):
-    try:
-        step = DiagnosticStep.objects.get(id=step_id)
-    except DiagnosticStep.DoesNotExist:
-        raise Http404("Step not found")
-    
-    question = step.question  # سوال مرتبط با خطا (در صورت وجود)
-    options = []
+class UserStepDetail(APIView):
+    permission_classes = [IsAuthenticated]
 
-    if question:
-        options = Option.objects.filter(question_id=question.id)
-    
-    step_serializer = DiagnosticStepSerializer(step)
-    options_serializer = OptionSerializer(options, many=True)
+    def get(self, request, step_id):
+        try:
+            step = DiagnosticStep.objects.get(id=step_id)
+        except DiagnosticStep.DoesNotExist:
+            raise NotFound("Step not found")
+        
+        question = step.question  # سوال مرتبط با خطا (در صورت وجود)
+        options = []
 
-    return Response({
-        'step': step_serializer.data,
-        'question': question.id if question else None,
-        'options': options_serializer.data
-    }, status=status.HTTP_200_OK)
+        if question:
+            options = Option.objects.filter(question_id=question.id)
+        
+        step_serializer = DiagnosticStepSerializer(step)
+        options_serializer = OptionSerializer(options, many=True)
 
+        return Response({
+            'step': step_serializer.data,
+            'question': question.id if question else None,
+            'options': options_serializer.data
+        }, status=status.HTTP_200_OK)
 
