@@ -336,9 +336,9 @@
         // بعد از این که فرم ویرایش باز شد
         $('#editissueForm').on('submit', function(event) {
             event.preventDefault(); // جلوگیری از رفتار پیش‌فرض فرم
-            const solutionId = '{{ issue.id }}';
+            const issueId = '{{ issue.id }}';
             const formData = {
-                id: solutionId,
+                id: issueId,
                 title: $(this).find('input[name="title"]').val(),
                 description: $(this).find('textarea[name="description"]').val(),
                 csrfmiddlewaretoken: '{{ csrf_token }}' // توکن CSRF برای امنیت

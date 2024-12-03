@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Map, IssueCategory, Issue, Question, DiagnosticStep, Option
+from .models import Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -39,3 +39,22 @@ class OptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Option
         fields = '__all__'
+
+
+
+# سریالایزر پلن‌ها
+class SubscriptionPlanSerializer(serializers.ModelSerializer):
+    access_to_categories = IssueCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SubscriptionPlan
+        fields = "__all__"
+
+# سریالایزر اشتراک کاربران
+class UserSubscriptionSerializer(serializers.ModelSerializer):
+    plan = SubscriptionPlanSerializer(read_only=True)
+    active_categories = IssueCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = UserSubscription
+        fields = ["plan", "active_categories", "start_date", "end_date", "is_active"]

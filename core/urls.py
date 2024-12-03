@@ -135,5 +135,13 @@ urlpatterns = [
     path('issues/delete/', views.issue_bulk_delete, name='issue_bulk_delete'),
     path('issue/bulk/update/', views.issue_bulk_update, name='issue_bulk_update'),
     path('import-maps/<int:category_id>/', views.import_maps, name='import_maps'),
+    path('plans/', views.subscription_plans, name='subscription_plans'),
+    path('subscribe/<int:plan_id>/', views.subscribe, name='subscribe'),
+    path('my-subscription/', views.my_subscription, name='my_subscription'),
+
+
+    # تأیید پرداخت
+    path('payment/verify/', views.verify_payment, name='verify_payment'),
+    
 
 ]

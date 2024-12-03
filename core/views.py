@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from .models import UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import MapSerializer, IssueCategorySerializer, IssueSerializer
+from .models import SubscriptionPlan, UserSubscription
+from .serializer import SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login as auth_login
@@ -38,10 +40,98 @@ from .serializer import DiagnosticStepSerializer, OptionSerializer
 from django.contrib.auth.views import LogoutView as AuthLogoutView
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from django.contrib import messages
 from django.utils import timezone
-
+from datetime import timedelta
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import BasePermission
+from django.db import IntegrityError
+from zarinpal.api import ZarinPalPayment
+from django.core.exceptions import PermissionDenied
+from functools import wraps
+
+
+
+
+
+
+
+def has_category_access(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        category_id = kwargs.get('cat_id')  # Get the category ID from URL kwargs
+        user = request.user
+
+        if not user.is_authenticated or not hasattr(user, 'subscription'):
+            raise PermissionDenied("You do not have permission to access this category.")
+
+        subscription = user.subscription
+
+        # Check access to all categories
+        if subscription.plan.access_to_all_categories:
+            return view_func(request, *args, **kwargs)
+
+        # Get the specified category
+        try:
+            category = IssueCategory.objects.get(id=category_id)
+        except IssueCategory.DoesNotExist:
+            raise PermissionDenied("The specified category does not exist.")
+
+        # Get the ID of the specified category and all its parent categories
+        parent_categories = []
+        current_category = category
+
+        # Traverse up to find all parent categories
+        while current_category.parent_category is not None:
+            parent_categories.append(current_category.parent_category.id)
+            current_category = current_category.parent_category
+
+        # Combine the parent categories and the current category
+        category_ids = parent_categories + [category_id]
+        
+        # Check if the user has access to the specified category or any of its parent categories
+        if not any(cat_id in subscription.active_categories.values_list('id', flat=True) for cat_id in category_ids):
+            raise PermissionDenied("You do not have access to this category or its parent categories.")
+
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
+
+
+
+
+
+
+def has_diagnostic_access(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+
+        if not user.is_authenticated or not hasattr(user, 'subscription'):
+            raise PermissionDenied("You do not have permission to access this diagnostic step.")
+
+        subscription = user.subscription
+
+        # بررسی دسترسی به مراحل عیب‌یابی
+        if not subscription.plan.access_to_diagnostic_steps:
+            raise PermissionDenied("You do not have access to this diagnostic step.")
+
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -644,16 +734,15 @@ def issue_detail(request, issue_id):
     question = issue.question  # سوال مرتبط با خطا (در صورت وجود)
     solutions = Solution.get_filtered_solutions(issue_id = issue.id)
     form = issue_SolutionForm()
-    if issue:
-        issue_form = IssueCatForm(instance=issue)
-    else:
-        issue_form = IssueCatForm()
+
+    issue_form = IssueCatForm(instance=issue)
+
     if question:
         options = question.options.all()
         return render(request, 'issue_detail.html', {'issue_form':issue_form,'form':form,'issue': issue, 'question': question, 'options': options, 'solutions':solutions})
     else:
         steps = issue.diagnostic_steps.all()  # مراحل عیب‌یابی مستقیم
-        return render(request, 'issue_detail.html', {'form':form,'issue': issue, 'steps': steps,'solutions':solutions})
+        return render(request, 'issue_detail.html', {'issue_form':issue_form,'form':form,'issue': issue, 'steps': steps,'solutions':solutions})
 
 
 
@@ -678,6 +767,7 @@ def step_detail(request, step_id):
 
 
 @login_required
+@has_diagnostic_access
 def user_step_detail(request, step_id):
     step = get_object_or_404(DiagnosticStep, id=step_id)
     
@@ -720,6 +810,7 @@ def car_detail(request, cat_id):
 
 
 @login_required
+@has_category_access
 def user_car_detail(request, cat_id):
     page_title = " خودرو"
     car = get_object_or_404(IssueCategory, id=cat_id)
@@ -1672,18 +1763,20 @@ def edit_issue(request):
         issue_id = request.POST.get('id')
         title = request.POST.get('title')
         description = request.POST.get('description')
-        print(issue_id)
+        
+        if not title:
+            return JsonResponse({'status': 'error', 'message': 'Title is required.'})
+        if not issue_id:
+            return JsonResponse({'status': 'error', 'message': 'Issue ID is required.'})
+
         try:
             issue = Issue.objects.get(id=issue_id)
             issue.title = title
             issue.description = description
             issue.save()
-
             return JsonResponse({'status': 'success', 'message': 'ویرایش با موفقیت انجام شد.'})
         except Issue.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'خطا پیدا نشد.'})
-
-    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر است.'})
+            return JsonResponse({'status': 'error', 'message': 'Issue not found.'})
 
 
 
@@ -1880,6 +1973,119 @@ def user_detail(request, user_id):
 
 
 
+@login_required
+def subscription_plans(request):
+    plans = SubscriptionPlan.objects.all()
+    return render(request, 'plans.html', {'plans': plans})
+
+
+
+
+
+
+
+
+
+@login_required
+def subscribe(request, plan_id):
+    try:
+        # پیدا کردن پلن انتخابی
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        
+        # ایجاد پرداخت در زرین‌پال
+        merchant_id = settings.ZARINPAL_MERCHANT_ID  # تنظیم Merchant ID از تنظیمات
+        amount = plan.price  # قیمت پلن
+        description = f"اشتراک {plan.name}"  # توضیحات
+        callback_url = request.build_absolute_uri('/payment/verify/')  # آدرس بازگشت
+        
+        # ارسال درخواست پرداخت
+        payment_handler = ZarinPalPayment(merchant_id, amount)
+        result = payment_handler.request_payment(callback_url, description, mobile=request.user.profile.mobile, email=request.user.email)
+
+        if result['status'] == 'success':
+            # ذخیره Authority برای تأیید پرداخت
+            request.session['authority'] = result['data']['authority']
+            request.session['plan_id'] = plan_id
+
+            # هدایت به درگاه پرداخت
+            return redirect(result['data']['url'])
+        else:
+            messages.error(request, "خطا در اتصال به درگاه پرداخت.")
+            return redirect('subscription_plans')
+    except Exception as e:
+        messages.error(request, f"یک خطا رخ داد: {str(e)}")
+        return redirect('subscription_plans')
+
+
+
+
+@login_required
+def verify_payment(request):
+    try:
+        authority = request.GET.get('Authority')  # کد Authority از درگاه
+        plan_id = request.session.get('plan_id')  # بازیابی پلن
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+        # بررسی وضعیت پرداخت
+        merchant_id = settings.ZARINPAL_MERCHANT_ID
+        payment_handler = ZarinPalPayment(merchant_id, plan.price)
+        verification_result = payment_handler.verify_payment(authority)
+
+        if verification_result['status'] == 'success':
+            # پرداخت موفقیت‌آمیز
+            user_subscription, created = UserSubscription.objects.get_or_create(
+                user=request.user,
+                defaults={'plan': plan}
+            )
+
+            # تنظیم تاریخ‌ها
+            if created:
+                user_subscription.start_date = now()
+            else:
+                if user_subscription.start_date is None:
+                    user_subscription.start_date = now()
+
+            user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
+            user_subscription.save()
+
+            messages.success(request, 'پرداخت شما با موفقیت انجام شد و اشتراک فعال گردید.')
+            return redirect('my_subscription')
+        else:
+            messages.error(request, 'پرداخت انجام نشد.')
+            return redirect('subscription_plans')
+    except Exception as e:
+        messages.error(request, f"یک خطا رخ داد: {str(e)}")
+        return redirect('subscription_plans')
+
+        
+
+
+
+
+
+
+
+
+@login_required
+def my_subscription(request):
+    subscription = UserSubscription.objects.get(user=request.user)
+    return render(request, 'my_subscription.html', {'subscription': subscription})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1938,6 +2144,43 @@ def verify_otp_view(request):
 
 
 
+# پرمیشن سفارشی
+class HasCategoryAccess(BasePermission):
+    def has_permission(self, request, view):
+        category_id = view.kwargs.get('category_id')
+        if not category_id:
+            return False
+
+        user = request.user
+        if not user.is_authenticated or not hasattr(user, 'subscription'):
+            return False
+
+        subscription = user.subscription
+
+        # بررسی دسترسی به همه دسته‌ها
+        if subscription.plan.access_to_all_categories:
+            return True
+
+        # بررسی دسترسی به دسته‌های محدود
+        restricted_categories = subscription.plan.restricted_categories.all()
+        if category_id in [cat.id for cat in restricted_categories]:
+            return False
+
+        return True
+
+
+
+class HasDiagnosticAccess(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated or not hasattr(user, 'subscription'):
+            return False
+
+        subscription = user.subscription
+
+        # بررسی دسترسی به مراحل عیب‌یابی
+        return subscription.plan.access_to_diagnostic_steps
+
 
 
 
@@ -1959,8 +2202,8 @@ class HomeAPIView(APIView):
 
 class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCategoryAccess]
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
         try:
@@ -2009,7 +2252,8 @@ class UserCarDetail(APIView):
 
 class UserIssueDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasCategoryAccess]
     serializer_class = IssueSerializer
     queryset = Issue.objects.all()
 
@@ -2034,8 +2278,8 @@ class UserIssueDetailView(generics.RetrieveAPIView):
 
     
 class UserStepDetail(APIView):
-    permission_classes = [IsAuthenticated]
-
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
     def get(self, request, step_id):
         try:
             step = DiagnosticStep.objects.get(id=step_id)
@@ -2056,4 +2300,61 @@ class UserStepDetail(APIView):
             'question': question.id if question else None,
             'options': options_serializer.data
         }, status=status.HTTP_200_OK)
+
+
+
+
+
+
+# لیست پلن‌های اشتراکی
+class SubscriptionPlanListView(APIView):
+    def get(self, request):
+        plans = SubscriptionPlan.objects.all()
+        serializer = SubscriptionPlanSerializer(plans, many=True)
+        return Response(serializer.data)
+
+
+
+
+# فعال‌سازی اشتراک
+class ActivateSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        plan_id = request.data.get("plan_id")
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({"error": "Plan not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_subscription, created = UserSubscription.objects.update_or_create(
+            user=request.user,
+            defaults={
+                "plan": plan,
+                "start_date": now(),
+                "end_date": now() + timedelta(days=30),
+            }
+        )
+        user_subscription.active_categories.set(plan.access_to_categories.all())
+        user_subscription.save()
+
+        return Response({"message": "Subscription activated successfully."}, status=status.HTTP_200_OK)
+
+
+
+
+# مشاهده اطلاعات اشتراک کاربر
+class UserSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            subscription = UserSubscription.objects.get(user=request.user)
+            serializer = UserSubscriptionSerializer(subscription)
+            return Response(serializer.data)
+        except UserSubscription.DoesNotExist:
+            return Response({"error": "No active subscription found."}, status=status.HTTP_404_NOT_FOUND)
+            
+
+
 

@@ -1,0 +1,12 @@
+{% extends 'base2.html' %}
+
+
+{% block title %} اشتراک من {% endblock %}
+
+
+{% block content %}
+
+    <h2>{{ subscription.plan.name }}</h2>
+    <p>تاریخ شروع: {{ subscription.start_date }}</p>
+    <p>تاریخ پایان: {{ subscription.end_date }}</p>
+{% endblock %}

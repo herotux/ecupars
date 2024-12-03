@@ -10,4 +10,7 @@ urlpatterns = [
     path('cars/<int:cat_id>/', views.UserCarDetail.as_view(), name='car-detail'),  
     path('issues/<int:pk>/', views.UserIssueDetailView.as_view(), name='issue-detail'),  
     path('steps/<int:step_id>/', views.UserStepDetail.as_view(), name='step-detail'),
+    path('subscription-plans/', views.SubscriptionPlanListView.as_view(), name='subscription-plan-list'),
+    path('activate-subscription/', views.ActivateSubscriptionView.as_view(), name='activate-subscription'),
+    path('user-subscription/', views.UserSubscriptionView.as_view(), name='user-subscription'),
 ]

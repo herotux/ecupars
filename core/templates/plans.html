@@ -1,0 +1,76 @@
+{% extends 'base2.html' %}
+
+{% block title %} پلن‌های اشتراک {% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        height: 350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: #f8f9fa; /* رنگ پس‌زمینه روشن */
+        border: 1px solid #007bff; /* مرز آبی */
+        transition: transform 0.3s, box-shadow 0.3s; /* انیمیشن برای بزرگ شدن و سایه */
+    }
+    .card:hover {
+        transform: scale(1.05); /* بزرگ شدن در حالت هاور */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* سایه در حالت هاور */
+    }
+    .card-body {
+        flex-grow: 1;
+    }
+    .btn-full-width {
+        width: 100%;
+        margin-top: auto;
+    }
+    .btn-primary {
+        background-color: #007bff; /* رنگ دکمه */
+        border: none;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3; /* رنگ دکمه در حالت هاور */
+    }
+    .card-price {
+        font-weight: bold; /* پررنگ بودن قیمت */
+        font-size: 1.5em; /* اندازه بزرگتر */
+        color: #dc3545; /* رنگ خاص برای قیمت */
+        text-align: center; /* تراز در وسط */
+        margin: 15px 0; /* فاصله بالایی و پایینی */
+    }
+</style>
+
+<div class="container mt-5">
+
+    {% if messages %}
+        <div class="container mt-4">
+            {% for message in messages %}
+                <div class="alert alert-info">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <h1 class="text-center mb-4">پلن‌های اشتراک</h1>
+    <div class="row">
+        {% for plan in plans %}
+        <div class="col-md-3">
+            <div class="card mb-4 shadow-sm">
+                
+                <div class="card-body">
+                    <h2 class="card-title">{{ plan.name }}</h2>
+                    <p class="card-text">{{ plan.description }}</p>
+                </div>
+                <h5 class="card-price">قیمت: {{ plan.price }} تومان</h5>
+                <a href="{% url 'subscribe' plan.id %}" class="btn btn-primary btn-full-width">اشتراک</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="text-center mt-4">
+        <a href="{% url 'my_subscription' %}" class="btn btn-secondary">مشاهده اشتراک من</a>
+    </div>
+</div>
+{% endblock %}

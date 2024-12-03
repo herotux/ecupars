@@ -8,10 +8,20 @@ import string
 import uuid
 from django.utils import timezone
 from django_jalali.db import models as jmodels
+from django.utils.timezone import now
+from datetime import timedelta
 
 
 
 
+
+
+def default_end_date():
+    return now() + timedelta(days=30)
+
+
+def default_start_date():
+    return now()
 
 
 class CustomUser(AbstractUser):
@@ -20,15 +30,7 @@ class CustomUser(AbstractUser):
         ('normal', 'کاربر'),
         ('premium', 'کاربر ویژه'),
     )
-
-    ACCESS_LEVEL_CHOICES = (
-        (1, 'کاربر سطح 1'),
-        (2, 'کاربر سطح 2'),
-        (3, 'کاربر سطح 3'),
-        (4, 'کاربر سطح 4'),
-    )
-    
-    access_level = models.IntegerField(choices=ACCESS_LEVEL_CHOICES, default=1)
+ 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='normal')
     national_id = models.CharField(max_length=10, unique=True)
     city = models.CharField(max_length=50)
@@ -72,6 +74,7 @@ class LoginSession(models.Model):
 
 class IssueCategory(models.Model):
     name = models.CharField(max_length=100)
+    order = models.IntegerField(null=True, blank=True, unique=True) 
     parent_category = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subcategories')
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     updated_at = jmodels.jDateTimeField(auto_now=True)
@@ -93,6 +96,7 @@ class IssueCategory(models.Model):
 
 class MapCategory(models.Model):
     name = models.CharField(max_length=100)
+    order = models.IntegerField(null=True, blank=True, unique=True) 
     parent_category = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subcategories')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_category_creators")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_category_updaters")
@@ -207,8 +211,14 @@ class DiagnosticStep(models.Model):
 
 
 class Subscription(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    access_level = models.IntegerField(choices=CustomUser.ACCESS_LEVEL_CHOICES, default=1)
+    ACCESS_LEVEL_CHOICES = (
+        (1, 'کاربر سطح 1'),
+        (2, 'کاربر سطح 2'),
+        (3, 'کاربر سطح 3'),
+        (4, 'کاربر سطح 4'),
+    )
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='subscription_account')
+    access_level = models.IntegerField(choices=ACCESS_LEVEL_CHOICES, default=1)
     active = models.BooleanField(default=False)
     expiry_date = models.DateTimeField()  
 
@@ -267,3 +277,53 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f"Activity for {self.user.username} - Login: {self.login_time}, Logout: {self.logout_time}"
+
+
+
+
+
+class SubscriptionPlan(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+    access_to_all_categories = models.BooleanField(default=False)
+    access_to_diagnostic_steps = models.BooleanField(default=False)
+    restricted_categories = models.ManyToManyField('IssueCategory', blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+
+    def __str__(self):
+        return self.name
+
+
+
+
+# اشتراک کاربران
+class UserSubscription(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="subscription")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE)
+    active_categories = models.ManyToManyField(IssueCategory, blank=True)  
+    start_date = models.DateTimeField(default=default_start_date)
+    end_date = models.DateTimeField(default=default_end_date)  
+
+    def is_active(self):
+        return self.end_date > now()
+
+    def __str__(self):
+        return f"{self.user.username} - {self.plan.name}"
+
+
+
+
+
+class Advertisement(models.Model):
+    
+    title = models.CharField(max_length=255, verbose_name="عنوان")
+    link = models.URLField(verbose_name="لینک")
+    banner = models.ImageField(upload_to='advertisements/', verbose_name="بنر")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "تبلیغ"
+        verbose_name_plural = "تبلیغات"
+
+    def __str__(self):
+        return self.title

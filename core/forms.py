@@ -33,14 +33,15 @@ class IssueCategoryForm(forms.ModelForm):
 
     class Meta:
         model = IssueCategory
-        fields = ['name', 'parent_category', 'logo']
+        fields = ['name', 'order', 'parent_category', 'logo']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام دسته بندی را وارد کنید'}),
             'parent_category': forms.Select(attrs={'class': 'form-control', 'blank': True}),
         }
         labels = {
             'name': 'نام دسته بندی',
-            'logo':'لوگو دسته'
+            'logo':'لوگو دسته',
+            'order':'ترتیب'
         }
 
     def __init__(self, *args, **kwargs):
