@@ -196,10 +196,14 @@ customColorPalette = [
     ]
 
 
+
 CKEDITOR_5_CONFIGS = {
     'default': {
+        'extraPlugins': 'embed,embedbase,iframe',
         'toolbar': ['heading', '|', 'bold', 'italic', 'link',
                     'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', ],
+        'allowedContent': True,
+        'extraAllowedContent': 'iframe[*]; video[*]',
 
     },
     'extends': {
