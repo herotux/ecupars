@@ -197,9 +197,9 @@ customColorPalette = [
 
 
 
-CKEDITOR_5_CONFIGS = {
+KEDITOR_5_CONFIGS = {
     'default': {
-        'extraPlugins': 'embed,embedbase,iframe',  # پلاگین‌های مربوط به رسانه‌ها و iframe
+        'extraPlugins': 'embed,embedbase,iframe,mediaEmbed',  # اضافه کردن mediaEmbed به extraPlugins
         'toolbar': [
             'heading', '|', 'bold', 'italic', 'link', 
             'bulletedList', 'numberedList', 'blockQuote', 'imageUpload',
@@ -259,7 +259,6 @@ CKEDITOR_5_CONFIGS = {
                     'url': 'https://vimeo.com/{id}',
                     'embedUrl': 'https://player.vimeo.com/video/{id}'
                 },
-                # افزودن سایر سرویس‌های ویدئویی اگر نیاز دارید
             ]
         }
     },
