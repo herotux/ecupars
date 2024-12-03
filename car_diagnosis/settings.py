@@ -199,15 +199,16 @@ customColorPalette = [
 
 CKEDITOR_5_CONFIGS = {
     'default': {
-        'extraPlugins': 'embed,embedbase,iframe',
-        'toolbar': ['heading', '|', 'bold', 'italic', 'link',
-                    'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', ],
-        'allowedContent': True,
-        'extraAllowedContent': 'iframe[*]; video[*]',
-
+        'extraPlugins': 'embed,embedbase,iframe',  # پلاگین‌های مربوط به رسانه‌ها و iframe
+        'toolbar': [
+            'heading', '|', 'bold', 'italic', 'link', 
+            'bulletedList', 'numberedList', 'blockQuote', 'imageUpload',
+        ],
+        'allowedContent': 'p h1 h2 h3 blockquote strong em a ul ol li img iframe',  # فقط تگ‌های مشخص مجاز
+        'extraAllowedContent': 'iframe[*]; video[*]',  # اجازه استفاده از iframe و ویدیو با هر ویژگی
     },
     'extends': {
-        'language': 'fa',
+        'language': 'fa',  # تنظیم زبان ویرایشگر
         'blockToolbar': [
             'paragraph', 'heading1', 'heading2', 'heading3',
             '|',
@@ -215,26 +216,19 @@ CKEDITOR_5_CONFIGS = {
             '|',
             'blockQuote',
         ],
-        'toolbar': ['heading', '|', 'outdent', 'indent', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
-        'code','subscript', 'superscript', 'highlight', '|', 'codeBlock', 'sourceEditing', 'insertImage',
-                    'bulletedList', 'numberedList', 'todoList', '|',  'blockQuote', 'imageUpload', '|',
-                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
-                    'insertTable',],
+        'toolbar': [
+            'heading', '|', 'outdent', 'indent', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
+            'code', 'subscript', 'superscript', 'highlight', '|', 'codeBlock', 'sourceEditing', 'insertImage',
+            'bulletedList', 'numberedList', 'todoList', '|', 'blockQuote', 'imageUpload', '|',
+            'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
+            'insertTable',
+        ],
         'image': {
-            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft',
-                        'imageStyle:alignRight', 'imageStyle:alignCenter', 'imageStyle:side',  '|'],
-            'styles': [
-                'full',
-                'side',
-                'alignLeft',
-                'alignRight',
-                'alignCenter',
-            ]
-
+            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft', 'imageStyle:alignRight', 'imageStyle:alignCenter', 'imageStyle:side', '|'],
+            'styles': ['full', 'side', 'alignLeft', 'alignRight', 'alignCenter']
         },
         'table': {
-            'contentToolbar': [ 'tableColumn', 'tableRow', 'mergeTableCells',
-            'tableProperties', 'tableCellProperties' ],
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties'],
             'tableProperties': {
                 'borderColors': customColorPalette,
                 'backgroundColors': customColorPalette
@@ -244,12 +238,28 @@ CKEDITOR_5_CONFIGS = {
                 'backgroundColors': customColorPalette
             }
         },
-        'heading' : {
+        'heading': {
             'options': [
-                { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
-                { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
-                { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
-                { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' }
+                {'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph'},
+                {'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1'},
+                {'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2'},
+                {'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3'}
+            ]
+        },
+        'mediaEmbed': {
+            'previewsInData': True,  # نمایش پیش‌نمایش ویدئوها در داخل داده‌ها
+            'providers': [
+                {
+                    'name': 'youtube',
+                    'url': 'https://www.youtube.com/watch?v={id}',
+                    'embedUrl': 'https://www.youtube.com/embed/{id}'
+                },
+                {
+                    'name': 'vimeo',
+                    'url': 'https://vimeo.com/{id}',
+                    'embedUrl': 'https://player.vimeo.com/video/{id}'
+                },
+                # افزودن سایر سرویس‌های ویدئویی اگر نیاز دارید
             ]
         }
     },
