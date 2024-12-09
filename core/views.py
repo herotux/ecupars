@@ -2147,26 +2147,30 @@ def verify_otp_view(request):
 # پرمیشن سفارشی
 class HasCategoryAccess(BasePermission):
     def has_permission(self, request, view):
-        category_id = view.kwargs.get('category_id')
+        # گرفتن category_id از پارامترهای URL
+        category_id = view.kwargs.get('cat_id')  # مطابق با urlpatterns
         if not category_id:
             return False
 
         user = request.user
-        if not user.is_authenticated or not hasattr(user, 'subscription'):
+        if not user.is_authenticated:
             return False
 
-        subscription = user.subscription
+        # گرفتن اشتراک کاربر
+        subscription = getattr(user, 'subscription', None)
+        if not subscription:
+            return False
 
-        # بررسی دسترسی به همه دسته‌ها
+        # بررسی دسترسی به همه دسته‌بندی‌ها
         if subscription.plan.access_to_all_categories:
             return True
 
         # بررسی دسترسی به دسته‌های محدود
         restricted_categories = subscription.plan.restricted_categories.all()
-        if category_id in [cat.id for cat in restricted_categories]:
-            return False
+        if int(category_id) not in [cat.id for cat in restricted_categories]:
+            return True  # دسترسی به دسته‌بندی مجاز است
 
-        return True
+        return False  # دسترسی مسدود است
 
 
 
