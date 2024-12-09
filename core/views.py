@@ -2295,6 +2295,8 @@ class UserIssueDetailView(generics.RetrieveAPIView):
 
 
 class UserStepDetail(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
     def get(self, request, step_id):
         step = DiagnosticStep.objects.get(id=step_id)
         question = step.question
@@ -2337,6 +2339,8 @@ class UserStepDetail(APIView):
 
 # لیست پلن‌های اشتراکی
 class SubscriptionPlanListView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         plans = SubscriptionPlan.objects.all()
         serializer = SubscriptionPlanSerializer(plans, many=True)
@@ -2347,6 +2351,7 @@ class SubscriptionPlanListView(APIView):
 
 # فعال‌سازی اشتراک
 class ActivateSubscriptionView(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -2374,6 +2379,7 @@ class ActivateSubscriptionView(APIView):
 
 # مشاهده اطلاعات اشتراک کاربر
 class UserSubscriptionView(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -2388,6 +2394,8 @@ class UserSubscriptionView(APIView):
 
 
 class AdvertisementListView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             advertisements = Advertisement.objects.all()
@@ -2402,6 +2410,7 @@ class AdvertisementListView(APIView):
 
 
 class OptionListView(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, HasDiagnosticAccess]
     def get(self, request):
         try:
