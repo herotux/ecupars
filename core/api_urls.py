@@ -13,4 +13,5 @@ urlpatterns = [
     path('subscription-plans/', views.SubscriptionPlanListView.as_view(), name='subscription-plan-list'),
     path('activate-subscription/', views.ActivateSubscriptionView.as_view(), name='activate-subscription'),
     path('user-subscription/', views.UserSubscriptionView.as_view(), name='user-subscription'),
+    path('advertisements/', views.AdvertisementListView.as_view(), name='advertisement-list'),
 ]

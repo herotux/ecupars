@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
+from .models import Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,3 +58,11 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSubscription
         fields = ["plan", "active_categories", "start_date", "end_date", "is_active"]
+
+    
+
+
+class AdvertisementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Advertisement
+        fields = ['id', 'title', 'link', 'banner', 'created_at']

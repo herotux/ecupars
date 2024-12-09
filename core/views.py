@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
+from .models import Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
-from .serializer import MapSerializer, IssueCategorySerializer, IssueSerializer
+from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer
 from .models import SubscriptionPlan, UserSubscription
 from .serializer import SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
@@ -2250,60 +2250,89 @@ class UserCarDetail(APIView):
 
 
 
+
+
 class UserIssueDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsAuthenticated]
     permission_classes = [IsAuthenticated, HasCategoryAccess]
     serializer_class = IssueSerializer
     queryset = Issue.objects.all()
 
     def get(self, request, *args, **kwargs):
         issue = self.get_object()
-        
+
+        # اطلاعات اصلی خطا
         data = {
             'issue': self.get_serializer(issue).data,
         }
 
+        # اگر خطا سوال مرتبط داشته باشد
         if issue.question:
             question_data = QuestionSerializer(issue.question).data
-            options_data = [option for option in issue.question.options.values()]
+
+            # اطلاعات گزینه‌ها با اضافه کردن مقصد هر گزینه
+            options_data = [
+                {
+                    'id': option.id,
+                    'text': option.text,
+                    'next_step_id': option.next_step.id if option.next_step else None,
+                    'issue_id': option.issue.id if option.issue else None,
+                }
+                for option in issue.question.options.all()
+            ]
+
+            # افزودن سوال و گزینه‌ها به پاسخ
             data.update({
                 'question': question_data,
-                'options': options_data
+                'options': options_data,
             })
 
         return Response(data)
 
 
 
-    
+
+
+
 class UserStepDetail(APIView):
-    # permission_classes = [IsAuthenticated]
-    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
     def get(self, request, step_id):
-        try:
-            step = DiagnosticStep.objects.get(id=step_id)
-        except DiagnosticStep.DoesNotExist:
-            raise NotFound("Step not found")
-        
-        question = step.question  # سوال مرتبط با خطا (در صورت وجود)
-        options = []
+        step = DiagnosticStep.objects.get(id=step_id)
+        question = step.question
+        options = question.options.all() if question else []
 
-        if question:
-            options = Option.objects.filter(question_id=question.id)
-        
-        step_serializer = DiagnosticStepSerializer(step)
-        options_serializer = OptionSerializer(options, many=True)
+        # اطلاعات نقشه
+        map_data = None
+        if step.map:
+            map_data = {
+                "title": step.map.title,  # عنوان نقشه
+                "url": step.map.image.url if step.map.image else None,  # لینک تصویر نقشه
+            }
 
-        return Response({
-            'step': step_serializer.data,
-            'question': question.id if question else None,
-            'options': options_serializer.data
-        }, status=status.HTTP_200_OK)
+        response_data = {
+            "step": {
+                "id": step.id,
+                "issue": step.issue.name if step.issue else None,
+                "solution": step.solution.description if step.solution else None,
+                "letter": step.letter,
+                "map": map_data,  # ارسال عنوان و URL نقشه
+                "question": {
+                    "id": question.id if question else None,
+                    "text": question.text if question else None,
+                } if question else None,
+            },
+            "question": question.id if question else None,
+            "options": [
+                {
+                    "id": option.id,
+                    "text": option.text,
+                    "next_step_id": option.next_step.id if option.next_step else None,
+                    "issue_id": option.issue.id if option.issue else None,
+                }
+                for option in options
+            ],
+        }
 
-
-
-
+        return Response(response_data)
 
 
 # لیست پلن‌های اشتراکی
@@ -2358,3 +2387,29 @@ class UserSubscriptionView(APIView):
 
 
 
+class AdvertisementListView(APIView):
+    def get(self, request):
+        try:
+            advertisements = Advertisement.objects.all()
+            serializer = AdvertisementSerializer(advertisements, many=True)
+            logger.info(f"User {request.user} fetched advertisements.")
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"Error fetching advertisements: {e}")
+            return Response({'error': 'Unable to fetch advertisements.'}, status=500)
+
+
+
+class OptionListView(APIView):
+    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
+    def get(self, request):
+        try:
+            options = Option.objects.all()
+            serializer = OptionSerializer(options, many=True)
+            logger.info(f"User {request.user} fetched options.")
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"Error fetching options: {e}")
+            return Response({'error': 'Unable to fetch options.'}, status=500)
