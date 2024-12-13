@@ -2226,7 +2226,7 @@ class UserCarDetail(APIView):
 
             return Response({
                 'category': category_serializer.data,
-                'all_related_categories': all_categories_serializer.data,
+                'related_categories': subcategories_serializer.data,
                 'issues': issues_serializer.data,
             })
 
