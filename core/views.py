@@ -2213,26 +2213,16 @@ class UserCarDetail(APIView):
         try:
             # پیدا کردن دسته‌بندی اصلی
             category = IssueCategory.objects.get(id=cat_id)
-
-            # پیدا کردن تمام دسته‌های مرتبط (بازگشتی)
-            def get_all_related_categories(category):
-                categories = [category]
-                subcategories = IssueCategory.objects.filter(parent_category=category)
-                for subcategory in subcategories:
-                    categories.extend(get_all_related_categories(subcategory))
-                return categories
-
-            all_categories = get_all_related_categories(category)
-
-            # دریافت مشکلات مربوط به تمام دسته‌بندی‌ها
-            issues = Issue.objects.filter(category__in=all_categories).distinct()
+            subcategories = IssueCategory.objects.filter(parent_category=category)
+           
+            issues = Issue.objects.filter(category=cat_id)
 
             # سریالایز داده‌ها
             category_serializer = IssueCategorySerializer(category)
-            all_categories_serializer = IssueCategorySerializer(all_categories, many=True)
+            subcategories_serializer = IssueCategorySerializer(subcategories, many=True)
             issues_serializer = IssueSerializer(issues, many=True)
 
-            logger.debug(f"Category {cat_id} returned {len(all_categories)} related categories and {issues.count()} issues.")
+            logger.debug(f"Category {cat_id} returned {len(subcategories)} related categories and {issues.count()} issues.")
 
             return Response({
                 'category': category_serializer.data,
@@ -2426,3 +2416,25 @@ class OptionListView(APIView):
         except Exception as e:
             logger.error(f"Error fetching options: {e}")
             return Response({'error': 'Unable to fetch options.'}, status=500)
+
+
+class StartChatView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        session = ChatSession.objects.filter(user=user, is_active=True).first()
+
+        if session:
+            return Response(ChatSessionSerializer(session).data)
+
+        # Assign a consultant
+        consultant = User.objects.filter(groups__name='Consultants').first()
+        if not consultant:
+            return Response({'error': 'No consultants available'}, status=503)
+
+        session = ChatSession.objects.create(user=user, consultant=consultant)
+        return Response(ChatSessionSerializer(session).data)
+
+

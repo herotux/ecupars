@@ -34,6 +34,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django_jalali',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -143,6 +144,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+DEFAULT_CHARSET = 'utf-8'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -380,3 +382,12 @@ CORS_ALLOW_HEADERS = [
     "content-type",
     "authorization",
 ]
+
+
+ASGI_APPLICATION = 'car_diagnosis.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
