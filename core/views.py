@@ -2206,41 +2206,52 @@ class HomeAPIView(APIView):
 
 class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsAuthenticated]
     permission_classes = [IsAuthenticated, HasCategoryAccess]
+
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
+
+        # گرفتن پارامترهای URL
+        include_issues = request.query_params.get('include_issues', 'true').lower() == 'true'
+        include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
+
         try:
             # پیدا کردن دسته‌بندی اصلی
             category = IssueCategory.objects.get(id=cat_id)
-            subcategories = IssueCategory.objects.filter(parent_category=category)
-           
-            issues = Issue.objects.filter(category=cat_id)
-
-            # سریالایز داده‌ها
             category_serializer = IssueCategorySerializer(category)
-            subcategories_serializer = IssueCategorySerializer(subcategories, many=True)
-            issues_serializer = IssueSerializer(issues, many=True)
 
-            logger.debug(f"Category {cat_id} returned {len(subcategories)} related categories and {issues.count()} issues.")
+            response_data = {
+                "status": "success",
+                "category": category_serializer.data,
+            }
 
-            return Response({
-                'category': category_serializer.data,
-                'related_categories': subcategories_serializer.data,
-                'issues': issues_serializer.data,
-            })
+            # افزودن زیردسته‌ها اگر درخواست شده باشد
+            if include_related_categories:
+                subcategories = IssueCategory.objects.filter(parent_category=category)
+                subcategories_serializer = IssueCategorySerializer(subcategories, many=True)
+                response_data["related_categories"] = subcategories_serializer.data
+
+            # افزودن خطاها اگر درخواست شده باشد
+            if include_issues:
+                issues = Issue.objects.filter(category=cat_id)
+                issues_serializer = IssueSerializer(issues, many=True)
+                response_data["issues"] = issues_serializer.data
+
+            logger.debug(f"Category {cat_id} returned with filters: include_issues={include_issues}, include_related_categories={include_related_categories}")
+
+            return Response(response_data)
 
         except IssueCategory.DoesNotExist:
             logger.warning(f"Category with ID {cat_id} not found.")
-            return Response({'error': 'Category not found.'}, status=404)
+            return Response({'status': 'error', 'message': 'Category not found.'}, status=404)
 
         except ValueError as ve:
             logger.error(f"ValueError occurred for category ID {cat_id}: {ve}")
-            return Response({'error': 'Invalid input provided.'}, status=400)
+            return Response({'status': 'error', 'message': 'Invalid input provided.'}, status=400)
 
         except Exception as e:
             logger.error(f"Unexpected error for category ID {cat_id}: {e}")
-            return Response({'error': 'An unexpected error occurred.'}, status=500)
+            return Response({'status': 'error', 'message': 'An unexpected error occurred.'}, status=500)
 
 
 
