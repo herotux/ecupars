@@ -2175,41 +2175,34 @@ class HasCategoryAccess(BasePermission):
 
 
 
+
+
 class HasIssueAccess(BasePermission):
     def has_permission(self, request, view):
-        # گرفتن issue_id از پارامترهای URL
         issue_id = view.kwargs.get('issue_id')
-        if not issue_id:
-            return False  # اگر issue_id موجود نباشد، دسترسی رد شود
+        issue = get_object_or_404(Issue, id=issue_id)
+        logger.info(f"Issue ID: {issue_id}, User: {request.user.id}")
 
-        try:
-            issue = Issue.objects.get(id=issue_id)
-        except Issue.DoesNotExist:
-            return False  # اگر خطا موجود نباشد، دسترسی رد شود
+        category_id = issue.category
+        if not category_id:
+            logger.warning("No category assigned to this issue.")
+            return False
 
-        category = issue.category  # گرفتن دسته‌بندی مرتبط با خطا
-        if not category:
-            return False  # اگر خطا دسته‌بندی نداشته باشد، دسترسی رد شود
-
-        user = request.user
-        if not user.is_authenticated:
-            return False  # اگر کاربر احراز هویت نشده باشد، دسترسی رد شود
-
-        # گرفتن اشتراک کاربر
-        subscription = getattr(user, 'subscription', None)
+        subscription = getattr(request.user, 'subscription', None)
         if not subscription:
-            return False  # اگر کاربر اشتراک نداشته باشد، دسترسی رد شود
+            logger.warning("User has no subscription.")
+            return False
 
-        # بررسی دسترسی به همه دسته‌بندی‌ها
         if subscription.plan.access_to_all_categories:
+            logger.info("User has access to all categories.")
             return True
 
-        # بررسی دسترسی به دسته‌های محدود
         restricted_categories = subscription.plan.restricted_categories.all()
-        if category.id in [cat.id for cat in restricted_categories]:
-            return True  # اگر دسته‌بندی در لیست مجاز باشد، دسترسی تأیید شود
+        if int(category_id) not in [cat.id for cat in restricted_categories]:
+            logger.warning(f"Access denied. Restricted categories: {restricted_categories}")
+            return False
 
-        return False  # در غیر این صورت دسترسی رد شود
+        return True
 
 
 
@@ -2239,7 +2232,9 @@ class HomeAPIView(APIView):
             cars = IssueCategory.objects.filter(parent_category__isnull=True)
             logger.debug(f"Fetched {cars.count()} cars.")  # ثبت لاگ دیباگ
             serializer = IssueCategorySerializer(cars, many=True)
-            return Response({'cars': serializer.data})
+            response = Response({'cars': serializer.data})
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return response
         except Exception as e:
             logger.error(f"Error fetching car list: {e}")  # ثبت لاگ خطا
             return Response({'error': 'Unable to fetch car list.'}, status=500)
@@ -2280,7 +2275,9 @@ class UserCarDetail(APIView):
 
             logger.debug(f"Category {cat_id} returned with filters: include_issues={include_issues}, include_related_categories={include_related_categories}")
 
-            return Response(response_data)
+            response = Response(response_data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return Response
 
         except IssueCategory.DoesNotExist:
             logger.warning(f"Category with ID {cat_id} not found.")
@@ -2332,9 +2329,9 @@ class UserIssueDetailView(generics.RetrieveAPIView):
                 'question': question_data,
                 'options': options_data,
             })
-
-        return Response(data)
-
+        response = Response(data)
+        response['Content-Type'] = 'application/json; charset=utf-8'
+        return Response
 
 
 
@@ -2379,8 +2376,9 @@ class UserStepDetail(APIView):
                 for option in options
             ],
         }
-
-        return Response(response_data)
+        response = Response(response_data)
+        response['Content-Type'] = 'application/json; charset=utf-8'
+        return Response
 
 
 # لیست پلن‌های اشتراکی
@@ -2390,7 +2388,12 @@ class SubscriptionPlanListView(APIView):
     def get(self, request):
         plans = SubscriptionPlan.objects.all()
         serializer = SubscriptionPlanSerializer(plans, many=True)
-        return Response(serializer.data)
+        
+
+        response = Response(serializer.data)
+        response['Content-Type'] = 'application/json; charset=utf-8'
+        return Response
+
 
 
 
@@ -2432,7 +2435,10 @@ class UserSubscriptionView(APIView):
         try:
             subscription = UserSubscription.objects.get(user=request.user)
             serializer = UserSubscriptionSerializer(subscription)
-            return Response(serializer.data)
+
+            response = Response(serializer.data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return Response
         except UserSubscription.DoesNotExist:
             return Response({"error": "No active subscription found."}, status=status.HTTP_404_NOT_FOUND)
             
@@ -2447,7 +2453,9 @@ class AdvertisementListView(APIView):
             advertisements = Advertisement.objects.all()
             serializer = AdvertisementSerializer(advertisements, many=True)
             logger.info(f"User {request.user} fetched advertisements.")
-            return Response(serializer.data)
+            response = Response(serializer.data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return Response
 
         except Exception as e:
             logger.error(f"Error fetching advertisements: {e}")
@@ -2463,7 +2471,10 @@ class OptionListView(APIView):
             options = Option.objects.all()
             serializer = OptionSerializer(options, many=True)
             logger.info(f"User {request.user} fetched options.")
-            return Response(serializer.data)
+
+            response = Response(serializer.data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return Response
 
         except Exception as e:
             logger.error(f"Error fetching options: {e}")
@@ -2479,7 +2490,9 @@ class StartChatView(APIView):
         session = ChatSession.objects.filter(user=user, is_active=True).first()
 
         if session:
-            return Response(ChatSessionSerializer(session).data)
+            response = Response(ChatSessionSerializer(session).data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return Response
 
         # Assign a consultant
         consultant = User.objects.filter(groups__name='Consultants').first()
@@ -2487,6 +2500,8 @@ class StartChatView(APIView):
             return Response({'error': 'No consultants available'}, status=503)
 
         session = ChatSession.objects.create(user=user, consultant=consultant)
-        return Response(ChatSessionSerializer(session).data)
+        response = Response(ChatSessionSerializer(session).data)
+        response['Content-Type'] = 'application/json; charset=utf-8'
+        return Response
 
 
