@@ -2331,7 +2331,7 @@ class UserIssueDetailView(generics.RetrieveAPIView):
             })
         response = Response(data)
         response['Content-Type'] = 'application/json; charset=utf-8'
-        return Response
+        return response
 
 
 
@@ -2378,7 +2378,7 @@ class UserStepDetail(APIView):
         }
         response = Response(response_data)
         response['Content-Type'] = 'application/json; charset=utf-8'
-        return Response
+        return response
 
 
 # لیست پلن‌های اشتراکی
@@ -2392,7 +2392,7 @@ class SubscriptionPlanListView(APIView):
 
         response = Response(serializer.data)
         response['Content-Type'] = 'application/json; charset=utf-8'
-        return Response
+        return response
 
 
 
@@ -2438,7 +2438,7 @@ class UserSubscriptionView(APIView):
 
             response = Response(serializer.data)
             response['Content-Type'] = 'application/json; charset=utf-8'
-            return Response
+            return response
         except UserSubscription.DoesNotExist:
             return Response({"error": "No active subscription found."}, status=status.HTTP_404_NOT_FOUND)
             
@@ -2455,7 +2455,7 @@ class AdvertisementListView(APIView):
             logger.info(f"User {request.user} fetched advertisements.")
             response = Response(serializer.data)
             response['Content-Type'] = 'application/json; charset=utf-8'
-            return Response
+            return response
 
         except Exception as e:
             logger.error(f"Error fetching advertisements: {e}")
@@ -2474,7 +2474,7 @@ class OptionListView(APIView):
 
             response = Response(serializer.data)
             response['Content-Type'] = 'application/json; charset=utf-8'
-            return Response
+            return response
 
         except Exception as e:
             logger.error(f"Error fetching options: {e}")
@@ -2492,7 +2492,7 @@ class StartChatView(APIView):
         if session:
             response = Response(ChatSessionSerializer(session).data)
             response['Content-Type'] = 'application/json; charset=utf-8'
-            return Response
+            return response
 
         # Assign a consultant
         consultant = User.objects.filter(groups__name='Consultants').first()
@@ -2502,6 +2502,6 @@ class StartChatView(APIView):
         session = ChatSession.objects.create(user=user, consultant=consultant)
         response = Response(ChatSessionSerializer(session).data)
         response['Content-Type'] = 'application/json; charset=utf-8'
-        return Response
+        return response
 
 
