@@ -2277,7 +2277,7 @@ class UserCarDetail(APIView):
 
             response = Response(response_data)
             response['Content-Type'] = 'application/json; charset=utf-8'
-            return Response
+            return response
 
         except IssueCategory.DoesNotExist:
             logger.warning(f"Category with ID {cat_id} not found.")
