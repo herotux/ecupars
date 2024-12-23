@@ -2174,6 +2174,47 @@ class HasCategoryAccess(BasePermission):
 
 
 
+
+class HasIssueAccess(BasePermission):
+    def has_permission(self, request, view):
+        # گرفتن issue_id از پارامترهای URL
+        issue_id = view.kwargs.get('issue_id')
+        if not issue_id:
+            return False  # اگر issue_id موجود نباشد، دسترسی رد شود
+
+        try:
+            issue = Issue.objects.get(id=issue_id)
+        except Issue.DoesNotExist:
+            return False  # اگر خطا موجود نباشد، دسترسی رد شود
+
+        category = issue.category  # گرفتن دسته‌بندی مرتبط با خطا
+        if not category:
+            return False  # اگر خطا دسته‌بندی نداشته باشد، دسترسی رد شود
+
+        user = request.user
+        if not user.is_authenticated:
+            return False  # اگر کاربر احراز هویت نشده باشد، دسترسی رد شود
+
+        # گرفتن اشتراک کاربر
+        subscription = getattr(user, 'subscription', None)
+        if not subscription:
+            return False  # اگر کاربر اشتراک نداشته باشد، دسترسی رد شود
+
+        # بررسی دسترسی به همه دسته‌بندی‌ها
+        if subscription.plan.access_to_all_categories:
+            return True
+
+        # بررسی دسترسی به دسته‌های محدود
+        restricted_categories = subscription.plan.restricted_categories.all()
+        if category.id in [cat.id for cat in restricted_categories]:
+            return True  # اگر دسته‌بندی در لیست مجاز باشد، دسترسی تأیید شود
+
+        return False  # در غیر این صورت دسترسی رد شود
+
+
+
+
+
 class HasDiagnosticAccess(BasePermission):
     def has_permission(self, request, view):
         user = request.user
@@ -2259,7 +2300,7 @@ class UserCarDetail(APIView):
 
 class UserIssueDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasCategoryAccess]
+    permission_classes = [IsAuthenticated, HasIssueAccess]
     serializer_class = IssueSerializer
     queryset = Issue.objects.all()
 
