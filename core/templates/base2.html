@@ -220,7 +220,7 @@
 
             function startChat() {
                 $.ajax({
-                    url: '/api/start-chat/',
+                    url: '/api/v1/start-chat/',
                     type: 'POST',
                     headers: {
                         'Authorization': 'Bearer ' + localStorage.getItem('token'),
@@ -236,7 +236,7 @@
             }
 
             function connectWebSocket(sessionId) {
-                chatSocket = new WebSocket(`ws://yourdomain.com/ws/chat/${sessionId}/`);
+                chatSocket = new WebSocket(`ws://django-noxeas.chbk.app/ws/chat/${sessionId}/`);
 
                 chatSocket.onmessage = function(e) {
                     const data = JSON.parse(e.data);
@@ -251,7 +251,7 @@
             function sendMessage() {
                 const messageInput = $('#chat-input');
                 const message = messageInput.val();
-                const senderId = 'your_user_id'; // Replace with the actual user ID
+                const senderId = '1'; // Replace with the actual user ID
 
                 chatSocket.send(JSON.stringify({
                     'message': message,
