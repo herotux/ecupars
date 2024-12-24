@@ -14,4 +14,8 @@ urlpatterns = [
     path('activate-subscription/', views.ActivateSubscriptionView.as_view(), name='activate-subscription'),
     path('user-subscription/', views.UserSubscriptionView.as_view(), name='user-subscription'),
     path('advertisements/', views.AdvertisementListView.as_view(), name='advertisement-list'),
+
+
+    # URLهای مربوط به چت
+    path('api/start-chat/', StartChatView.as_view(), name='start-chat'),
 ]
