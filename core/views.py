@@ -49,7 +49,7 @@ from django.db import IntegrityError
 from zarinpal.api import ZarinPalPayment
 from django.core.exceptions import PermissionDenied
 from functools import wraps
-
+from .models import ChatSession, Message
 
 
 
@@ -2505,3 +2505,29 @@ class StartChatView(APIView):
         return response
 
 
+
+
+class SendMessageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        session_id = request.data.get('session_id')
+        message_content = request.data.get('message')
+        sender_id = request.data.get('sender_id')
+
+        try:
+            session = ChatSession.objects.get(id=session_id)
+            sender = User.objects.get(id=sender_id)
+
+            # ذخیره پیام در دیتابیس
+            message = Message.objects.create(session=session, sender=sender, content=message_content)
+
+            # Broadcast message to the user via WebSocket
+            # اینجا می‌توانید از کانال‌ها برای ارسال پیام به کاربر استفاده کنید
+
+            return Response({'status': 'success', 'message_id': message.id})
+
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Chat session does not exist'}, status=404)
+        except User.DoesNotExist:
+            return Response({'error': 'User does not exist'}, status=404)
