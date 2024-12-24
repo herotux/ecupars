@@ -2298,17 +2298,14 @@ class UserCarDetail(APIView):
 class UserIssueDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, HasIssueAccess]
-    serializer_class = IssueSerializer
-    queryset = Issue.objects.all()
+    
 
-    def get(self, request, *args, **kwargs):
-        #issue = self.get_object()
-        issue = Issue.objects.get(id=self.kwargs['pk'])
-        # اطلاعات اصلی خطا
-        data = {
-            'issue': self.get_serializer(issue).data,
-        }
-
+    def get(self, request, issue_id):
+        
+        issue = Issue.objects.get(id=issue_id)
+        
+        issues_serializer = IssueSerializer(issue)
+        response_data["issue"] = issues_serializer.data
         # اگر خطا سوال مرتبط داشته باشد
         if issue.question:
             question_data = QuestionSerializer(issue.question).data
@@ -2325,11 +2322,11 @@ class UserIssueDetailView(generics.RetrieveAPIView):
             ]
 
             # افزودن سوال و گزینه‌ها به پاسخ
-            data.update({
+            response_data.update({
                 'question': question_data,
                 'options': options_data,
             })
-        response = Response(data)
+        response = Response(response_data)
         response['Content-Type'] = 'application/json; charset=utf-8'
         return response
 
