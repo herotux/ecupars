@@ -17,5 +17,6 @@ urlpatterns = [
 
 
     # URLهای مربوط به چت
-    path('api/start-chat/', views.StartChatView.as_view(), name='start-chat'),
+    path('start-chat/', views.StartChatView.as_view(), name='start-chat'),
+    path('send-message/', views.SendMessageView.as_view(), name='send_message'),
 ]
