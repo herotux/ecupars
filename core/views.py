@@ -2302,8 +2302,8 @@ class UserIssueDetailView(generics.RetrieveAPIView):
     queryset = Issue.objects.all()
 
     def get(self, request, *args, **kwargs):
-        issue = self.get_object()
-
+        #issue = self.get_object()
+        issue = Issue.objects.get(id=self.kwargs['pk'])
         # اطلاعات اصلی خطا
         data = {
             'issue': self.get_serializer(issue).data,
