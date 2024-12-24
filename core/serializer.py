@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
+from .models import ChatSession, Message, Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,3 +66,19 @@ class AdvertisementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Advertisement
         fields = ['id', 'title', 'link', 'banner', 'created_at']
+
+
+
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id', 'session', 'sender', 'content', 'timestamp']
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChatSession
+        fields = ['id', 'user', 'consultant', 'is_active', 'created_at', 'messages']

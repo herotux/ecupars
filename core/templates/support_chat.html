@@ -1,0 +1,66 @@
+<!-- support_chat.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پشتیبانی چت</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>چت‌های فعال</h1>
+        <div id="active-chats">
+            {% for session in active_sessions %}
+                <div class="chat-session" data-session-id="{{ session.id }}">
+                    <h5>چت با {{ session.user.username }}</h5>
+                    <div class="chat-messages" style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll;">
+                        {% for message in session.messages.all %}
+                            <div>
+                                <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <input type="text" class="form-control chat-input" placeholder="پاسخ خود را بنویسید...">
+                    <button class="btn btn-primary send-button">ارسال</button>
+                </div>
+                <hr>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('.send-button').click(function() {
+                const sessionId = $(this).closest('.chat-session').data('session-id');
+                const messageInput = $(this).siblings('.chat-input');
+                const message = messageInput.val();
+
+                if (message) {
+                    $.ajax({
+                        url: '/api/send-message/',  // URL برای ارسال پیام
+                        type: 'POST',
+                        data: {
+                            'session_id': sessionId,
+                            'message': message,
+                            'sender_id': '{{ user.id }}',  // ID پشتیبان
+                        },
+                        success: function(response) {
+                            messageInput.val('');  // خالی کردن جعبه متن
+                            // به روز رسانی پنجره چت برای نمایش پیام جدید
+                            const chatMessages = $(this).closest('.chat-session').find('.chat-messages');
+                            chatMessages.append(`<div><strong>شما:</strong> ${message}</div>`);
+                            chatMessages.scrollTop(chatMessages[0].scrollHeight);  // اسکرول به پایین
+                        },
+                        error: function(xhr) {
+                            console.error(xhr.responseText);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -19,7 +19,10 @@ from .models import (
     UserActivity,
     UserSubscription,
     SubscriptionPlan,
-    Advertisement
+    Advertisement,
+    ChatSession,
+    Message
+
 )
 
 # تنظیمات عمومی پنل ادمین
@@ -163,3 +166,13 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 @admin.register(Advertisement)
 class AdvertisementAdmin(admin.ModelAdmin):
     list_display = ('title', 'link', 'created_at')
+
+
+@admin.register(ChatSession)
+class ChatSessionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'consultant', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'session', 'sender', 'timestamp')

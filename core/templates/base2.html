@@ -6,11 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>{% block title %}اپلیکیشن عیب‌یابی خودرو {% endblock %}</title>
+    
+    <!-- CSS Libraries -->
     <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.min.css' %}">
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/custom-style.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
     <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
     <style>
         * {
@@ -29,6 +32,44 @@
             color: #ffffff;
         }
         
+        /* Styles for chat widget */
+        #chat-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        #chat-window {
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 300px;
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        #chat-messages {
+            height: 200px;
+            overflow-y: scroll;
+            padding: 10px;
+        }
+
+        #chat-input {
+            width: calc(100% - 50px);
+            margin-right: 10px;
+        }
+
+        #send-button {
+            width: 40px;
+        }
+        
+        /* Other styles */
         .search-bar {
             display: flex;
             align-items: center;
@@ -48,7 +89,7 @@
             box-shadow: none;
             transition: border-color 0.3s;
         }
-        .search-bar input{
+        .search-bar input {
             width: 500%; /* اصلاح شده */
         }
         .search-bar .form-control:focus {
@@ -56,34 +97,8 @@
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
         }
         
-        .search-icon {
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        
-        #filter {
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #007bff;
-            transition: border-color 0.3s;
-        }
-        #filter:focus {
-            border-color: #0056b3;
-        }
-
-        .list-group-item {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-        }
-        .list-group-item:hover {
-            background-color: #e9ecef;
-        }
-        
         h1 {
             color: #333;
-        }
-        #search-results {
-            margin-top: 20px;
         }
         img {
             max-width: 100% !important;
@@ -127,7 +142,7 @@
     
     <div class="container mt-4">
         <h1>{{ page_title }}</h1>
-        
+
         <!-- بخش جستجو و فیلتر -->
         <div class="search-bar">
             <input type="text" id="q" class="form-control" placeholder="جستجو ...">
@@ -174,23 +189,94 @@
         </div>
     </div>
 
+    <!-- Chat Widget -->
+    <div id="chat-icon">
+        <img src="{% static 'images/chat-icon.png' %}" alt="Chat" style="width: 50px; height: 50px;">
+    </div>
+
+    <div id="chat-window">
+        <div id="chat-messages"></div>
+        <input type="text" id="chat-input" placeholder="پیام خود را وارد کنید..." />
+        <button id="send-button">ارسال</button>
+    </div>
+
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script>
+        $(document).ready(function() {
+            $('#chat-icon').click(function() {
+                $('#chat-window').toggle();
+                if (!chatSocket) {
+                    startChat();
+                }
+            });
+
+            $('#send-button').click(function() {
+                sendMessage();
+            });
+
+            // سایر کدها و توابع مربوط به چت
+            let chatSocket = null;
+            let sessionId = null;
+
+            function startChat() {
+                $.ajax({
+                    url: '/api/start-chat/',
+                    type: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                    },
+                    success: function(data) {
+                        sessionId = data.id;
+                        connectWebSocket(sessionId);
+                    },
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            }
+
+            function connectWebSocket(sessionId) {
+                chatSocket = new WebSocket(`ws://yourdomain.com/ws/chat/${sessionId}/`);
+
+                chatSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    $('#chat-messages').append(`<div><strong>${data.sender}:</strong> ${data.message}</div>`);
+                };
+
+                chatSocket.onclose = function(e) {
+                    console.error('Chat socket closed unexpectedly');
+                };
+            }
+
+            function sendMessage() {
+                const messageInput = $('#chat-input');
+                const message = messageInput.val();
+                const senderId = 'your_user_id'; // Replace with the actual user ID
+
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'sender': senderId
+                }));
+
+                messageInput.val('');
+            }
+        });
+
         $(document).ready(function() {
             $('#q').on('input', function() {
                 const query = $(this).val();
                 const filter = $('#filter').val();
                 if (query === '') {
-                    $('#search-results').html('').hide(); // پنهان کردن نتایج زمانی که جستجو خالی است
+                    $('#search-results').html('').hide();
                 } else {    
                     $.ajax({
                         url: "{% url 'search' %}", 
                         data: {'q': query, 'filter': filter},
                         success: function(data) {
-                            if (data.trim()) { // اگر داده‌های برگشتی خالی نیست
-                                $('#search-results').html(data).show(); // نمایش نتایج
+                            if (data.trim()) {
+                                $('#search-results').html(data).show();
                             } else {
-                                $('#search-results').hide(); // پنهان کردن نتایج در صورت خالی بودن
+                                $('#search-results').hide();
                             }
                         }
                     });
@@ -208,6 +294,6 @@
             });
         });
     </script>
-{% block extra_js %}{% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

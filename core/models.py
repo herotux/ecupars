@@ -327,3 +327,22 @@ class Advertisement(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ChatSession(models.Model):
+    user = models.ForeignKey(User, related_name='user_sessions', on_delete=models.CASCADE)
+    consultant = models.ForeignKey(User, related_name='consultant_sessions', null=True, blank=True, on_delete=models.SET_NULL)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Chat between {self.user.username} and {self.consultant.username if self.consultant else 'Unassigned'}"
+
+class Message(models.Model):
+    session = models.ForeignKey(ChatSession, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.username} at {self.timestamp}"
