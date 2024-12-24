@@ -330,7 +330,7 @@ class Advertisement(models.Model):
 
 
 class ChatSession(models.Model):
-    user = models.ForeignKey(User, related_name='user_sessions', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='user_sessions', on_delete=models.CASCADE)
     consultant = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='consultant_sessions', null=True, blank=True, on_delete=models.SET_NULL)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -340,7 +340,7 @@ class ChatSession(models.Model):
 
 class Message(models.Model):
     session = models.ForeignKey(ChatSession, related_name='messages', on_delete=models.CASCADE)
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
