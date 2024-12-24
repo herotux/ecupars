@@ -8,7 +8,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('cars/', views.HomeAPIView.as_view(), name='cars-list'),
     path('cars/<int:cat_id>/', views.UserCarDetail.as_view(), name='car-detail'),  
-    path('issues/<int:pk>/', views.UserIssueDetailView.as_view(), name='issue-detail'),  
+    path('issues/<int:issue_id>/', views.UserIssueDetailView.as_view(), name='issue-detail'),  
     path('steps/<int:step_id>/', views.UserStepDetail.as_view(), name='step-detail'),
     path('subscription-plans/', views.SubscriptionPlanListView.as_view(), name='subscription-plan-list'),
     path('activate-subscription/', views.ActivateSubscriptionView.as_view(), name='activate-subscription'),
@@ -17,5 +17,5 @@ urlpatterns = [
 
 
     # URLهای مربوط به چت
-    path('api/start-chat/', StartChatView.as_view(), name='start-chat'),
+    path('api/start-chat/', views.StartChatView.as_view(), name='start-chat'),
 ]
