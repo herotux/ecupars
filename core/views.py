@@ -2305,7 +2305,10 @@ class UserIssueDetailView(generics.RetrieveAPIView):
         issue = Issue.objects.get(id=issue_id)
         
         issues_serializer = IssueSerializer(issue)
-        response_data["issue"] = issues_serializer.data
+        response_data = {
+                "status": "success",
+                "issue": issues_serializer.data,
+            }
         # اگر خطا سوال مرتبط داشته باشد
         if issue.question:
             question_data = QuestionSerializer(issue.question).data
