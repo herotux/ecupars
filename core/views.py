@@ -36,7 +36,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.decorators import permission_classes
 from django.http import Http404
-from .serializer import DiagnosticStepSerializer, OptionSerializer
+from .serializer import DiagnosticStepSerializer, OptionSerializer,ChatSessionSerializer
 from django.contrib.auth.views import LogoutView as AuthLogoutView
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -50,6 +50,11 @@ from zarinpal.api import ZarinPalPayment
 from django.core.exceptions import PermissionDenied
 from functools import wraps
 from .models import ChatSession, Message
+from django.contrib.auth import get_user_model
+
+
+
+
 
 
 
@@ -2129,7 +2134,9 @@ def verify_otp_view(request):
             session.is_verified = True
             session.save()
 
-           
+            # لاگین کردن کاربر
+            login(request, session.user)  # کاربر را در سیستم لاگین کنید
+
             refresh = RefreshToken.for_user(session.user)
 
             return Response({
@@ -2487,6 +2494,7 @@ class StartChatView(APIView):
 
     def post(self, request):
         user = request.user
+        
         session = ChatSession.objects.filter(user=user, is_active=True).first()
 
         if session:
@@ -2495,6 +2503,7 @@ class StartChatView(APIView):
             return response
 
         # Assign a consultant
+        User = get_user_model()
         consultant = User.objects.filter(groups__name='Consultants').first()
         if not consultant:
             return Response({'error': 'No consultants available'}, status=503)
