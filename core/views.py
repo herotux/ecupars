@@ -51,7 +51,7 @@ from django.core.exceptions import PermissionDenied
 from functools import wraps
 from .models import ChatSession, Message
 from django.contrib.auth import get_user_model
-
+import os
 
 
 
@@ -1620,6 +1620,8 @@ def import_issues(request, car_id):
     return JsonResponse({'status': 'error', 'message': 'No file uploaded.'})
 
 
+
+
 @user_passes_test(is_admin)
 @login_required
 @csrf_exempt  # Consider CSRF tokens for security in production
@@ -1650,8 +1652,11 @@ def import_maps(request, category_id):
                     # Create or get a single Tag instance for the entire file content
                     tag, created = Tag.objects.get_or_create(name=cleaned_content)
 
+                    # Extract title without file extension
+                    file_name, _ = os.path.splitext(image_file.name)
+
                     # Create the Map object
-                    map_instance = Map.objects.create(title=image_file.name, image=image_file, category=category)
+                    map_instance = Map.objects.create(title=file_name, image=image_file, category=category)
                     map_instance.tags.add(tag)  # Associate the tag with the map
 
                     responses.append({
@@ -2363,16 +2368,15 @@ class UserStepDetail(APIView):
         response_data = {
             "step": {
                 "id": step.id,
-                "issue": step.issue.name if step.issue else None,
-                "solution": step.solution.description if step.solution else None,
+                "title": step.solution.title if step.solution else None,
+                "description": step.solution.description if step.solution else None,
                 "letter": step.letter,
                 "map": map_data,  # ارسال عنوان و URL نقشه
-                "question": {
+            },
+            "question": {
                     "id": question.id if question else None,
                     "text": question.text if question else None,
                 } if question else None,
-            },
-            "question": question.id if question else None,
             "options": [
                 {
                     "id": option.id,
