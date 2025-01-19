@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پشتیبانی چت</title>
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/consultants.css' %}">
+    <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
+</head>
+
+<body>
+    <div id="frame">
+        <div class="sidebar">
+            <h4>چت‌های فعال</h4>
+            <div id="active-chats">
+                {% for session in active_sessions %}
+                <div class="chat-session" data-session-id="{{ session.id }}"
+                    data-unread-count="{{ session.unread_count }}">
+                    <h5>{{ session.user }}</h5>
+                    <span class="unread-message" style="display: none;">{{ session.unread_count }} پیام جدید</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="chat-window">
+            <h4 id="chat-header">انتخاب چت</h4>
+            <div id="chat-messages" class="chat-messages"></div>
+            <input type="text" id="chat-input" class="form-control" placeholder="پاسخ خود را بنویسید...">
+            <button class="btn btn-primary send-button">ارسال</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            let currentSessionId = null;
+            let chatSockets = {};
+
+            function connectWebSocket(sessionId) {
+                const chatSocket = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${sessionId}/`);
+
+                chatSocket.onmessage = function (e) {
+                    const data = JSON.parse(e.data);
+                    const chatMessages = $('#chat-messages');
+                    var userId = parseInt('{{ user_id }}');
+                    console.log(data);
+
+                    if (String(data.sender) !== '{{ user.id }}') {
+                        chatMessages.append(`<div class="message replies"><strong>${data.sender}:</strong> ${data.message}</div>`);
+                    } else {
+                        chatMessages.append(`<div class="message sent"><strong>شما:</strong> ${data.message}</div>`);
+                    }
+
+                    // Update message status to read
+                    $.ajax({
+                        url: `/api/v1/chat/${data.session_id}/mark_as_read/`,
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        },
+                        success: function () {
+                            console.log('Message marked as read.');
+                        },
+                        error: function (error) {
+                            console.error('Error marking message as read:', error);
+                        }
+                    });
+
+                    updateUnreadCount(currentSessionId, 0);
+                    chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                };
+
+                chatSocket.onclose = function (e) {
+                    console.error('Chat socket closed unexpectedly');
+                };
+
+                chatSockets[sessionId] = chatSocket;
+            }
+
+            function updateUnreadCount(sessionId, unreadCount) {
+                const chatSession = $(`.chat-session[data-session-id="${sessionId}"]`);
+                const unreadMessage = chatSession.find('.unread-message');
+
+                if (unreadCount > 0) {
+                    unreadMessage.text(`${unreadCount} پیام جدید`).show();
+                    chatSession.attr('data-unread-count', unreadCount);
+                } else {
+                    unreadMessage.hide();
+                    chatSession.attr('data-unread-count', 0);
+                }
+            }
+
+            $('.chat-session').click(function() {
+                const sessionId = $(this).data('session-id');
+                currentSessionId = sessionId;
+                $('#chat-header').text(`  ${$(this).find('h5').text()}`);
+                const chatMessages = $('#chat-messages');
+                chatMessages.empty();
+
+                const unreadMessage = $(this).find('.unread-message');
+                unreadMessage.hide();
+                $(this).attr('data-unread-count', 0);
+
+                // Send request to mark messages as read
+                $.ajax({
+                    url: `/api/v1/chat/${sessionId}/mark_as_read/`,
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    },
+                    success: function() {
+                        console.log('Messages marked as read.');
+                    },
+                    error: function(error) {
+                        console.error('Error marking messages as read:', error);
+                    }
+                });
+
+                $.ajax({
+                    url: `/api/v1/chat/${sessionId}/messages/`,
+                    method: 'GET',
+                    success: function(data) {
+                        data.forEach(function(message) {
+                            const status = message.sender === '{{ user_id }}' ? 'sent' : 'replies';
+                            const senderName = String(message.sender) === '{{ user.id }}' ? 'شما' : message.sender_name;
+                            const messageClass = String(message.sender) === '{{ user_id }}' ? 'sent' : 'replies';
+
+                            chatMessages.append(`<div class="message ${messageClass}"><strong>${senderName}:</strong> ${message.content}</div>`);
+                        });
+                        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                        updateUnreadCount(sessionId, 0);
+                    },
+                    error: function(error) {
+                        console.error('Error loading messages:', error);
+                    }
+                });
+
+                updateUnreadCount(currentSessionId, 0);
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+
+                if (!chatSockets[sessionId]) {
+                    connectWebSocket(sessionId);
+                }
+            });
+
+            $('.send-button').click(function () {
+                if (!currentSessionId) return;
+                var userId = parseInt('{{ user_id }}');
+
+                const message = $('#chat-input').val();
+                if (message) {
+                    chatSockets[currentSessionId].send(JSON.stringify({
+                        'message': message,
+                        'sender': userId,
+                        'session_id': currentSessionId
+                    }));
+                    $('#chat-input').val('');
+                    $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
+                }
+            });
+
+            $('#chat-input').keypress(function (e) {
+                if (e.which == 13) {
+                    $('.send-button').click();
+                }
+            });
+
+            $('.chat-session').each(function () {
+                const sessionId = $(this).data('session-id');
+                const unreadCount = $(this).data('unread-count');
+                updateUnreadCount(sessionId, unreadCount);
+            });
+        });
+    </script>
+</body>
+
+</html>

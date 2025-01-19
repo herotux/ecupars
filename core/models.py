@@ -10,7 +10,7 @@ from django.utils import timezone
 from django_jalali.db import models as jmodels
 from django.utils.timezone import now
 from datetime import timedelta
-
+from asgiref.sync import sync_to_async
 
 
 
@@ -173,7 +173,7 @@ class Solution(models.Model):
 class Map(models.Model):
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to='maps/')
-    category = models.ForeignKey(MapCategory, on_delete=models.CASCADE)
+    category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag', related_name='maps', blank=True)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     updated_at = jmodels.jDateTimeField(auto_now=True)
@@ -330,19 +330,62 @@ class Advertisement(models.Model):
 
 
 class ChatSession(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='user_sessions', on_delete=models.CASCADE)
-    consultant = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='consultant_sessions', null=True, blank=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(CustomUser  , on_delete=models.CASCADE, related_name='user_sessions')
+    consultant = models.ForeignKey(CustomUser  , on_delete=models.SET_NULL, null=True, blank=True, related_name='consultant_sessions')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Chat between {self.user.username} and {self.consultant.username if self.consultant else 'Unassigned'}"
+    
+    def get_unread_count(self, user):
+        try:
+            user_chat_session = UserChatSession.objects.get(user=user, chat_session=self)
+            return user_chat_session.unread_messages_count
+        except UserChatSession.DoesNotExist:
+            return 0  # مقدار پیش‌فرض
+
+
+
+    def close_chat(self):
+        self.is_active = False
+        self.save()
+
+
+
+
+class UserChatSession(models.Model):
+    user = models.ForeignKey(CustomUser , on_delete=models.CASCADE)
+    chat_session = models.ForeignKey(ChatSession, on_delete=models.CASCADE)
+    unread_messages_count = models.IntegerField(default=0)
+
+    @sync_to_async
+    def update_unread_count(self):
+        unread_messages = self.chat_session.messages.exclude(read_by__in=[self.user]).exclude(sender=self.user)
+        self.unread_messages_count = unread_messages.count()
+        self.save()
+
+
 
 class Message(models.Model):
-    session = models.ForeignKey(ChatSession, related_name='messages', on_delete=models.CASCADE)
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(CustomUser , on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    read_by = models.ManyToManyField(CustomUser , related_name='read_messages', blank=True)
+    
+    def mark_as_read(self, user):
+        self.read_by.add(user)
+        if user != self.sender:
+            # برای فرستنده پیام، پیام را به عنوان خوانده شده نشان بده
+            return True
+        user_chat_session = UserChatSession.objects.get(user=user, chat_session=self.session)
+        user_chat_session.update_unread_count()
+        return False
+
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.timestamp}"
+    
+    def sender_name(self):
+        return f"{self.sender.first_name} {self.sender.last_name}" if self.sender.first_name and self.sender.last_name else self.sender.username

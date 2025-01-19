@@ -27,7 +27,8 @@ urlpatterns = [
     
     path('manage-solutions/', views.manage_solutions, name='manage_solutions'),
     path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
-    path('search/', views.search, name='search'),  # برای جستجوی AJAX
+    path('search/', views.search, name='search'),  # برای جستجوی 
+    
      
     path('issue/<int:issue_id>/', views.issue_detail, name='issue_detail'),
 
@@ -142,6 +143,7 @@ urlpatterns = [
 
     # تأیید پرداخت
     path('payment/verify/', views.verify_payment, name='verify_payment'),
+    path('support-chat/', views.consultants_chat, name='support_chat'),
     
 
 ]

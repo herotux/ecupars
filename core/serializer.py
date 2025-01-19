@@ -72,9 +72,11 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.ReadOnlyField()
+
     class Meta:
         model = Message
-        fields = ['id', 'session', 'sender', 'content', 'timestamp']
+        fields = ['id','session', 'sender', 'content', 'timestamp', 'sender_name']
 
 class ChatSessionSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
@@ -82,3 +84,15 @@ class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = ['id', 'user', 'consultant', 'is_active', 'created_at', 'messages']
+
+
+
+
+
+class SearchResultSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    type = serializers.CharField()
+    icon_url = serializers.URLField()
+    path = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()

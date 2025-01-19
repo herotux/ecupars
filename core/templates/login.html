@@ -1,88 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>صفحه ورود</title>
-  <!-- Tell the browser to be responsive to screen width -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  {% load static %}
-  {% load crispy_forms_tags %}
+  {% load static %} {% load crispy_forms_tags %}
   <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.min.css' %}">
-  <!-- <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"> -->
   <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/iCheck/flat/blue.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/morris/morris.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/jvectormap/jquery-jvectormap-1.2.2.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/datepicker/datepicker3.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/daterangepicker/daterangepicker-bs3.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css' %}">
-  <!-- <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet"> -->
   <link rel="stylesheet" href="{% static 'dist/css/bootstrap-rtl.min.css' %}">
   <link rel="stylesheet" href="{% static 'dist/css/custom-style.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
-  
-  {% block extra_css %}
-  
   <style>
     .help-text {
-        display: none;
+      display: none;
     }
-
   </style>
-  {% endblock %}
 </head>
 
-
-
 <body class="hold-transition login-page">
-<div class="login-box">
-  <div class="login-logo">
-    <a href="../../index2.html"><b>ورود به سایت</b></a>
-  </div>
-  <!-- /.login-logo -->
-  <div class="card">
-    <div class="card-body login-card-body">
-      <p class="login-box-msg">فرم زیر را تکمیل کنید و ورود بزنید</p>
+  <div class="login-box">
+    <div class="login-logo"> <a href="#"><b>ورود به سایت</b></a> </div>
+    <div class="card">
+      <div class="card-body login-card-body">
+        <p class="login-box-msg">فرم زیر را تکمیل کنید و ورود بزنید</p>
 
-      <form method="post">
-        {% csrf_token %}
-        <div class="input-group mb-3">
-          <input type="text" name="username" id="username" class="form-control" placeholder="نام کاربری" required>
-          <div class="input-group-append">
-            <span class="fa fa-envelope input-group-text"></span>
-          </div>
-        </div>
-        <div class="input-group mb-3">
-          <input type="password" name="password" id="password" required class="form-control" placeholder="رمز عبور">
-          <div class="input-group-append">
-            <span class="fa fa-lock input-group-text"></span>
-          </div>
-        </div>
-        <div class="row">
-          <!-- /.col -->
-          <div class="col">
-            <button type="submit" class="btn btn-primary btn-block btn-flat">ورود</button>
-          </div>
-          <!-- /.col -->
-        </div>
-      </form>
 
-      
+        
+        <form id="loginForm">
+          {% csrf_token %}
+          <div class="input-group mb-3">
+            <input type="text" name="username" id="username" class="form-control" placeholder="نام کاربری" required>
+            <div class="input-group-append">
+              <span class="fa fa-envelope input-group-text"></span>
+            </div>
+          </div>
+          <div class="input-group mb-3">
+            <input type="password" name="password" id="password" required class="form-control" placeholder="رمز عبور">
+            <div class="input-group-append">
+              <span class="fa fa-lock input-group-text"></span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <button type="submit" class="btn btn-primary btn-block btn-flat">ورود</button>
+            </div>
+          </div>
+        </form>
 
-      <!-- <p class="mb-1">
-        <a href="#">رمز عبورم را فراموش کرده ام.</a>
-      </p> -->
-      <p class="mb-0">
-        <a href="/register" class="text-center">ثبت نام</a>
-      </p>
+        <p class="mb-0">
+          <a href="/register" class="text-center">ثبت نام</a>
+        </p>
+      </div>
+
     </div>
-    <!-- /.login-card-body -->
   </div>
-</div>
-<!-- /.login-box -->
+  <div class="otp-box" style="display:none;">
+    <div class="otp-logo">
+      <a href="#"><b>تایید OTP</b></a>
+    </div>
+
+    <div class="card">
+      <div class="card-body login-card-body">
+        <p class="login-box-msg">لطفاً OTP ارسال شده را وارد کنید</p>
+
+        <form id="otpForm">
+          <div class="input-group mb-3">
+            <input type="text" name="otp" id="otp" class="form-control" placeholder="OTP" required>
+            <div class="input-group-append">
+              <span class="fa fa-key input-group-text"></span>
+            </div>
+          </div>
+          <input type="hidden" id="session_id" />
+          <div class="row">
+            <div class="col">
+              <button type="submit" class="btn btn-primary btn-block btn-flat">تایید OTP</button>
+            </div>
+          </div>
+        </form>
+
+        <p class="mb-0">
+          <a href="/register" class="text-center">ثبت نام</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      $('#loginForm').on('submit', function (event) {
+        event.preventDefault(); // جلوگیری از ارسال فرم به صورت معمول
+
+        const username = $('#username').val();
+        const password = $('#password').val();
+
+        // ارسال درخواست به سرور
+        $.ajax({
+          url: '/api/v1/login', // آدرس API
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            username: username,
+            password: password
+          }),
+          success: function (data) {
+            // نمایش فرم OTP
+            $('.login-box').hide();
+            $('.otp-box').show();
+            $('#session_id').val(data.session_id); // ذخیره session_id
+
+            // وارد کردن OTP به فیلد مربوطه
+            $('#otp').val(data.otp); // فرض بر این است که OTP در پاسخ سرور موجود است
+          },
+          error: function (xhr) {
+            // مدیریت خطا
+            alert('ورود ناموفق. لطفاً نام کاربری یا رمز عبور را بررسی کنید.');
+          }
+        });
+      });
+
+      $('#otpForm').on('submit', function (event) {
+        event.preventDefault(); // جلوگیری از ارسال فرم به صورت معمول
+
+        const otp = $('#otp').val();
+        const session_id = $('#session_id').val();
+
+        // ارسال درخواست به سرور برای تایید OTP
+        $.ajax({
+          url: '/api/v1/verify_otp', // آدرس API
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            otp: otp,
+            session_id: session_id
+          }),
+          success: function (data) {
+            // ذخیره توکن در Local Storage
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            // هدایت به URL مورد نظر
+            window.location.href = '/'; // آدرس بعد از ورود موفق
+          },
+          error: function (xhr) {
+            // مدیریت خطا
+            alert('تایید OTP ناموفق. لطفاً دوباره تلاش کنید.');
+          }
+        });
+      });
+    });
+  </script>
 
 </body>
+
 </html>

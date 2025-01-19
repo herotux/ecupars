@@ -83,6 +83,61 @@
             </form>
         {% endif %}
         
+
+        </br>
+        <a href="{% url 'map_cat_create' car.id %}" class="btn btn-primary mb-3">
+            <i class="fa fa-plus"></i> اضافه کردن نقشه در این دسته
+        </a>
+
+        
+        <button class="btn btn-info mb-3" onclick="toggleUploadForm()">آپلود دسته‌ای نقشه‌ها</button>
+        
+        <form id="uploadForm" enctype="multipart/form-data" class="mb-4" style="display: none;">
+            <div class="mb-3">
+                <label for="imageInput" class="form-label">انتخاب فایل‌های نقشه (تصاویر)</label>
+                <input type="file" id="imageInput" name="image_files" multiple class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="textInput" class="form-label">انتخاب فایل‌های متنی (TXT)</label>
+                <input type="file" id="textInput" name="txt_files" multiple class="form-control" required>
+            </div>
+            <button type="button" class="btn btn-success" onclick="uploadMaps()">آپلود نقشه‌ها</button>
+        </form>
+
+        {% if maps %}
+    
+            <h2>نقشه ها:</h2>
+            <form id="delete-issues-form">
+                {% csrf_token %}
+                <div class="form-check mb-3">
+                    <input type="checkbox" id="select-all" class="form-check-input">
+                    <label for="select-all" class="form-check-label">انتخاب همه</label>
+                </div>
+                <ul class="list-group">
+                    {% for map in maps %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <input type="checkbox" name="issues" value="{{ map.id }}" class="issue-checkbox">
+                        <a href="{% url 'map_detail' map.id %}">{{ map.title }}</a>
+                        <div>
+                            <a href="{% url 'map_update' map.id %}" class="btn btn-warning btn-sm">
+                                <i class="fa fa-edit"></i> ویرایش
+                            </a>
+                        </div>
+                    </li>
+                    {% empty %}
+                        <li>نقشه ای در این دسته وجود ندارد.</li>
+                    {% endfor %}
+                </ul>
+                <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
+                    <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
+                </button>
+                <!-- دکمه تغییر دسته‌بندی -->
+                <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                    <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
+                </button>
+            </form>
+        {% endif %}
+        
         <!-- دکمه حذف شناور -->
         <button type="button" id="delete-selected-floating" class="btn btn-danger btn-floating d-none">
             <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
@@ -115,6 +170,72 @@
 {% endblock %}
 
 {% block extra_js %}
+
+<script>
+    function uploadMaps() {
+        const formData = new FormData();
+        const imageInputs = document.getElementById('imageInput').files;
+        const textInputs = document.getElementById('textInput').files;
+
+        if (imageInputs.length === 0 || textInputs.length === 0) {
+            alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
+            return;
+        }
+
+        if (imageInputs.length !== textInputs.length) {
+            alert('تعداد فایل‌های نقشه باید با تعداد فایل‌های متنی مساوی باشد.');
+            return;
+        }
+
+        for (let i = 0; i < imageInputs.length; i++) {
+            formData.append('image_files', imageInputs[i]);
+            formData.append('txt_files', textInputs[i]);
+        }
+
+        fetch(`/import-maps/{{ cat.id }}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('نقشه‌ها با موفقیت آپلود شدند.');
+                location.reload();
+            } else {
+                alert('خطا در آپلود: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function toggleUploadForm() {
+        const form = document.getElementById('uploadForm');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+        } else {
+            form.style.display = 'none';
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
 <script>
 
 $(document).ready(function() {
@@ -286,7 +407,11 @@ $(document).ready(function() {
         });
     });
 
+    
+
 });
+
+
 
 </script>
 

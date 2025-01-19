@@ -1,9 +1,11 @@
 from django.urls import path
 from . import views
+from .search_api_view import SearchAPIView  # Import the new SearchAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
+from .search_api_view import SearchAPIView
 
 urlpatterns = [
-    path('login', views.login_view, name='login'),
+    path('login', views.login_view, name='api-login'),
     path('verify_otp', views.verify_otp_view, name='verify_otp'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('cars/', views.HomeAPIView.as_view(), name='cars-list'),
@@ -19,4 +21,8 @@ urlpatterns = [
     # URLهای مربوط به چت
     path('start-chat/', views.StartChatView.as_view(), name='start-chat'),
     path('send-message/', views.SendMessageView.as_view(), name='send_message'),
+    path('close-chat/<int:session_id>/', views.CloseChatView.as_view(), name='close_chat'),
+    path('chat/<int:session_id>/messages/', views.ChatMessagesAPIView.as_view(), name='chat-messages'),
+    path('chat/<int:session_id>/mark_as_read/', views.MarkMessagesAsReadView.as_view(), name='mark_messages_as_read'),
+    path('search', SearchAPIView.as_view(), name='search-api'),  # Add the new search API endpoint
 ]

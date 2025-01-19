@@ -84,10 +84,13 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                # context processors پیش‌فرض جنگو
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # context processor جدید
+                'core.context_processors.user_id',
             ],
         },
     },
@@ -395,3 +398,5 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+SESSION_COOKIE_AGE = 15 * 60  # 15 دقیقه

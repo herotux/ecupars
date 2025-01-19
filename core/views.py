@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
-from .forms import MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
+from .forms import SearchForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer
 from .models import SubscriptionPlan, UserSubscription
-from .serializer import SubscriptionPlanSerializer, UserSubscriptionSerializer
+from .serializer import MessageSerializer, SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login as auth_login
@@ -49,10 +49,10 @@ from django.db import IntegrityError
 from zarinpal.api import ZarinPalPayment
 from django.core.exceptions import PermissionDenied
 from functools import wraps
-from .models import ChatSession, Message
+from .models import ChatSession, Message, UserChatSession
 from django.contrib.auth import get_user_model
 import os
-
+from rest_framework import viewsets
 
 
 
@@ -226,6 +226,22 @@ def render_mapcategories(categories):
 def is_admin(user):
     return user.role == 'admin' or user.is_superuser
 
+
+
+
+
+def check_user_in_group(user, group_name):
+    try:
+        group = Group.objects.get(name=group_name)
+        return user.groups.filter(id=group.id).exists()
+    except:
+        return False
+
+
+    
+def is_Consultants(user): #بررسی اینکه کاربر مشاور است یا خیر
+    # consultants = Group.objects.get(name=Consultants)
+    return check_user_in_group(user, 'Consultants')
 
 
 def is_vip(user):
@@ -609,101 +625,70 @@ def register(request):
 
 
 def search(request):
-    query = request.GET.get('q', '')
-    filter_option = request.GET.get('filter', 'all')  # دریافت فیلتر
-
-    issues = Issue.objects.filter(title__icontains=query)
-    cars = IssueCategory.objects.filter(parent_category__isnull=True, name__icontains=query)
-    categories = IssueCategory.objects.filter(name__icontains=query)
-    solutions = Solution.objects.filter(title__icontains=query)
-    tags = Tag.objects.filter(name__icontains=query)
-
+    form = SearchForm(request.GET or None)
     results = []
 
-    if filter_option == 'cars':
-        for car in cars:
-            results.append({
-                'car': car,
-            })
+    if form.is_valid():
+        query = form.cleaned_data.get('query', '')
+        filter_option = form.cleaned_data.get('filter_option', 'all')
 
-    elif filter_option == 'issues':
-        for issue in issues:
-            full_category_name = issue.category.get_full_category_name()
-            results.append({
-                'full_category_name': full_category_name,
-                'issue': issue,
-                'issue_title': issue.title,
-            })
+        # جستجو در مدل‌های مختلف بر اساس فیلتر
+        issues = Issue.objects.filter(title__icontains=query) | Issue.objects.filter(description__icontains=query)
+        cars = IssueCategory.objects.filter(parent_category__isnull=True, name__icontains=query)
+        categories = IssueCategory.objects.filter(name__icontains=query)
+        solutions = Solution.objects.filter(title__icontains=query) | Solution.objects.filter(description__icontains=query)
+        tags = Tag.objects.filter(name__icontains=query)
 
-    elif filter_option == 'solutions':
-        for solution in solutions:
-            for issue in solution.issues.all():
-                full_category_name = issue.category.get_full_category_name()
-                results.append({
-                    'full_category_name': full_category_name,
-                    'solution': solution,
-                    'solution_title': solution.title,
-                })
+        if filter_option == 'cars':
+            results = [{'car': car} for car in cars]
 
-    elif filter_option == 'all':
-        for issue in issues:
-            full_category_name = issue.category.get_full_category_name()
-            results.append({
-                'full_category_name': full_category_name,
-                'issue': issue,
-                'issue_title': issue.title,
-            })
+        elif filter_option == 'issues':
+            results = [{'issue': issue, 'full_category_name': issue.category.get_full_category_name()} for issue in issues]
 
-        for solution in solutions:
-            for issue in solution.issues.all():
-                full_category_name = issue.category.get_full_category_name()
-                results.append({
-                    'full_category_name': full_category_name,
-                    'solution': solution,
-                    'solution_title': solution.title,
-                })
-
-        for car in cars:
-            results.append({
-                'car': car,
-            })
-
-    elif filter_option == 'tags':
-        for tag in tags:
-            # در اینجا پست‌هایی که شامل تگ هستند را پیدا کنید
-            associated_issues = tag.issues.all()
-            associated_solutions = tag.solutions.all()
-            associated_maps = tag.maps.all()
-
-            for issue in associated_issues:
-                full_category_name = issue.category.get_full_category_name()
-                results.append({
-                    'full_category_name': full_category_name,
-                    'issue': issue,
-                    'issue_title': issue.title,
-                    'tag': tag,
-                })
-
-            for map in associated_maps:
-                full_category_name = map.category.get_full_category_name()
-                results.append({
-                    'full_category_name': full_category_name,
-                    'map': map,
-                    'map_title': map.title,
-                    'tag': tag,
-                })
-
-            for solution in associated_solutions:
+        elif filter_option == 'solutions':
+            for solution in solutions:
                 for issue in solution.issues.all():
-                    full_category_name = issue.category.get_full_category_name()
                     results.append({
-                        'full_category_name': full_category_name,
                         'solution': solution,
-                        'solution_title': solution.title,
-                        'tag': tag,
+                        'issue': issue,
+                        'full_category_name': issue.category.get_full_category_name(),
                     })
 
-    return render(request, 'search_results.html', {'results': results})
+        elif filter_option == 'tags':
+            for tag in tags:
+                associated_issues = tag.issues.all()
+                associated_solutions = tag.solutions.all()
+                for issue in associated_issues:
+                    results.append({
+                        'tag': tag,
+                        'issue': issue,
+                        'full_category_name': issue.category.get_full_category_name(),
+                    })
+                for solution in associated_solutions:
+                    for issue in solution.issues.all():
+                        results.append({
+                            'tag': tag,
+                            'solution': solution,
+                            'issue': issue,
+                            'full_category_name': issue.category.get_full_category_name(),
+                        })
+
+        elif filter_option == 'all':
+            results.extend([{'car': car} for car in cars])
+            results.extend([{'issue': issue, 'full_category_name': issue.category.get_full_category_name()} for issue in issues])
+            for solution in solutions:
+                for issue in solution.issues.all():
+                    results.append({
+                        'solution': solution,
+                        'issue': issue,
+                        'full_category_name': issue.category.get_full_category_name(),
+                    })
+
+    return render(request, 'search_results.html', {'form': form, 'results': results})
+
+
+    
+
 
 
 
@@ -810,7 +795,8 @@ def car_detail(request, cat_id):
     issue_categories = IssueCategory.objects.filter(parent_category=cat_id)
     issue_categoriess = IssueCategory.objects.all()
     issues = Issue.objects.filter(category=cat_id)
-    return render(request, 'car_detail.html', {'car':car, 'issue_categoriess': issue_categoriess,'issue_categories': issue_categories, 'issues':issues, 'page_title': page_title})
+    maps = Map.objects.filter(category=cat_id)
+    return render(request, 'car_detail.html', {'car':car, 'issue_categoriess': issue_categoriess,'issue_categories': issue_categories, 'issues':issues, 'maps':maps, 'page_title': page_title})
 
 
 
@@ -1635,7 +1621,7 @@ def import_maps(request, category_id):
 
         try:
             # Check if the category exists
-            category = MapCategory.objects.get(id=category_id)
+            category = IssueCategory.objects.get(id=category_id)
             responses = []
 
             for idx, txt_file in enumerate(txt_files):
@@ -1673,7 +1659,7 @@ def import_maps(request, category_id):
 
             return JsonResponse({'status': 'success', 'message': responses})
 
-        except MapCategory.DoesNotExist:
+        except IssueCategory.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': f'Category ID {category_id} does not exist.'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
@@ -1814,7 +1800,7 @@ def user_map_detail(request, map_id):
 @login_required
 def map_cat_create(request, cat_id):
     page_title = "ایجاد نقشه"
-    category = get_object_or_404(MapCategory, id=cat_id)
+    category = get_object_or_404(IssueCategory, id=cat_id)
    
     if request.method == 'POST':
         form = MapForm(request.POST, request.FILES)  # اضافه کردن request.FILES
@@ -2088,10 +2074,25 @@ def my_subscription(request):
 
 
 
+def consultants_chat(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    page_title = "پشتیبانی کاربران"
+    # دریافت چت‌های فعال برای کاربر
+    active_sessions = ChatSession.objects.filter(consultant=request.user, is_active=True)
+    chat_sessions = []
+    for session in active_sessions:
+        chat_sessions.append({
+            'id': session.id,
+            'user': session.user.username,
+            'unread_count': session.get_unread_count(request.user)
+        })
+    return render(request, 'consultants_chat.html', {
+        'active_sessions': chat_sessions,
+        'user': request.user
+    })
 
-
-
-
+    
 
 
 
@@ -2499,6 +2500,7 @@ class StartChatView(APIView):
     def post(self, request):
         user = request.user
         
+        # بررسی وجود چت‌سشن فعال برای کاربر
         session = ChatSession.objects.filter(user=user, is_active=True).first()
 
         if session:
@@ -2506,13 +2508,20 @@ class StartChatView(APIView):
             response['Content-Type'] = 'application/json; charset=utf-8'
             return response
 
-        # Assign a consultant
+        # اختصاص مشاور
         User = get_user_model()
         consultant = User.objects.filter(groups__name='Consultants').first()
         if not consultant:
             return Response({'error': 'No consultants available'}, status=503)
 
+        # ایجاد چت‌سشن جدید
         session = ChatSession.objects.create(user=user, consultant=consultant)
+
+        # ایجاد UserChatSession برای کاربر و مشاور
+        UserChatSession.objects.create(user=user, chat_session=session, unread_messages_count=0)
+        UserChatSession.objects.create(user=consultant, chat_session=session, unread_messages_count=0)
+
+        # بازگرداندن پاسخ
         response = Response(ChatSessionSerializer(session).data)
         response['Content-Type'] = 'application/json; charset=utf-8'
         return response
@@ -2520,14 +2529,33 @@ class StartChatView(APIView):
 
 
 
-class SendMessageView(APIView):
+
+class ChatMessagesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        session_id = request.data.get('session_id')
+    def get(self, request, session_id):
+        # فیلتر کردن پیام‌ها بر اساس session_id
+        messages = Message.objects.filter(session_id=session_id).order_by('timestamp')
+
+        # اگر هیچ پیامی وجود نداشت
+        if not messages:
+            return Response({'detail': 'No messages found for this session.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # سریالایزر کردن پیام‌ها
+        serializer = MessageSerializer(messages, many=True)
+
+        # بازگشت داده‌ها به صورت پاسخ
+        return Response(serializer.data)
+
+
+class SendMessageView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
         message_content = request.data.get('message')
         sender_id = request.data.get('sender_id')
-
+        User = get_user_model()
         try:
             session = ChatSession.objects.get(id=session_id)
             sender = User.objects.get(id=sender_id)
@@ -2544,3 +2572,52 @@ class SendMessageView(APIView):
             return Response({'error': 'Chat session does not exist'}, status=404)
         except User.DoesNotExist:
             return Response({'error': 'User does not exist'}, status=404)
+
+
+class CloseChatView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
+        try:
+            session = ChatSession.objects.get(id=session_id, user=request.user)
+            session.close_chat()
+            return Response({'status': 'success', 'message': 'Chat closed successfully'})
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Chat session does not exist'}, status=404)
+
+
+
+class MarkMessagesAsReadView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
+        try:
+            session = ChatSession.objects.get(id=session_id)
+            current_user = request.user
+
+            messages = Message.objects.filter(session=session).exclude(sender=current_user)
+            for message in messages:
+                message.mark_as_read(current_user)
+
+            user_chat_session = UserChatSession.objects.get_or_create(user=current_user, chat_session=session)
+            user_chat_session = user_chat_session[0]
+            user_chat_session.update_unread_count()
+
+            # به‌روزرسانی تعداد پیام‌های خوانده نشده برای کاربر مقابل
+            if current_user == session.user:
+                
+                recipient = session.consultant
+            else:
+                recipient = session.user
+
+            recipient_user_chat_session = UserChatSession.objects.get(user=recipient, chat_session=session)
+            
+            recipient_user_chat_session.update_unread_count()
+            print(recipient_user_chat_session.unread_messages_count)
+
+            return Response({'status': 'success', 'message': 'Messages marked as read.'})
+
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Chat session does not exist'}, status=404)

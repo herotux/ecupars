@@ -1,0 +1,92 @@
+body {
+    display: flex;
+    min-height: 100vh;
+    background: #27ae60;
+    font-family: "proxima-nova", "Source Sans Pro", sans-serif;
+    color: #fff;
+}
+
+#frame {
+    width: 95%;
+    max-width: 1000px;
+    height: 92vh;
+    margin: auto;
+    background: #E6EAEA;
+    display: flex;
+}
+
+#chat-header{
+    color: black;
+}
+
+.sidebar {
+    width: 280px;
+    background: #2c3e50;
+    color: #fff;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.chat-window {
+    flex-grow: 1;
+    padding: 20px;
+    background: #fff;
+    position: relative;
+}
+
+.chat-session {
+    border: 1px solid #ddd;
+    margin: 10px 0;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.chat-session:hover {
+    background: #ecf0f1;
+}
+
+.unread-message {
+    color: red;
+    font-weight: bold;
+}
+
+.chat-messages {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f8f8f8;
+}
+
+.send-button {
+    margin-top: 10px;
+}
+
+.message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 15px;
+    position: relative;
+    clear: both;
+}
+
+.message.sent {
+    background: #a0cc79;
+    margin-left: auto;
+    max-width: 70%;
+}
+
+.message.replies {
+    background: #5c84c5;
+    margin-right: auto;
+    max-width: 70%;
+}
+
+.message strong {
+    display: block;
+    margin-bottom: 5px;
+}

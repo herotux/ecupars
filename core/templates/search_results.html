@@ -1,25 +1,29 @@
-{% block search_results %}
+{% extends 'base2.html' %}
+{% block title %} صفحه   {{ issue.title }} {% endblock %}
+
+{% block content %}
+
+
+<h1>نتایج جستجو</h1>
+{% include 'search_form.html' %}
 <ul>
     {% for result in results %}
         <li>
-            {% if result.map_title %} 
-                {{ result.full_category_name }} - 
-                {{ result.map_title }} - 
-                <a href="{% url 'user_map_detail' result.map.id %}">جزئیات</a>
-            {% elif result.solution_title %} 
-                {{ result.full_category_name }} - 
-                {{ result.solution_title }} - 
-                <a href="{% url 'user_solution_detail' result.solution.id %}">جزئیات</a>
-            {% elif result.issue_title %}
-                {{ result.full_category_name }} - 
-                {{ result.issue_title }} - 
+            {% if result.car %}
+            <li>{{ result.car.name }} - <a href="{% url 'user_car_detail' result.car.id %}">جزئیات</a></li>
+            {% elif result.issue %}
+                مشکل: {{ result.issue.title }} (دسته: {{ result.full_category_name }}) - 
+                <a href="{% url 'user_issue_detail' result.issue.id %}">جزئیات</a>
+            {% elif result.solution %}
+                راهکار: {{ result.solution.title }} - (دسته: {{ result.full_category_name }})
                 <a href="{% url 'user_issue_detail' result.issue.id %}">جزئیات</a>
             {% elif result.tag %}
-                {{ result.tag.name }} - 
-            {% else %}
-                <li>{{ result.car.name }} - <a href="{% url 'user_car_detail' result.car.id %}">جزئیات</a></li>
+                تگ: {{ result.tag.name }}
             {% endif %}
         </li>
     {% endfor %}
 </ul>
+
+
+
 {% endblock %}

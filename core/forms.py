@@ -514,3 +514,27 @@ class MapCategoryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parent_category'].label_from_instance = lambda obj: obj.get_full_category_name()
+
+
+
+
+class SearchForm(forms.Form):
+    query = forms.CharField(
+        label='متن جستجو', 
+        max_length=100, 
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'جستجو...'})
+    )
+    FILTER_CHOICES = [
+        ('all', 'همه'),
+        ('cars', 'خودروها'),
+        ('issues', 'مشکلات'),
+        ('solutions', 'راهکارها'),
+        ('tags', 'تگ‌ها'),
+    ]
+    filter_option = forms.ChoiceField(
+        label='فیلتر',
+        choices=FILTER_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
