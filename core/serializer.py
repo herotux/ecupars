@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import ChatSession, Message, Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
+from .models import Tag, Solution
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -92,7 +93,50 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 class SearchResultSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
-    icon_url = serializers.URLField()
-    path = serializers.CharField()
-    title = serializers.CharField()
-    description = serializers.CharField()
+    data = serializers.SerializerMethodField()
+
+    def get_data(self, obj):
+        if obj['type'] == 'car':
+            car = obj['data']['car']
+            return {"car": IssueCategorySerializer(car).data}
+        elif obj['type'] == 'issue':
+            issue = obj['data']['issue']
+            return {
+                "issue": IssueSerializer(issue).data,
+                "full_category_name": obj['data']['full_category_name']
+            }
+        elif obj['type'] == 'solution':
+            solution = obj['data']['solution']
+            return {
+                "solution": SolutionSerializer(solution).data,
+                "issue": IssueSerializer(obj['data']['issue']).data,
+                "full_category_name": obj['data']['full_category_name']
+            }
+        elif obj['type'] == 'tag':
+            if 'issue' in obj['data']:
+                return {
+                    "tag": TagSerializer(obj['data']['tag']).data,
+                    "issue": IssueSerializer(obj['data']['issue']).data,
+                    "full_category_name": obj['data']['full_category_name']
+                }
+            elif 'solution' in obj['data']:
+                return {
+                    "tag": TagSerializer(obj['data']['tag']).data,
+                    "solution": SolutionSerializer(obj['data']['solution']).data,
+                    "issue": IssueSerializer(obj['data']['issue']).data,
+                    "full_category_name": obj['data']['full_category_name']
+                }
+        return {}
+
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['id', 'name']
+
+class SolutionSerializer(serializers.ModelSerializer):
+    issues = IssueSerializer(many=True)
+    class Meta:
+        model = Solution
+        fields = ['id', 'title', 'description', 'issues']
