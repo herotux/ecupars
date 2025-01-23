@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views
-from .search_api_view import SearchAPIView  # Import the new SearchAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
 from .search_api_view import SearchAPIView
 
