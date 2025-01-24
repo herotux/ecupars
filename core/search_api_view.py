@@ -15,8 +15,8 @@ class SearchAPIView(APIView):
     def get(self, request):
         query = request.GET.get('query', '')
         filter_options = request.GET.getlist('filter_option', ['all'])
-        category_id = request.GET.get('category_id')
-        subcategory_id = request.GET.get('subcategory_id')
+        category_ids = request.GET.getlist('category_id')  # دریافت لیست category_idها
+        subcategory_ids = request.GET.getlist('subcategory_id')  # دریافت لیست subcategory_idها
 
         # Check user access
         user = request.user
@@ -31,11 +31,11 @@ class SearchAPIView(APIView):
         else:
             allowed_categories = subscription.plan.restricted_categories.all()
 
-        # Filter by category and subcategory
-        if category_id:
-            allowed_categories = allowed_categories.filter(id=category_id)
-        if subcategory_id:
-            allowed_categories = allowed_categories.filter(id=subcategory_id)
+        # Filter by categories and subcategories
+        if category_ids:
+            allowed_categories = allowed_categories.filter(id__in=category_ids)
+        if subcategory_ids:
+            allowed_categories = allowed_categories.filter(id__in=subcategory_ids)
 
         # Search in models based on filters and user access
         issues = Issue.objects.filter(
