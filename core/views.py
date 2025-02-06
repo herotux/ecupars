@@ -36,7 +36,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.decorators import permission_classes
 from django.http import Http404
-from .serializer import DiagnosticStepSerializer, OptionSerializer,ChatSessionSerializer
+from .serializer import DiagnosticStepSerializer, OptionSerializer,ChatSessionSerializer, ArticleSerializer
 from django.contrib.auth.views import LogoutView as AuthLogoutView
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -53,7 +53,84 @@ from .models import ChatSession, Message, UserChatSession
 from django.contrib.auth import get_user_model
 import os
 from rest_framework import viewsets
+from .models import Article  # Import the Article model
+from .forms import ArticleForm  # Import the form for Article
 
+
+
+
+
+
+def is_admin(user):
+    return user.role == 'admin' or user.is_superuser
+
+
+@login_required
+def article_list(request):
+    articles = Article.objects.all()
+    return render(request, 'article_list.html', {'articles': articles})
+
+@login_required
+def article_detail(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    return render(request, 'article_detail.html', {'article': article})
+
+# @login_required
+# def article_create(request):
+#     if request.method == 'POST':
+#         form = ArticleForm(request.POST)
+#         if form.is_valid():
+#             article = form.save(commit=False)
+#             article.author = request.user  # Set the author to the current user
+#             article.save()
+#             return redirect('article_list')
+#     else:
+#         form = ArticleForm()
+#     return render(request, 'article_form.html', {'form': form})
+
+
+
+
+@user_passes_test(is_admin)
+@login_required
+def article_create(request, category_id):
+    category = get_object_or_404(IssueCategory, id=category_id)
+
+    if request.method == 'POST':
+        form = ArticleForm(request.POST)
+        if form.is_valid():
+            article = form.save(commit=False)
+            article.category = category  # Set the category to the selected one
+            article.author = request.user  # Set the author to the current user
+            article.save()  # Save the article first
+            form.save()
+            form.save_m2m()  # Save the many-to-many relationship for tags
+            return redirect('article_list')
+    else:
+        form = ArticleForm()
+    return render(request, 'article_form.html', {'form': form, 'category': category})
+
+    
+
+@login_required
+def article_update(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    if request.method == 'POST':
+        form = ArticleForm(request.POST, instance=article)
+        if form.is_valid():
+            form.save()
+            return redirect('article_detail', article_id=article.id)
+    else:
+        form = ArticleForm(instance=article)
+    return render(request, 'article_form.html', {'form': form})
+
+@login_required
+def article_delete(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    if request.method == 'POST':
+        article.delete()
+        return redirect('article_list')
+    return render(request, 'article_confirm_delete.html', {'article': article})
 
 
 
@@ -223,8 +300,7 @@ def render_mapcategories(categories):
 
 
 
-def is_admin(user):
-    return user.role == 'admin' or user.is_superuser
+
 
 
 
@@ -392,8 +468,9 @@ def issue_create(request):
 
 
 
-@user_passes_test(is_admin)
+
 @login_required
+@user_passes_test(is_admin)
 def issue_cat_create(request, cat_id):
     page_title = "ایجاد خطا"
     category = get_object_or_404(IssueCategory, id=cat_id)
@@ -816,7 +893,8 @@ def car_detail(request, cat_id):
     issue_categoriess = IssueCategory.objects.all()
     issues = Issue.objects.filter(category=cat_id)
     maps = Map.objects.filter(category=cat_id)
-    return render(request, 'car_detail.html', {'car':car, 'issue_categoriess': issue_categoriess,'issue_categories': issue_categories, 'issues':issues, 'maps':maps, 'page_title': page_title})
+    articles = Article.objects.filter(category=cat_id)
+    return render(request, 'car_detail.html', {'articles':articles,'car':car, 'issue_categoriess': issue_categoriess,'issue_categories': issue_categories, 'issues':issues, 'maps':maps, 'page_title': page_title})
 
 
 
@@ -2641,3 +2719,11 @@ class MarkMessagesAsReadView(APIView):
 
         except ChatSession.DoesNotExist:
             return Response({'error': 'Chat session does not exist'}, status=404)
+
+
+
+
+
+class ArticleListAPIView(generics.ListAPIView):
+    queryset = Article.objects.all()  # دریافت تمام مقالات
+    serializer_class = ArticleSerializer  # استفاده از سریالایزر تعریف‌شده

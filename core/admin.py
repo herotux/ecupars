@@ -21,7 +21,8 @@ from .models import (
     SubscriptionPlan,
     Advertisement,
     ChatSession,
-    Message
+    Message,
+    Article
 
 )
 
@@ -176,3 +177,11 @@ class ChatSessionAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = ('id', 'session', 'sender', 'timestamp')
+
+
+
+
+@admin.register(Article)
+class ArticleAdmin(BaseAdmin):
+    list_display = ('title', 'content', 'created_at_formatted', 'updated_at_formatted')
+    search_fields = ('title',)

@@ -143,7 +143,12 @@ urlpatterns = [
 
     # تأیید پرداخت
     path('payment/verify/', views.verify_payment, name='verify_payment'),
+
     path('support-chat/', views.consultants_chat, name='support_chat'),
-    
+    path('articles/', views.article_list, name='article_list'),
+    path('articles/<int:article_id>/', views.article_detail, name='article_detail'),
+    path('articles/create/<int:category_id>/', views.article_create, name='article_create'),
+    path('articles/update/<int:article_id>/', views.article_update, name='article_update'),
+    path('articles/delete/<int:article_id>/', views.article_delete, name='article_delete'),
 
 ]

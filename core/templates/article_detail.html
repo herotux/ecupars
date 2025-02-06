@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block header %}
+    {{ form.media }}
+{% endblock %}
+
+{% block title %} مقاله -  {{ article.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 50px;
+    }
+
+    .content-box {
+        border: 1px solid #007bff;
+        border-radius: 5px;
+        padding: 20px;
+        width: 90%;
+        max-width: 800px;
+        background-color: #f9f9f9;
+        margin-bottom: 20px;
+    }
+
+    h1, h4 {
+        color: #0056b3;
+    }
+
+    .btn {
+        margin-top: 10px;
+    }
+
+    #optionsContainer {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <button id="bookmarkButton" title="نشان کردن صفحه">
+        <i id="bookmarkIcon" class="fa fa-bookmark-o"></i> <!-- آیکون توخالی به طور پیش‌فرض -->
+    </button>
+    <div class="content-box">
+        
+        <h1>{{ article.title }}</h1>
+        <span class="float-left">
+            <a href="{% url 'article_update' article.id %}" class="edit-btn edit-issue btn btn-warning" data-id="{{ issue.id }}" data-title="{{ issue.title }}" data-description="{{ issue.description }}">
+                <i class="fa fa-edit"></i> 
+            </a>
+        </span>
+        <p>شناسه مقاله: {{ article.id }}</p>
+        <p>{{ article.content|safe }}</p>
+    </div>
+
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+{% endblock %}

@@ -24,4 +24,7 @@ urlpatterns = [
     path('chat/<int:session_id>/messages/', views.ChatMessagesAPIView.as_view(), name='chat-messages'),
     path('chat/<int:session_id>/mark_as_read/', views.MarkMessagesAsReadView.as_view(), name='mark_messages_as_read'),
     path('search/', SearchAPIView.as_view(), name='search-api'),  # Add the new search API endpoint
+
+
+    path('articles/', views.ArticleListAPIView.as_view(), name='article-list'), 
 ]

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block header %}
+{{ form.media }}
+{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form.instance.id|yesno:"ویرایش مقاله,ایجاد مقاله" }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>{{ form.instance.id|yesno:"ویرایش مقاله,ایجاد مقاله" }}</h2>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {{ form|crispy }}
+            
+            <button type="submit" class="btn btn-primary">ذخیره</button>
+            <a href="{% url 'article_list' %}" class="btn btn-secondary">لغو</a>
+        </form>
+    </div>
+{% endblock %} 

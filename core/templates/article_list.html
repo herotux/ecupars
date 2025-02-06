@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Article List{% endblock %}
+
+{% block content %}
+
+
+
+<div class="container mt-5">
+    <h1>لیست مقالات</h1>
+
+
+    <ul class="list-group">
+        {% for article in articles %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ article.category.get_full_category_name }} - {{ article.title }} </span>
+                <span>
+                    <a href="{% url 'article_detail' article.id %}" class="btn btn-warning btn-sm">مشاهده</a>
+                    <a href="{% url 'article_update' article.id %}" class="btn btn-warning btn-sm">ویرایش</a>
+                    <a href="{% url 'article_delete' article.id %}" class="btn btn-danger btn-sm">حذف</a>
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

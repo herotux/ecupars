@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ChatSession, Message, Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
-from .models import Tag, Solution
+from .models import Tag, Solution, Article
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -130,13 +130,25 @@ class SearchResultSerializer(serializers.Serializer):
 
 
 
-class TagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ['id', 'name']
+
 
 class SolutionSerializer(serializers.ModelSerializer):
     issues = IssueSerializer(many=True)
     class Meta:
         model = Solution
         fields = ['id', 'title', 'description', 'issues']
+
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['name']
+
+class ArticleSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)  # نمایش تگ‌ها به صورت تو در تو
+
+    class Meta:
+        model = Article
+        fields = ['id', 'title', 'content', 'author', 'category', 'tags']  # فیلدهایی که می‌خواهید در API نمایش داده شوند
+

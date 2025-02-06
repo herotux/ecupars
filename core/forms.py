@@ -12,8 +12,86 @@ from django.core.exceptions import ValidationError
 import ast
 from django_select2.forms import Select2MultipleWidget
 import re
+from .models import Article  # Ensure the Article model is imported
 
 
+
+
+
+
+
+
+class ArticleForm(forms.ModelForm):
+    tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'style': 'width: 100%;', 'placeholder': 'تگ‌ها را با ویرگول جدا کنید...'}),
+        label='تگ‌ها'
+    )
+     
+    class Meta:
+        model = Article
+        fields = ['title', 'content']  # Adjust fields as necessary
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'عنوان مقاله را اینجا وارد کنید'}),
+            "content": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5", "required": "false"}, config_name="extends"
+            ),
+            'author': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+        labels = {
+            'title': 'عنوان',
+            'content': 'محتوای مقاله',
+            'tags': 'تگ ها',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if self.instance.pk:  # اگر مقاله در حال ویرایش است
+            # استخراج تگ‌ها به صورت یک لیست
+            raw_tags = self.instance.tags.values_list('name', flat=True)
+            # تبدیل لیست تگ‌ها به رشته‌ای جدا شده با کاما
+            tags_initial = ', '.join(raw_tags)  # تبدیل به فرمت مناسب
+            self.fields['tags'].initial = tags_initial  # تنظیم مقدار اولیه فیلد tags
+
+
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+            # پردازش ورودی تگ‌ها و اضافه کردن یا دریافت آن‌ها از دیتابیس
+            tags_input = self.cleaned_data['tags']
+            print("Tags input:", tags_input)  # برای دیباگ
+            tag_names = [name.strip() for name in tags_input.split(',') if name.strip()]
+            tags = []
+            for name in tag_names:
+                tag, _ = Tag.objects.get_or_create(name=name)
+                tags.append(tag)
+            instance.tags.set(tags)  # اضافه کردن تگ‌ها به مقاله
+        return instance
+
+
+
+
+
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+            # پردازش ورودی تگ‌ها و اضافه کردن یا دریافت آن‌ها از دیتابیس
+            tags_input = self.cleaned_data['tags']
+            print("Tags input:", tags_input)
+            tag_names = [name.strip() for name in tags_input.split(',') if name.strip()]
+            tags = []
+            for name in tag_names:
+                tag, _ = Tag.objects.get_or_create(name=name)
+                tags.append(tag)
+            instance.tags.set(tags)  # اینجا تگ‌ها به درستی اضاف می‌شوند و دیگر نیازی به تغییر نیست
+
+        return instance
 
 
 

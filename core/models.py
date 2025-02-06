@@ -12,17 +12,11 @@ from django.utils.timezone import now
 from datetime import timedelta
 from asgiref.sync import sync_to_async
 
-
-
-
-
 def default_end_date():
     return now() + timedelta(days=30)
 
-
 def default_start_date():
     return now()
-
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -60,7 +54,6 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
-
 class LoginSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     session_id = models.UUIDField(default=uuid.uuid4, unique=True)
@@ -70,7 +63,6 @@ class LoginSession(models.Model):
 
     def __str__(self):
         return f"Session {self.session_id} for {self.user.username}"
-
 
 class IssueCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -92,7 +84,6 @@ class IssueCategory(models.Model):
             names.append(current_category.name)
             current_category = current_category.parent_category
         return ' > '.join(reversed(names))
-
 
 class MapCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -116,7 +107,6 @@ class MapCategory(models.Model):
             current_category = current_category.parent_category
         return ' > '.join(reversed(names))
 
-
 class Issue(models.Model):
     title = models.CharField(max_length=200)
     description = CKEditor5Field('Text', config_name='extends')
@@ -135,7 +125,6 @@ class Issue(models.Model):
         if self.question:
             self.question.delete()
         super(Issue, self).delete(*args, **kwargs)
-
 
 class Solution(models.Model):
     issues = models.ManyToManyField(Issue, related_name='solutions', blank=True)
@@ -169,7 +158,6 @@ class Solution(models.Model):
         titles = [solution.title for solution in solutions]
         return titles
 
-
 class Map(models.Model):
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to='maps/')
@@ -182,7 +170,6 @@ class Map(models.Model):
 
     def __str__(self):
         return self.title
-
 
 class DiagnosticStep(models.Model):
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='diagnostic_steps')
@@ -209,7 +196,6 @@ class DiagnosticStep(models.Model):
                 self.letter = 'A'
         super().save(*args, **kwargs)
 
-
 class Subscription(models.Model):
     ACCESS_LEVEL_CHOICES = (
         (1, 'کاربر سطح 1'),
@@ -225,7 +211,6 @@ class Subscription(models.Model):
     def is_active(self):
         return self.active and (self.expiry_date is None or self.expiry_date >= timezone.now())
 
-
 class Bookmark(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookmarks')
     url = models.URLField()
@@ -236,7 +221,6 @@ class Bookmark(models.Model):
     def __str__(self):
         return f"{self.title} by {self.user.username}"
 
-
 class Question(models.Model):
     text = models.CharField(max_length=255)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
@@ -246,7 +230,6 @@ class Question(models.Model):
 
     def __str__(self):
         return self.text
-
 
 class Option(models.Model):
     text = models.CharField(max_length=255)
@@ -261,14 +244,11 @@ class Option(models.Model):
     def __str__(self):
         return self.text
 
-
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
         return self.name
-
-
 
 class UserActivity(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -277,10 +257,6 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f"Activity for {self.user.username} - Login: {self.login_time}, Logout: {self.logout_time}"
-
-
-
-
 
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -292,9 +268,6 @@ class SubscriptionPlan(models.Model):
 
     def __str__(self):
         return self.name
-
-
-
 
 # اشتراک کاربران
 class UserSubscription(models.Model):
@@ -310,17 +283,12 @@ class UserSubscription(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.plan.name}"
 
-
-
-
-
 class Advertisement(models.Model):
-    
     title = models.CharField(max_length=255, verbose_name="عنوان")
     link = models.URLField(verbose_name="لینک")
     banner = models.ImageField(upload_to='advertisements/', verbose_name="بنر")
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         verbose_name = "تبلیغ"
         verbose_name_plural = "تبلیغات"
@@ -328,16 +296,15 @@ class Advertisement(models.Model):
     def __str__(self):
         return self.title
 
-
 class ChatSession(models.Model):
-    user = models.ForeignKey(CustomUser  , on_delete=models.CASCADE, related_name='user_sessions')
-    consultant = models.ForeignKey(CustomUser  , on_delete=models.SET_NULL, null=True, blank=True, related_name='consultant_sessions')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='user_sessions')
+    consultant = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='consultant_sessions')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Chat between {self.user.username} and {self.consultant.username if self.consultant else 'Unassigned'}"
-    
+
     def get_unread_count(self, user):
         try:
             user_chat_session = UserChatSession.objects.get(user=user, chat_session=self)
@@ -345,17 +312,12 @@ class ChatSession(models.Model):
         except UserChatSession.DoesNotExist:
             return 0  # مقدار پیش‌فرض
 
-
-
     def close_chat(self):
         self.is_active = False
         self.save()
 
-
-
-
 class UserChatSession(models.Model):
-    user = models.ForeignKey(CustomUser , on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     chat_session = models.ForeignKey(ChatSession, on_delete=models.CASCADE)
     unread_messages_count = models.IntegerField(default=0)
 
@@ -365,27 +327,36 @@ class UserChatSession(models.Model):
         self.unread_messages_count = unread_messages.count()
         self.save()
 
-
-
 class Message(models.Model):
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(CustomUser , on_delete=models.CASCADE)
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    read_by = models.ManyToManyField(CustomUser , related_name='read_messages', blank=True)
-    
+    read_by = models.ManyToManyField(CustomUser, related_name='read_messages', blank=True)
+
     def mark_as_read(self, user):
         self.read_by.add(user)
         if user != self.sender:
-            # برای فرستنده پیام، پیام را به عنوان خوانده شده نشان بده
             return True
         user_chat_session = UserChatSession.objects.get(user=user, chat_session=self.session)
         user_chat_session.update_unread_count()
         return False
 
-
     def __str__(self):
         return f"Message from {self.sender.username} at {self.timestamp}"
-    
+
     def sender_name(self):
         return f"{self.sender.first_name} {self.sender.last_name}" if self.sender.first_name and self.sender.last_name else self.sender.username
+
+
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    content = CKEditor5Field('Content', config_name='extends')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', related_name='article', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
