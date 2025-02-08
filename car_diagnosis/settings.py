@@ -316,6 +316,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer', # or whatever renderer you need
     ),
     'DEFAULT_CHARSET':'utf-8',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10,  # تعداد آیتم‌ها در هر بار لود شدن
 }
 
 CSRF_TRUSTED_ORIGINS = [

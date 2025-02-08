@@ -106,6 +106,14 @@ class MapCategory(models.Model):
             names.append(current_category.name)
             current_category = current_category.parent_category
         return ' > '.join(reversed(names))
+    
+    def get_root_category(self):
+        current_category = self
+        while current_category.parent_category:
+            current_category = current_category.parent_category
+        return current_category
+
+4. 
 
 class Issue(models.Model):
     title = models.CharField(max_length=200)
@@ -167,6 +175,20 @@ class Map(models.Model):
     updated_at = jmodels.jDateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_creators")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="map_updaters")
+
+    def __str__(self):
+        return self.title
+    
+
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    content = CKEditor5Field('Content', config_name='extends')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
+    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True)
+    tags = models.ManyToManyField('Tag', related_name='article', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
@@ -236,6 +258,7 @@ class Option(models.Model):
     question = models.ForeignKey(Question, related_name='options', on_delete=models.CASCADE)
     next_step = models.ForeignKey('DiagnosticStep', null=True, blank=True, on_delete=models.SET_NULL, related_name='prev_options')
     issue = models.ForeignKey(Issue, null=True, blank=True, on_delete=models.SET_NULL, related_name='back_to_issue')
+    article = models.ForeignKey(Article, null=True, blank=True, on_delete=models.SET_NULL, related_name='back_to_article')
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     updated_at = jmodels.jDateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="option_creators")
@@ -349,14 +372,3 @@ class Message(models.Model):
         return f"{self.sender.first_name} {self.sender.last_name}" if self.sender.first_name and self.sender.last_name else self.sender.username
 
 
-class Article(models.Model):
-    title = models.CharField(max_length=200)
-    content = CKEditor5Field('Content', config_name='extends')
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
-    tags = models.ManyToManyField('Tag', related_name='article', blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.title

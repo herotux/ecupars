@@ -14,6 +14,10 @@ class IssueCategorySerializer(serializers.ModelSerializer):
         model = IssueCategory
         fields = '__all__'
 
+    def get_root_category(self, obj):
+        root_category = obj.get_root_category()
+        return IssueCategorySerializer(root_category).data
+
 class IssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
@@ -146,9 +150,10 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['name']
 
 class ArticleSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)  # نمایش تگ‌ها به صورت تو در تو
+    tags = TagSerializer(many=True, read_only=True)
+    question = QuestionSerializer(read_only=True)
+    category = IssueCategorySerializer(read_only=True)
 
     class Meta:
         model = Article
-        fields = ['id', 'title', 'content', 'author', 'category', 'tags']  # فیلدهایی که می‌خواهید در API نمایش داده شوند
-
+        fields = ['id', 'title', 'content', 'author', 'category', 'tags', 'question']

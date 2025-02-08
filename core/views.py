@@ -40,7 +40,6 @@ from .serializer import DiagnosticStepSerializer, OptionSerializer,ChatSessionSe
 from django.contrib.auth.views import LogoutView as AuthLogoutView
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -55,7 +54,7 @@ import os
 from rest_framework import viewsets
 from .models import Article  # Import the Article model
 from .forms import ArticleForm  # Import the form for Article
-
+from rest_framework.pagination import LimitOffsetPagination
 
 
 
@@ -73,7 +72,8 @@ def article_list(request):
 @login_required
 def article_detail(request, article_id):
     article = get_object_or_404(Article, id=article_id)
-    return render(request, 'article_detail.html', {'article': article})
+    question = article.question  
+    return render(request, 'article_detail.html', {'article': article,'question':question})
 
 # @login_required
 # def article_create(request):
@@ -941,6 +941,24 @@ def user_issue_detail(request, issue_id):
 
 
 @login_required
+def user_article_detail(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    print(article.content)
+    question = article.question
+    
+    issue_categoriess = IssueCategory.objects.all()
+    if question:
+        options = question.options.all()
+        return render(request, 'user_article_detail.html', {'issue_categoriess':issue_categoriess, 'article': article, 'question': question, 'options': options})
+    else:
+        return render(request, 'user_article_detail.html', {'issue_categoriess':issue_categoriess,'article': article})
+
+
+
+
+
+
+@login_required
 def bookmark_create(request):
     if request.method == 'POST':
         url = request.POST.get('url')
@@ -1208,9 +1226,10 @@ def get_options(request, question_id):
             'id': option.id,
             'text': option.text,
             'next_step': next_step_data,  # Now `next_step` is a dictionary
-            'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/issue/{option.issue.id}" if option.issue else None, # افزودن option_url
-            'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else None
+            'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/articles/{option.article.id}" if option.article else f"/issue/{option.issue.id}" if option.issue else None, # افزودن option_url
+            'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else f"/user_articles/{option.article.id}" if option.article else None
         })
+        print(options_data)
     
     return JsonResponse({'options': options_data})
 
@@ -1235,8 +1254,8 @@ def get_step_options(request, step_id):
                 'id': option.id,
                 'text': option.text,
                 'next_step': option.next_step.id if option.next_step else None,  # اگر next_step وجود نداشت مقدار None بده
-                'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/issue/{option.issue.id}" if option.issue else None, # افزودن option_url
-                'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else None
+                'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/issue/{option.issue.id}" if option.issue else f"/articles/{option.article.id}" if option.article else None, # افزودن option_url
+                'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else f"/user_articles/{option.article.id}" if option.article else None
             }
             options_list.append(option_dict)
 
@@ -1299,13 +1318,23 @@ def create_question(request):
     if request.method == 'POST':
         text = request.POST.get('text')
         issue_id = request.POST.get('issue_id')
-        try:
-            question = Question.objects.create(text=text)
-            Issue.objects.filter(id=issue_id).update(question=question.id)
+        article_id = request.POST.get('article_id')
+        if issue_id:
+            try:
+                question = Question.objects.create(text=text)
+                Issue.objects.filter(id=issue_id).update(question=question.id)
 
-            return JsonResponse({'status': 'success'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+                return JsonResponse({'status': 'success'})
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': str(e)})
+        elif article_id:
+            try:
+                question = Question.objects.create(text=text)
+                Article.objects.filter(id=article_id).update(question=question.id)
+
+                return JsonResponse({'status': 'success'})
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': str(e)})
 
 
 
@@ -1384,22 +1413,29 @@ def add_option(request):
     if request.method == 'POST':
         text = request.POST.get('text')
         issue_id = request.POST.get('issue_id')
+        article_id = request.POST.get('article_id')
         question_id = request.POST.get('question_id')
         step_id = request.POST.get('step_id')  # شناسه مرحله
         solution_id = request.POST.get('solution_id')  # شناسه راهکار
         nextissue_id = request.POST.get('nextissueId')
-        issue = get_object_or_404(Issue, id=issue_id)
-        question = get_object_or_404(Question, id=question_id)
+        nextarticle_id = request.POST.get('nextarticleId')
         
+        question = get_object_or_404(Question, id=question_id)
+        print(f"article id is: ",nextarticle_id)
         # اگر شناسه مرحله موجود بود
         if step_id:
             step = get_object_or_404(DiagnosticStep, id=step_id)
             option = Option.objects.create(text=text, question=question, next_step=step)
             return JsonResponse({'status': 'success'})
+        
+        if nextarticle_id:
+            article = get_object_or_404(Article, id=nextarticle_id)
+            print(article)
 
+            option = Option.objects.create(text=text, question=question, article=article)
+            return JsonResponse({'status': 'success'})
         if nextissue_id:
             issue = get_object_or_404(Issue, id=nextissue_id)
-            print(issue)
             option = Option.objects.create(text=text, question=question, issue=issue)
             return JsonResponse({'status': 'success'})
         # اگر شناسه راهکار موجود بود
@@ -1409,8 +1445,12 @@ def add_option(request):
             step = DiagnosticStep.objects.create(issue=issue, solution=solution)
             option = Option.objects.create(text=text, question=question, next_step=step)
             return JsonResponse({'status': 'success'})
+        
         else:
-            step = DiagnosticStep.objects.create(issue=issue)
+            if issue_id:
+                issue = get_object_or_404(Issue, id=issue_id)
+                step = DiagnosticStep.objects.create(issue=issue)
+            
             option = Option.objects.create(text=text, question=question, next_step=step)
             return JsonResponse({'status': 'success'})
 
@@ -1835,7 +1875,6 @@ def edit_solution(request):
         solution_id = request.POST.get('id')
         title = request.POST.get('title')
         description = request.POST.get('description')
-        print(solution_id)
         try:
             solution = Solution.objects.get(id=solution_id)
             solution.title = title
@@ -2015,36 +2054,64 @@ def check_bookmark(request):
         return JsonResponse({'exists': user_bookmarks.exists()})
 
 
-def issue_bulk_delete(request):
-    if request.POST:
-        try:
-            issue_ids = json.loads(request.POST.get('issues'))  # تغییر در اینجا
-            print(issue_ids)
-            Issue.objects.filter(id__in=issue_ids).delete()
-            return JsonResponse({'success': True, 'message': 'اشیاء با موفقیت حذف شدند.'})
-        except:
-            return JsonResponse({'status': 'error', 'message': 'خطا پیدا نشد.'})
-    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر است.'})
-    
-
 
 
 @csrf_exempt
-def issue_bulk_update(request):
+def bulk_delete(request):
     if request.method == 'POST':
-        issues = json.loads(request.POST.get('issues', '[]'))
-        new_category_id = request.POST.get('new_category')
-
         try:
-            new_category = IssueCategory.objects.get(id=new_category_id)
+            data = json.loads(request.body)
+            item_type = data.get('item_type')
+            item_ids = data.get('item_ids', [])
+            
+            # انتخاب مدل مناسب بر اساس نوع آیتم
+            if item_type == 'issues':
+                model = Issue
+            elif item_type == 'articles':
+                model = Article
+            elif item_type == 'maps':
+                model = Map
+            else:
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'})
 
-            Issue.objects.filter(id__in=issues).update(category=new_category)
-
-            return JsonResponse({'status': 'success', 'message': 'دسته‌بندی با موفقیت تغییر کرد.'})
+            model.objects.filter(id__in=item_ids).delete()
+            return JsonResponse({'status': 'success', 'message': 'حذف گروهی با موفقیت انجام شد'})
+        
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
+
+@csrf_exempt
+def bulk_update_category(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            item_type = data.get('item_type')
+            item_ids = data.get('item_ids', [])
+            new_category_id = data.get('new_category_id')
+            
+            new_category = IssueCategory.objects.get(id=new_category_id)
+            
+            # انتخاب مدل مناسب بر اساس نوع آیتم
+            if item_type == 'issues':
+                model = Issue
+            elif item_type == 'articles':
+                model = Article
+            elif item_type == 'maps':
+                model = Map
+            else:
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'})
+
+            model.objects.filter(id__in=item_ids).update(category=new_category)
+            return JsonResponse({'status': 'success', 'message': 'بروزرسانی دسته‌بندی با موفقیت انجام شد'})
         
-    return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST مجاز است.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
+
+    
 
 
 
@@ -2482,6 +2549,7 @@ class UserStepDetail(APIView):
                     "text": option.text,
                     "next_step_id": option.next_step.id if option.next_step else None,
                     "issue_id": option.issue.id if option.issue else None,
+                    "atricle_id": option.article.id if option.article else None,
                 }
                 for option in options
             ],
@@ -2722,8 +2790,11 @@ class MarkMessagesAsReadView(APIView):
 
 
 
-
+class ArticlePagination(LimitOffsetPagination):
+    default_limit = 10
+    max_limit = 100
 
 class ArticleListAPIView(generics.ListAPIView):
-    queryset = Article.objects.all()  # دریافت تمام مقالات
-    serializer_class = ArticleSerializer  # استفاده از سریالایزر تعریف‌شده
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+    pagination_class = ArticlePagination

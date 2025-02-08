@@ -37,6 +37,7 @@ urlpatterns = [
     
     
     path('user_issue/<int:issue_id>/', views.user_issue_detail, name='user_issue_detail'),
+    path('user_article/<int:article_id>/', views.user_article_detail, name='user_article_detail'),
     path('issue_categories/create/', views.issue_category_create, name='issue_category_create'),
     path('add_subcategory/', views.add_subcategory, name='issue_category_create'),
     path('issue_categories/update/<int:category_id>/', views.issue_category_update, name='issue_category_update'),
@@ -133,8 +134,8 @@ urlpatterns = [
     path('map/delete/<int:map_id>/', views.map_delete, name='map_delete'),
     path('search_maps/', views.search_maps, name='search_maps'),
     path('check_bookmark/', views.check_bookmark, name='check_bookmark'),
-    path('issues/delete/', views.issue_bulk_delete, name='issue_bulk_delete'),
-    path('issue/bulk/update/', views.issue_bulk_update, name='issue_bulk_update'),
+    path('issues/delete/', views.bulk_delete, name='bulk_delete'),
+    path('issue/bulk/update/', views.bulk_update_category, name='bulk_update_category'),
     path('import-maps/<int:category_id>/', views.import_maps, name='import_maps'),
     path('plans/', views.subscription_plans, name='subscription_plans'),
     path('subscribe/<int:plan_id>/', views.subscribe, name='subscribe'),

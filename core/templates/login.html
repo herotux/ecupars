@@ -91,6 +91,16 @@
 
   <script>
     $(document).ready(function () {
+
+      // تابع برای گرفتن پارامترهای URL
+      function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+
+      const nextUrl = getQueryParam('next') || '/';  // اگر پارامتر next نبود به صفحه اصلی میره
+
+
       $('#loginForm').on('submit', function (event) {
         event.preventDefault(); // جلوگیری از ارسال فرم به صورت معمول
 
@@ -114,6 +124,7 @@
 
             // وارد کردن OTP به فیلد مربوطه
             $('#otp').val(data.otp); // فرض بر این است که OTP در پاسخ سرور موجود است
+            console.log(data);
           },
           error: function (xhr) {
             // مدیریت خطا
@@ -138,11 +149,12 @@
             session_id: session_id
           }),
           success: function (data) {
-            // ذخیره توکن در Local Storage
+            // ذخیره توکن در Local Storage (در صورتی که نیاز به ذخیره توکن باشد)
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
-            // هدایت به URL مورد نظر
-            window.location.href = '/'; // آدرس بعد از ورود موفق
+
+            // هدایت به صفحه‌ای که کاربر قبلاً قصد ورود به آن را داشت
+            window.location.href = nextUrl;
           },
           error: function (xhr) {
             // مدیریت خطا

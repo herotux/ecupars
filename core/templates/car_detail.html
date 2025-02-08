@@ -1,208 +1,231 @@
 {% extends 'base.html' %}
 {% block title %} داشبورد مدیر{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* استایل دکمه‌های انتخاب */
+    .select-all {
+        margin-left: 10px;
+        transform: scale(1.3);
+    }
+
+    .item-checkbox {
+        margin-right: 10px;
+        transform: scale(1.2);
+    }
+
+    /* استایل بخش‌ها */
+    .delete-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
 {% block content %}
-    <div class="container mt-5">
-        <h1>{{ car.name }}</h1>
-        {% if issue_categories %}
-        <h2>دسته‌بندی‌های مربوطه:</h2>
-        
+<div class="container mt-5">
+    <h1>{{ car.name }}</h1>
+    {% if issue_categories %}
+    <h2>دسته‌بندی‌های مربوطه:</h2>
+
+    <ul class="list-group">
+        {% for category in issue_categories %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'car_detail' category.id %}">{{ category.name }}</a>
+            <div>
+                <a href="{% url 'issue_category_update' category.id %}" class="btn btn-warning btn-sm">
+                    <i class="fa fa-edit"></i> ویرایش
+                </a>
+                <a href="{% url 'issue_category_delete' category.id %}" class="btn btn-danger btn-sm">
+                    <i class="fa fa-trash"></i> حذف
+                </a>
+            </div>
+        </li>
+        {% empty %}
+        <li>دسته‌بندی‌ای موجود نیست.</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    </br>
+    <a href="{% url 'issue_cat_create' car.id %}" class="btn btn-primary mb-3">
+        <i class="fa fa-plus"></i> اضافه کردن خطا در این دسته
+    </a>
+    <a href="#" id="import-issues" class="btn btn-primary mb-3">
+        <i class="fa fa-file-upload"></i> اضافه کردن خطا از فایل اکسل
+    </a>
+    <input type="file" id="excel-file" style="display:none">
+
+    <a href="#" id="add-subcategory" class="btn btn-primary mb-3">
+        <i class="fa fa-plus"></i> افزودن زیر دسته
+    </a>
+
+    <div id="subcategory-form" style="display:none;">
+        <form id="new-subcategory-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="subcategory_name" class="form-label">نام زیر دسته:</label>
+                <input type="text" class="form-control" id="subcategory_name" name="subcategory_name" required>
+            </div>
+            <input type="hidden" name="parent_category_id" value="{{ car.id }}">
+            <button type="submit" class="btn btn-success">افزودن زیر دسته</button>
+        </form>
+    </div>
+
+    {% if issues %}
+    <h2>خطاها:</h2>
+    <form class="delete-section" data-section="issues">
+        <div class="form-check mb-3">
+            <input type="checkbox" class="item-checkbox" data-item-type="issues">
+            <label class="form-check-label">انتخاب همه خطاها</label>
+        </div>
         <ul class="list-group">
-            {% for category in issue_categories %}
+            {% for issue in issues %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <a href="{% url 'car_detail' category.id %}">{{ category.name }}</a>
+                <input type="checkbox" name="issues" value="{{ issue.id }}" class="issue-checkbox item-checkbox">
+                <a href="{% url 'issue_detail' issue.id %}">{{ issue.title }}</a>
                 <div>
-                    <a href="{% url 'issue_category_update' category.id %}" class="btn btn-warning btn-sm">
+                    <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">
                         <i class="fa fa-edit"></i> ویرایش
-                    </a>
-                    <a href="{% url 'issue_category_delete' category.id %}" class="btn btn-danger btn-sm">
-                        <i class="fa fa-trash"></i> حذف
                     </a>
                 </div>
             </li>
             {% empty %}
-                <li>دسته‌بندی‌ای موجود نیست.</li>
+            <li>خطایی در این دسته وجود ندارد.</li>
             {% endfor %}
         </ul>
-        {% endif %}
-        </br>
-        <a href="{% url 'issue_cat_create' car.id %}" class="btn btn-primary mb-3">
-            <i class="fa fa-plus"></i> اضافه کردن خطا در این دسته
-        </a>
-        <a href="#" id="import-issues" class="btn btn-primary mb-3">
-            <i class="fa fa-file-upload"></i> اضافه کردن خطا از فایل اکسل
-        </a>
-        <input type="file" id="excel-file" style="display:none">
-
-        <a href="#" id="add-subcategory" class="btn btn-primary mb-3">
-            <i class="fa fa-plus"></i> افزودن زیر دسته
-        </a>
-        
-        <div id="subcategory-form" style="display:none;">
-            <form id="new-subcategory-form">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="subcategory_name" class="form-label">نام زیر دسته:</label>
-                    <input type="text" class="form-control" id="subcategory_name" name="subcategory_name" required>
-                </div>
-                <input type="hidden" name="parent_category_id" value="{{ car.id }}">
-                <button type="submit" class="btn btn-success">افزودن زیر دسته</button>
-            </form>
-        </div>
-    
-        {% if issues %}
-            <h2>خطاها:</h2>
-            <form id="delete-issues-form">
-                {% csrf_token %}
-                <div class="form-check mb-3">
-                    <input type="checkbox" id="select-all" class="form-check-input">
-                    <label for="select-all" class="form-check-label">انتخاب همه</label>
-                </div>
-                <ul class="list-group">
-                    {% for issue in issues %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <input type="checkbox" name="issues" value="{{ issue.id }}" class="issue-checkbox">
-                        <a href="{% url 'issue_detail' issue.id %}">{{ issue.title }}</a>
-                        <div>
-                            <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">
-                                <i class="fa fa-edit"></i> ویرایش
-                            </a>
-                        </div>
-                    </li>
-                    {% empty %}
-                        <li>خطایی در این دسته وجود ندارد.</li>
-                    {% endfor %}
-                </ul>
-                <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
-                    <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
-                </button>
-                <!-- دکمه تغییر دسته‌بندی -->
-                <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal" data-bs-target="#categoryModal">
-                    <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
-                </button>
-            </form>
-        {% endif %}
-        <a href="{% url 'article_create' car.id %}" class="btn btn-primary mb-3">
-            <i class="fa fa-plus"></i> اضافه کردن مقاله در این دسته
-        </a>
-
-        {% if articles %}
-            <h2>مقالات:</h2>
-            <form id="delete-issues-form">
-                {% csrf_token %}
-                <div class="form-check mb-3">
-                    <input type="checkbox" id="select-all" class="form-check-input">
-                    <label for="select-all" class="form-check-label">انتخاب همه</label>
-                </div>
-                <ul class="list-group">
-                    {% for article in articles %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <input type="checkbox" name="article" value="{{ article.id }}" class="issue-checkbox">
-                        <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a>
-                        <div>
-                            <a href="{% url 'article_update' article.id %}" class="btn btn-warning btn-sm">
-                                <i class="fa fa-edit"></i> ویرایش
-                            </a>
-                        </div>
-                    </li>
-                    {% empty %}
-                        <li>مقاله ای در این دسته وجود ندارد.</li>
-                    {% endfor %}
-                </ul>
-                <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
-                    <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
-                </button>
-                <!-- دکمه تغییر دسته‌بندی -->
-                <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal" data-bs-target="#categoryModal">
-                    <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
-                </button>
-            </form>
-        {% endif %}
-        
-
-        </br>
-        <a href="{% url 'map_cat_create' car.id %}" class="btn btn-primary mb-3">
-            <i class="fa fa-plus"></i> اضافه کردن نقشه در این دسته
-        </a>
-
-        
-        <button class="btn btn-info mb-3" onclick="toggleUploadForm()">آپلود دسته‌ای نقشه‌ها</button>
-        
-        <form id="uploadForm" enctype="multipart/form-data" class="mb-4" style="display: none;">
-            <div class="mb-3">
-                <label for="imageInput" class="form-label">انتخاب فایل‌های نقشه (تصاویر)</label>
-                <input type="file" id="imageInput" name="image_files" multiple class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label for="textInput" class="form-label">انتخاب فایل‌های متنی (TXT)</label>
-                <input type="file" id="textInput" name="txt_files" multiple class="form-control" required>
-            </div>
-            <button type="button" class="btn btn-success" onclick="uploadMaps()">آپلود نقشه‌ها</button>
-        </form>
-
-        {% if maps %}
-    
-            <h2>نقشه ها:</h2>
-            <form id="delete-issues-form">
-                {% csrf_token %}
-                <div class="form-check mb-3">
-                    <input type="checkbox" id="select-all" class="form-check-input">
-                    <label for="select-all" class="form-check-label">انتخاب همه</label>
-                </div>
-                <ul class="list-group">
-                    {% for map in maps %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <input type="checkbox" name="issues" value="{{ map.id }}" class="issue-checkbox">
-                        <a href="{% url 'map_detail' map.id %}">{{ map.title }}</a>
-                        <div>
-                            <a href="{% url 'map_update' map.id %}" class="btn btn-warning btn-sm">
-                                <i class="fa fa-edit"></i> ویرایش
-                            </a>
-                        </div>
-                    </li>
-                    {% empty %}
-                        <li>نقشه ای در این دسته وجود ندارد.</li>
-                    {% endfor %}
-                </ul>
-                <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
-                    <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
-                </button>
-                <!-- دکمه تغییر دسته‌بندی -->
-                <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal" data-bs-target="#categoryModal">
-                    <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
-                </button>
-            </form>
-        {% endif %}
-        
-        <!-- دکمه حذف شناور -->
-        <button type="button" id="delete-selected-floating" class="btn btn-danger btn-floating d-none">
+        <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
             <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
         </button>
-        
-        <!-- Modal تغییر دسته‌بندی -->
-        <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="categoryModalLabel">تغییر دسته‌بندی</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="new-category-modal" class="form-label">دسته‌بندی جدید:</label>
-                        <select id="new-category-modal" class="form-select">
-                            {% for category in issue_categoriess %}
-                                <option value="{{ category.id }}">{{ category.get_full_category_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
-                        <button type="button" id="confirm-update-category" class="btn btn-primary">تأیید تغییر دسته‌بندی</button>
-                    </div>
+        <!-- دکمه تغییر دسته‌بندی -->
+        <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal"
+            data-bs-target="#categoryModal">
+            <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
+        </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'article_create' car.id %}" class="btn btn-primary mb-3">
+        <i class="fa fa-plus"></i> اضافه کردن مقاله در این دسته
+    </a>
+
+    {% if articles %}
+    <h2>مقالات:</h2>
+    <form class="delete-section" data-section="articles">
+        <div class="form-check mb-3">
+            <input type="checkbox" class="item-checkbox" data-item-type="articles">
+            <label class="form-check-label">انتخاب همه مقالات</label>
+        </div>
+        <ul class="list-group">
+            {% for article in articles %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <input type="checkbox" name="article" value="{{ article.id }}" class="issue-checkbox item-checkbox">
+                <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a>
+                <div>
+                    <a href="{% url 'article_update' article.id %}" class="btn btn-warning btn-sm">
+                        <i class="fa fa-edit"></i> ویرایش
+                    </a>
+                </div>
+            </li>
+            {% empty %}
+            <li>مقاله ای در این دسته وجود ندارد.</li>
+            {% endfor %}
+        </ul>
+        <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
+            <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
+        </button>
+        <!-- دکمه تغییر دسته‌بندی -->
+        <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal"
+            data-bs-target="#categoryModal">
+            <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
+        </button>
+    </form>
+    {% endif %}
+
+
+    </br>
+    <a href="{% url 'map_cat_create' car.id %}" class="btn btn-primary mb-3">
+        <i class="fa fa-plus"></i> اضافه کردن نقشه در این دسته
+    </a>
+
+
+    <button class="btn btn-info mb-3" onclick="toggleUploadForm()">آپلود دسته‌ای نقشه‌ها</button>
+
+    <form id="uploadForm" enctype="multipart/form-data" class="mb-4" style="display: none;">
+        <div class="mb-3">
+            <label for="imageInput" class="form-label">انتخاب فایل‌های نقشه (تصاویر)</label>
+            <input type="file" id="imageInput" name="image_files" multiple class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="textInput" class="form-label">انتخاب فایل‌های متنی (TXT)</label>
+            <input type="file" id="textInput" name="txt_files" multiple class="form-control" required>
+        </div>
+        <button type="button" class="btn btn-success" onclick="uploadMaps()">آپلود نقشه‌ها</button>
+    </form>
+
+    {% if maps %}
+
+    <h2>نقشه ها:</h2>
+    <form class="delete-section" data-section="maps">
+        <div class="form-check mb-3">
+            <input type="checkbox" class="item-checkbox" data-item-type="maps">
+            <label class="form-check-label">انتخاب همه نقشه‌ها</label>
+        </div>
+        <ul class="list-group">
+            {% for map in maps %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <input type="checkbox" name="issues" value="{{ map.id }}" class="issue-checkbox item-checkbox">
+                <a href="{% url 'map_detail' map.id %}">{{ map.title }}</a>
+                <div>
+                    <a href="{% url 'map_update' map.id %}" class="btn btn-warning btn-sm">
+                        <i class="fa fa-edit"></i> ویرایش
+                    </a>
+                </div>
+            </li>
+            {% empty %}
+            <li>نقشه ای در این دسته وجود ندارد.</li>
+            {% endfor %}
+        </ul>
+        <button type="button" id="delete-selected" class="btn btn-danger mb-3 d-none">
+            <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
+        </button>
+        <!-- دکمه تغییر دسته‌بندی -->
+        <button type="button" id="update-category" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal"
+            data-bs-target="#categoryModal">
+            <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
+        </button>
+    </form>
+    {% endif %}
+
+    <!-- دکمه حذف شناور -->
+    <button type="button" id="delete-selected-floating" class="btn btn-danger btn-floating d-none">
+        <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
+    </button>
+
+    <!-- Modal تغییر دسته‌بندی -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="categoryModalLabel">تغییر دسته‌بندی</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="new-category-modal" class="form-label">دسته‌بندی جدید:</label>
+                    <select id="new-category-modal" class="form-select">
+                        {% for category in issue_categoriess %}
+                        <option value="{{ category.id }}">{{ category.get_full_category_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+                    <button type="button" id="confirm-update-category" class="btn btn-primary">تأیید تغییر
+                        دسته‌بندی</button>
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -235,16 +258,16 @@
                 'X-CSRFToken': getCookie('csrftoken'),
             },
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('نقشه‌ها با موفقیت آپلود شدند.');
-                location.reload();
-            } else {
-                alert('خطا در آپلود: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Error:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('نقشه‌ها با موفقیت آپلود شدند.');
+                    location.reload();
+                } else {
+                    alert('خطا در آپلود: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
     }
 
     function toggleUploadForm() {
@@ -274,181 +297,176 @@
 
 <script>
 
-$(document).ready(function() {
-    $('#import-issues').click(function(e) {
-        e.preventDefault();
-        $('#excel-file').click();
-    });
+    $(document).ready(function () {
+        $('#import-issues').click(function (e) {
+            e.preventDefault();
+            $('#excel-file').click();
+        });
 
-    $('#excel-file').change(function(event) {
-        var fileInput = $('#excel-file')[0];
-        var file = fileInput.files[0];
+        $('#excel-file').change(function (event) {
+            var fileInput = $('#excel-file')[0];
+            var file = fileInput.files[0];
 
-        if (file) {
-            var data = new FormData();
-            data.append('file', file);
-            
-            $.ajax({
-                url: '/api/import_issues/{{ car.id }}/',
-                type: 'POST',
-                data: data,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    alert(response.message);
-                    if (response.status === 'success') {
-                        location.reload();
+            if (file) {
+                var data = new FormData();
+                data.append('file', file);
+
+                $.ajax({
+                    url: '/api/import_issues/{{ car.id }}/',
+                    type: 'POST',
+                    data: data,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        alert(response.message);
+                        if (response.status === 'success') {
+                            location.reload();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        alert('خطا: ' + xhr.responseText);
                     }
-                },
-                error: function(xhr, status, error) {
-                    alert('خطا: ' + xhr.responseText);
+                });
+            }
+        });
+
+    })
+
+
+</script>
+<script>
+    // بخش مدیریت انتخاب‌ها
+    $(document).ready(function () {
+        // مدیریت انتخاب همه برای هر بخش
+        $('.select-all').change(function () {
+            const section = $(this).data('section');
+            const isChecked = $(this).prop('checked');
+
+            $(`[data-item-type="${section}"] .item-checkbox`)
+                .prop('checked', isChecked)
+                .trigger('change');
+        });
+
+        // مدیریت چک باکس‌های تکی
+        $('.item-checkbox').change(function () {
+            const section = $(this).closest('.delete-section').data('section');
+            const $checkboxes = $(`[data-section="${section}"] .item-checkbox`);
+            const allChecked = $checkboxes.length === $checkboxes.filter(':checked').length;
+
+            $(`[data-section="${section}"] .select-all`)
+                .prop('checked', allChecked);
+
+            toggleActionButtons();
+        });
+
+        // نمایش/پنهان کردن دکمه‌های عملیات
+        function toggleActionButtons() {
+            const anyChecked = $('.item-checkbox:checked').length > 0;
+            $('#delete-selected, #delete-selected-floating, #update-category')
+                .toggleClass('d-none', !anyChecked);
+        }
+
+        // تابع حذف گروهی
+        function deleteSelectedItems() {
+            const selectedItems = {
+                issues: [],
+                articles: [],
+                maps: []
+            };
+
+            // جمع‌آوری آیتم‌های انتخاب شده
+            $('[data-section="errors"] .item-checkbox:checked').each(function () {
+                selectedItems.issues.push($(this).val());
+            });
+
+            $('[data-section="articles"] .item-checkbox:checked').each(function () {
+                selectedItems.articles.push($(this).val());
+            });
+
+            $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                selectedItems.maps.push($(this).val());
+            });
+
+            // ارسال درخواست حذف برای هر بخش
+            Object.keys(selectedItems).forEach(section => {
+                if (selectedItems[section].length > 0) {
+                    $.ajax({
+                        url: '/bulk-delete/',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            item_type: section,
+                            item_ids: selectedItems[section]
+                        }),
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            if (response.status !== 'success') {
+                                alert('خطا در حذف آیتم‌های بخش ' + section);
+                            }
+                        }
+                    });
                 }
             });
+
+            location.reload();
         }
-    });
 
-    $('#delete-selected').click(function() {
-        deleteSelectedIssues();
-    });
+        // تابع بروزرسانی دسته‌بندی
+        function updateCategory() {
+            const selectedItems = {
+                issues: [],
+                articles: [],
+                maps: []
+            };
 
-    $('#delete-selected-floating').click(function() {
-        deleteSelectedIssues();
-    });
+            // جمع‌آوری آیتم‌های انتخاب شده
+            $('[data-section="errors"] .item-checkbox:checked').each(function () {
+                selectedItems.issues.push($(this).val());
+            });
 
-    function deleteSelectedIssues() {
-        var selectedIssues = [];
-        
-        $('input[name="issues"]:checked').each(function() {
-            selectedIssues.push($(this).val());
-        });
+            $('[data-section="articles"] .item-checkbox:checked').each(function () {
+                selectedItems.articles.push($(this).val());
+            });
 
-        if (selectedIssues.length > 0) {
-            if (confirm('آیا مطمئن هستید که می‌خواهید اشیاء انتخاب شده را حذف کنید؟')) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{% url "issue_bulk_delete" %}',
-                    data: {
-                        'issues': JSON.stringify(selectedIssues), 
-                        'csrfmiddlewaretoken': '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        location.reload();
-                    },
-                    error: function(xhr, status, error) {
-                        alert('خطایی در حذف اشیاء رخ داد. لطفاً دوباره امتحان کنید.');
-                    }
-                });
-            }
-        } else {
-            alert('لطفاً حداقل یک شئ را انتخاب کنید.');
+            $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                selectedItems.maps.push($(this).val());
+            });
+
+            const newCategoryId = $('#new-category-modal').val();
+
+            // ارسال درخواست بروزرسانی برای هر بخش
+            Object.keys(selectedItems).forEach(section => {
+                if (selectedItems[section].length > 0) {
+                    $.ajax({
+                        url: '/bulk-update-category/',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            item_type: section,
+                            item_ids: selectedItems[section],
+                            new_category_id: newCategoryId
+                        }),
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            if (response.status !== 'success') {
+                                alert('خطا در بروزرسانی بخش ' + section);
+                            }
+                        }
+                    });
+                }
+            });
+
+            location.reload();
         }
-    }
 
-    $('#select-all').change(function() {
-        $('.issue-checkbox').prop('checked', this.checked);
-        toggleDeleteButton();
+        // اتصال رویدادها
+        $('#delete-selected, #delete-selected-floating').click(deleteSelectedItems);
+        $('#confirm-update-category').click(updateCategory);
     });
-
-    $('.issue-checkbox').change(function() {
-        if ($('.issue-checkbox:checked').length == $('.issue-checkbox').length) {
-            $('#select-all').prop('checked', true);
-        } else {
-            $('#select-all').prop('checked', false);
-        }
-        toggleDeleteButton();
-    });
-
-    function toggleDeleteButton() {
-        if ($('.issue-checkbox:checked').length > 0) {
-            $('#delete-selected').removeClass('d-none');
-            $('#delete-selected-floating').removeClass('d-none');
-            $('#update-category').removeClass('d-none'); // نمایش دکمه تغییر دسته‌بندی
-            $('#new-category').removeClass('d-none'); // نمایش لیست انتخاب دسته‌بندی
-        } else {
-            $('#delete-selected').addClass('d-none');
-            $('#delete-selected-floating').addClass('d-none');
-            $('#update-category').addClass('d-none'); // پنهان کردن دکمه تغییر دسته‌بندی
-            $('#new-category').addClass('d-none'); // پنهان کردن لیست دسته‌بندی
-        }
-    }
-
-
-    $('#update-category').click(function() {
-        $('#categoryModal').modal('show');
-    });
-
-    $('#confirm-update-category').click(function() {
-        var selectedIssues = [];
-        
-        $('input[name="issues"]:checked').each(function() {
-            selectedIssues.push($(this).val());
-        });
-
-        var newCategory = $('#new-category-modal').val();
-
-        if (selectedIssues.length > 0 && newCategory) {
-            if (confirm('آیا مطمئن هستید که می‌خواهید دسته‌بندی انتخاب شده‌ها را تغییر دهید؟')) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{% url "issue_bulk_update" %}',
-                    data: {
-                        'issues': JSON.stringify(selectedIssues),
-                        'new_category': newCategory,
-                        'csrfmiddlewaretoken': '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        location.reload();
-                    },
-                    error: function(xhr, status, error) {
-                        alert('خطایی در تغییر دسته‌بندی رخ داد. لطفاً دوباره امتحان کنید.');
-                    }
-                });
-            }
-        } else {
-            alert('لطفاً حداقل یک شئ را انتخاب کنید و یک دسته جدید انتخاب کنید.');
-        }
-        $('#categoryModal').modal('hide'); // بستن مدال پس از تأیید
-    });
-
-
-});
-
-$(document).ready(function() {
-
-    // نمایش و پنهان کردن فرم افزودن زیر دسته
-    $('#add-subcategory').click(function(e) {
-        e.preventDefault();
-        $('#subcategory-form').toggle(); // نمایش و پنهان کردن فرم
-    });
-
-    // ارسال فرم اضافه کردن زیر دسته
-    $('#new-subcategory-form').submit(function(e) {
-        e.preventDefault(); // جلوگیری از ارسال پیش‌فرض فرم
-
-        // جمع‌آوری داده‌ها
-        var formData = $(this).serialize();
-
-        $.ajax({
-            url: '{% url "issue_category_create" %}', // به URL درست برای ایجاد زیر دسته
-            type: 'POST',
-            data: formData,
-            success: function(response) {
-                // بررسی نتیجه و به‌روزرسانی صفحه
-                alert('زیر دسته با موفقیت اضافه شد.');
-                location.reload(); // بارگذاری مجدد برای نمایش زیر دسته جدید
-            },
-            error: function(xhr, status, error) {
-                alert('خطا در افزودن زیر دسته: ' + xhr.responseText);
-            }
-        });
-    });
-
-    
-
-});
-
-
-
 </script>
 
 <style>

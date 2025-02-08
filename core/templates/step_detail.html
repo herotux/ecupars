@@ -199,6 +199,7 @@
                 <div id="stepSelectContainer">
                     <input type="text" class="form-control" id="stepSelect" placeholder="شناسه مرحله">
                     <input type="text" class="form-control" id="issueSelect" placeholder="شناسه خطا">
+                    <input type="text" class="form-control" id="articleSelect" placeholder="شناسه مقاله">
                 </div>
             </div>
             <button type="submit" class="btn btn-success">اضافه کردن گزینه</button>
@@ -443,16 +444,17 @@
             const nextissueId = $('#issueSelect').val();
             const solutionId = $('#solutionSelect').val(); // شناسه راهکار
             const issueId = '{{ step.issue.id }}'; // شناسه مشکل
+            const nextarticleId = $('#articleSelect').val();
             const questionId = '{{ question.id }}';
 
             const data = {
                 text: optionText,
                 issue_id: issueId,
                 nextissueId: nextissueId,
+                nextarticleId: nextarticleId,
                 question_id: questionId,
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             };
-
 
 
             if (optionId) {
@@ -484,6 +486,10 @@
 
                 if ($('#stepSelectContainer').is(':visible') && nextissueId) {
                     data.nextissueId = nextissueId; // اضافه کردن شناسه خطا
+                }
+                
+                if ($('#stepSelectContainer').is(':visible') && nextarticleId) {
+                    data.nextarticleId = nextarticleId; // اضافه کردن شناسه مقاله
                 }
 
                 // اگر فیلد راهکار فعال باشد، بررسی می‌کنیم

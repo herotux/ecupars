@@ -104,6 +104,7 @@
                 <div id="stepSelectContainer">
                     <input type="text" class="form-control" id="stepSelect" placeholder="شناسه مرحله">
                     <input type="text" class="form-control" id="issueSelect" placeholder="شناسه خطا">
+                    <input type="text" class="form-control" id="articleSelect" placeholder="شناسه مقاله">
                 </div>
             </div>
             <button type="submit" class="btn btn-success mt-3">اضافه کردن گزینه</button>
@@ -376,6 +377,7 @@
             const optionText = $('#optionText').val();
             const stepId = $('#stepSelect').val(); // شناسه مرحله
             const nextissueId = $('#issueSelect').val();
+            const nextarticleId = $('#articleSelect').val();
             const solutionId = $('#solutionSelect').val(); // شناسه راهکار
             const issueId = '{{ issue.id }}'; // شناسه مشکل
             const questionId = '{{ question.id }}';
@@ -384,12 +386,10 @@
                 text: optionText,
                 issue_id: issueId,
                 nextissueId: nextissueId,
+                nextarticleId: nextarticleId,
                 question_id: questionId,
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             };
-
-
-
             if (optionId) {
                 // اگر شناسه موجود باشد، یعنی می‌خواهیم ویرایش کنیم
                 data.id = optionId; // شناسه گزینه برای ویرایش
@@ -420,16 +420,22 @@
                 if ($('#stepSelectContainer').is(':visible') && nextissueId) {
                     data.nextissueId = nextissueId; // اضافه کردن شناسه خطا
                 }
+                if ($('#stepSelectContainer').is(':visible') && nextarticleId) {
+                    data.nextarticleId = nextarticleId; // اضافه کردن شناسه مقاله
+                }
 
                 // اگر فیلد راهکار فعال باشد، بررسی می‌کنیم
                 if ($('#solutionContainer').is(':visible') && solutionId) {
                     data.solution_id = solutionId; // اضافه کردن شناسه راهکار
                 }
+                
                 // اگر شناسه وجود نداشته باشد، اضافه کردن گزینه جدید
+                console.log('Data being sent:', data);
                 $.ajax({
                     url: '/api/add_option/',
                     method: 'POST',
                     data: data,
+                    
                     success: function (response) {
                         if (response.status === 'success') {
                             loadOptions(); // بارگذاری مجدد گزینه‌ها
@@ -451,7 +457,7 @@
             if (confirm('آیا مطمئن هستید که می‌خواهید این گزینه را حذف کنید؟')) {
                 $.ajax({
                     url: '/api/delete_option/' + optionId + '/',
-                    method: 'POST',
+                    method: 'DELETE',
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}'
                     },
