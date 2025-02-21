@@ -40,6 +40,6 @@ sqlparse==0.5.1
 typing_extensions==4.8.0
 tzdata==2024.2
 uritemplate==4.1.1
-urllib3==2.1.0
+urllib3==2.2.2
 zarinpal==1.0.0
 zarinpal-payment-integration==0.0.1
