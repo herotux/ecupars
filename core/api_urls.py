@@ -32,5 +32,8 @@ urlpatterns = [
     path('payment/status/', views.PaymentStatusAPIView.as_view(), name='payment_status'),
     path('send-otp/', views.send_otp, name='send_otp'),
     path('verify-otp-and-signup/', views.verify_otp_and_signup, name='verify_otp_and_signup'),
-    # path('signup/', views.SignupView.as_view(), name='signup'),
+    
+    path('referral/<int:user_id>', views.ReferralCodeDetailAPIView.as_view(), name='referral-code'),
+    path('discount-codes/<int:user_id>', views.DiscountCodeDetailAPIView.as_view(), name='discount-codes'),
+    path('user-profile/', views.UserProfileAPIView.as_view(), name='user-profile'),
 ]

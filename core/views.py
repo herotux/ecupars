@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Payment, Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import SearchForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer
-from .models import SubscriptionPlan, UserSubscription
+from .models import DiscountCode, ReferralCode, SubscriptionPlan, UserSubscription
 from .serializer import CustomUserSerializer, MessageSerializer, SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -3117,3 +3117,132 @@ def verify_otp_and_signup(request):
         return Response({"message": "ثبت‌نام با موفقیت انجام شد."})
     else:
         return Response({"error": "کد OTP نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class ReferralCodeDetailAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        try:
+            # پیدا کردن کاربر با user_id
+            user = CustomUser.objects.get(id=user_id)
+            
+            # پیدا کردن کد رفرال کاربر
+            referral_code = ReferralCode.objects.get(user=user)
+            
+            # پیدا کردن کاربرانی که از این کد رفرال ارجاع شده‌اند
+            referred_users = UserReferral.objects.filter(referrer=user)
+            referred_user_data = []
+            
+            for referred_user in referred_users:
+                subscriptions = UserSubscription.objects.filter(user=referred_user.referred_user)
+                subscription_details = [
+                    {
+                        'plan_name': subscription.plan.name,
+                        'purchase_date': subscription.start_date,
+                        'amount_paid': subscription.plan.price,
+                    } for subscription in subscriptions
+                ]
+                referred_user_data.append({
+                    'user_id': referred_user.referred_user.id,
+                    'referral_code': referral_code.code,
+                    'subscriptions': subscription_details
+                })
+
+            return Response({
+                'referral_code': referral_code.code,
+                'referred_users': referred_user_data
+            }, status=status.HTTP_200_OK)
+        
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except ReferralCode.DoesNotExist:
+            return Response({'error': 'Referral code not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+
+
+class DiscountCodeDetailAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, user_id):
+        try:
+            # پیدا کردن کاربر با user_id
+            user = CustomUser.objects.get(id=user_id)
+            
+            # گرفتن تمامی کدهای تخفیف کاربر
+            discount_codes = DiscountCode.objects.filter(user=user)
+            
+            # جمع‌آوری داده‌ها برای ارسال
+            discount_code_data = []
+            
+            for discount_code in discount_codes:
+                # پیدا کردن کاربرانی که از این کد تخفیف استفاده کرده‌اند
+                users_with_discount = User.objects.filter(discount_code=discount_code)
+                
+                user_data = []
+                for user_with_discount in users_with_discount:
+                    # پیدا کردن اشتراک‌هایی که این کاربران خریداری کرده‌اند
+                    subscriptions = UserSubscription.objects.filter(user=user_with_discount)
+                    subscription_details = [
+                        {
+                            'plan_name': subscription.plan.name,
+                            'purchase_date': subscription.start_date,
+                            'amount_paid': subscription.plan.price,
+                        } for subscription in subscriptions
+                    ]
+                    user_data.append({
+                        'user_id': user_with_discount.id,
+                        'username': user_with_discount.username,
+                        'subscriptions': subscription_details
+                    })
+                
+                # اضافه کردن اطلاعات کد تخفیف و کاربران استفاده‌کننده از آن
+                discount_code_data.append({
+                    'discount_code': discount_code.code,
+                    'discount_percentage': discount_code.discount_percentage,
+                    'expiration_date': discount_code.expiration_date,
+                    'max_usage': discount_code.max_usage,
+                    'usage_count': discount_code.usage_count,
+                    'users_with_discount': user_data
+                })
+            
+            return Response({
+                'user_id': user.id,
+                'discount_codes': discount_code_data
+            }, status=status.HTTP_200_OK)
+        
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class UserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # پیدا کردن کاربر جاری
+            user = request.user
+
+            # اطلاعات پایه‌ای کاربر
+            user_data = {
+                'user_id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'phone_number': user.phone_number,
+                'city': user.city,
+                'job': user.job,
+                'car_brand': user.get_car_brand_display(),
+                'national_id': user.national_id,
+            }
+
+            return Response(user_data, status=status.HTTP_200_OK)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)

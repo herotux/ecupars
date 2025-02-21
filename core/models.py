@@ -480,3 +480,15 @@ class DiscountCode(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.discount_percentage}% - {self.user.username}"
+
+
+
+
+class UserReferral(models.Model):
+    referrer = models.ForeignKey(CustomUser, related_name='referrals', on_delete=models.CASCADE)
+    referred_user = models.ForeignKey(CustomUser, related_name='referred_by', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"{self.referrer.username} referred {self.referred_user.username}"
+
