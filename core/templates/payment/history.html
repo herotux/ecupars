@@ -1,0 +1,22 @@
+{% extends 'base2.html' %}
+{% block title %} صفحه {{ article.title }} {% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <table>
+        <tr>
+            <th>مبلغ</th>
+            <th>کد رهگیری</th>
+            <th>وضعیت</th>
+            <th>تاریخ</th>
+        </tr>
+        {% for payment in payments %}
+        <tr>
+            <td>{{ payment.amount }} تومان</td>
+            <td>{{ payment.ref_id|default:"-" }}</td>
+            <td>{{ payment.get_status_display }}</td>
+            <td>{{ payment.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

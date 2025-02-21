@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ChatSession, Message, Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
-from .models import Tag, Solution, Article
+from .models import CustomUser, Tag, Solution, Article
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -157,3 +157,31 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = ['id', 'title', 'content', 'author', 'category', 'tags', 'question']
+
+
+
+
+class PaymentRequestSerializer(serializers.Serializer):
+    plan_id = serializers.IntegerField()
+    user_phone = serializers.CharField(max_length=15)
+    user_email = serializers.EmailField()
+
+class PaymentVerificationSerializer(serializers.Serializer):
+    authority = serializers.CharField(max_length=100)
+
+
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = [
+            'username', 'password', 'first_name', 'last_name', 'national_id',
+            'city', 'job', 'phone_number', 'car_brand', 'role'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True},  # پسورد نباید در پاسخ برگردانده شود
+        }
+
+    def create(self, validated_data):
+        user = CustomUser.objects.create_user(**validated_data)
+        return user

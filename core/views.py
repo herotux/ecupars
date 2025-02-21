@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
+from .models import Payment, Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import SearchForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer
 from .models import SubscriptionPlan, UserSubscription
-from .serializer import MessageSerializer, SubscriptionPlanSerializer, UserSubscriptionSerializer
+from .serializer import CustomUserSerializer, MessageSerializer, SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login as auth_login
@@ -55,6 +55,24 @@ from rest_framework import viewsets
 from .models import Article  # Import the Article model
 from .forms import ArticleForm  # Import the form for Article
 from rest_framework.pagination import LimitOffsetPagination
+from django.conf import settings
+from .serializer import PaymentRequestSerializer, PaymentVerificationSerializer
+from django.utils.timezone import now
+from django.core.cache import cache
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2152,28 +2170,69 @@ def subscribe(request, plan_id):
     try:
         # پیدا کردن پلن انتخابی
         plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-        
-        # ایجاد پرداخت در زرین‌پال
+
+        # اگر قیمت پلن صفر باشد (رایگان)
+        if plan.price == 0:
+            # اشتراک را به طور مستقیم فعال می‌کنیم
+            user_subscription, created = UserSubscription.objects.get_or_create(
+                user=request.user,
+                defaults={'plan': plan}
+            )
+
+            # تنظیم تاریخ‌ها
+            if created:
+                user_subscription.start_date = now()
+            else:
+                if user_subscription.start_date is None:
+                    user_subscription.start_date = now()
+
+            user_subscription.end_date = user_subscription.start_date + timedelta(days=30)  # به عنوان مثال 30 روز
+            user_subscription.save()
+
+            messages.success(request, 'اشتراک رایگان شما با موفقیت فعال شد.')
+            return redirect('my_subscription')  # یا هر صفحه‌ای که می‌خواهید هدایت کنید
+
+        # اگر قیمت پلن غیر از صفر باشد، درخواست پرداخت زرین‌پال را ارسال می‌کنیم
         merchant_id = settings.ZARINPAL_MERCHANT_ID  # تنظیم Merchant ID از تنظیمات
-        amount = plan.price  # قیمت پلن
+        amount = float(plan.price)  # تبدیل مقدار قیمت به float
         description = f"اشتراک {plan.name}"  # توضیحات
         callback_url = request.build_absolute_uri('/payment/verify/')  # آدرس بازگشت
-        
-        # ارسال درخواست پرداخت
-        payment_handler = ZarinPalPayment(merchant_id, amount)
-        result = payment_handler.request_payment(callback_url, description, mobile=request.user.profile.mobile, email=request.user.email)
 
-        if result['status'] == 'success':
+        # تعیین اینکه آیا از sandbox استفاده شود یا نه
+        sandbox = settings.ZARINPAL_SANDBOX  # مقدار sandbox را از تنظیمات می‌گیریم
+
+        # ارسال درخواست پرداخت با توجه به حالت sandbox
+        payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=sandbox)
+        result = payment_handler.request_payment(callback_url, description, mobile=request.user.phone_number, email=request.user.email)
+        print(result)
+        if result.get('success') and result['data']:
             # ذخیره Authority برای تأیید پرداخت
-            request.session['authority'] = result['data']['authority']
+            authority = result['data'].get('authority')
+            payment_url = result['data'].get('payment_url')
+
+            # ایجاد رکورد پرداخت
+            payment = Payment.objects.create(
+                user=request.user,
+                plan=plan,
+                authority=authority,
+                amount=plan.price,
+                status='pending'
+            )
+            request.session['payment_id'] = payment.id
+
+            # ذخیره Authority برای تأیید پرداخت در سشن
+            request.session['authority'] = authority
             request.session['plan_id'] = plan_id
 
             # هدایت به درگاه پرداخت
-            return redirect(result['data']['url'])
+            return redirect(payment_url)
         else:
-            messages.error(request, "خطا در اتصال به درگاه پرداخت.")
+            # خطای 422 یا هر نوع خطای دیگر
+            error_message = result.get('response_data', {}).get('data', {}).get('message', 'خطا در اتصال به درگاه پرداخت.')
+            messages.error(request, error_message)
             return redirect('subscription_plans')
     except Exception as e:
+        print(f"Error: {e}")
         messages.error(request, f"یک خطا رخ داد: {str(e)}")
         return redirect('subscription_plans')
 
@@ -2182,17 +2241,28 @@ def subscribe(request, plan_id):
 
 @login_required
 def verify_payment(request):
+    authority = request.GET.get('Authority')  # کد Authority از درگاه
+    if not authority:
+        return render(request, 'payment/payment_failed.html', {'message': "کد Authority ارسال نشده است."})
+
     try:
-        authority = request.GET.get('Authority')  # کد Authority از درگاه
-        plan_id = request.session.get('plan_id')  # بازیابی پلن
+        # بازیابی پلن از سشن
+        plan_id = request.session.get('plan_id')
+        if not plan_id:
+            return render(request, 'payment/payment_failed.html', {'message': "پلن انتخاب شده پیدا نشد."})
+
         plan = get_object_or_404(SubscriptionPlan, id=plan_id)
 
         # بررسی وضعیت پرداخت
         merchant_id = settings.ZARINPAL_MERCHANT_ID
-        payment_handler = ZarinPalPayment(merchant_id, plan.price)
+        sandbox = settings.ZARINPAL_SANDBOX
+        payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=sandbox)
         verification_result = payment_handler.verify_payment(authority)
-
-        if verification_result['status'] == 'success':
+        
+        print(f"verification_result: {verification_result}")  # برای بررسی لاگ
+        payment_id = request.session.get('payment_id')
+        payment = get_object_or_404(Payment, id=payment_id)
+        if verification_result['success']:
             # پرداخت موفقیت‌آمیز
             user_subscription, created = UserSubscription.objects.get_or_create(
                 user=request.user,
@@ -2206,21 +2276,31 @@ def verify_payment(request):
                 if user_subscription.start_date is None:
                     user_subscription.start_date = now()
 
-            user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
+            user_subscription.end_date = user_subscription.start_date + timedelta(days=365)
             user_subscription.save()
+            ref_id = verification_result['response_data']['data'].get('ref_id')
+            payment.status = 'paid'
+            payment.ref_id = ref_id
+            payment.verified_at = now()
+            payment.save()
 
-            messages.success(request, 'پرداخت شما با موفقیت انجام شد و اشتراک فعال گردید.')
-            return redirect('my_subscription')
+            return render(request, 'payment/payment_success.html', {
+                'message': 'پرداخت شما با موفقیت انجام شد و اشتراک فعال گردید.'
+            })
         else:
-            messages.error(request, 'پرداخت انجام نشد.')
-            return redirect('subscription_plans')
+            payment.status = 'failed'
+            payment.save()
+            return render(request, 'payment/payment_failed.html', {'message': 'پرداخت انجام نشد.'})
     except Exception as e:
-        messages.error(request, f"یک خطا رخ داد: {str(e)}")
-        return redirect('subscription_plans')
-
-        
+        return render(request, 'payment/payment_failed.html', {'message': f"یک خطا رخ داد: {str(e)}"})
 
 
+
+@login_required
+def payment_history(request):
+    payments = Payment.objects.filter(user=request.user).order_by('-created_at')
+    print(payments)
+    return render(request, 'payment/history.html', {'payments': payments})
 
 
 
@@ -2398,7 +2478,24 @@ class HasDiagnosticAccess(BasePermission):
         return subscription.plan.access_to_diagnostic_steps
 
 
+class HasDeviceAccess(BasePermission):
+    def has_permission(self, request, view):
+        # دریافت شناسه دستگاه از پارامترهای درخواست یا از session
+        device_id = request.META.get('HTTP_X_DEVICE_ID')  # فرض می‌کنیم این شناسه از هدر ارسال شده است
 
+        if not device_id:
+            return False  # اگر شناسه دستگاه موجود نبود، دسترسی رد می‌شود
+
+        user = request.user
+        if not user.is_authenticated:
+            return False
+
+        # بررسی دستگاه برای این کاربر
+        if user.hardware_id != device_id:
+            return False  # اگر شناسه دستگاه با شناسه ذخیره‌شده برای کاربر مطابقت نداشت، دسترسی رد می‌شود
+
+        return True  # در غیر این صورت دسترسی مجاز است
+    
 
 class HomeAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -2420,7 +2517,7 @@ class HomeAPIView(APIView):
 
 class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasCategoryAccess]
+    permission_classes = [IsAuthenticated, HasCategoryAccess, HasDeviceAccess]
 
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
@@ -2475,7 +2572,7 @@ class UserCarDetail(APIView):
 
 class UserIssueDetailView(generics.RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasIssueAccess]
+    permission_classes = [IsAuthenticated, HasIssueAccess, HasDeviceAccess]
     
 
     def get(self, request, issue_id):
@@ -2517,7 +2614,7 @@ class UserIssueDetailView(generics.RetrieveAPIView):
 
 class UserStepDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
+    permission_classes = [IsAuthenticated, HasDiagnosticAccess, HasDeviceAccess]
     def get(self, request, step_id):
         step = DiagnosticStep.objects.get(id=step_id)
         question = step.question
@@ -2643,7 +2740,7 @@ class AdvertisementListView(APIView):
 
 class OptionListView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasDiagnosticAccess]
+    permission_classes = [IsAuthenticated, HasDiagnosticAccess, HasDeviceAccess]
     def get(self, request):
         try:
             options = Option.objects.all()
@@ -2798,3 +2895,225 @@ class ArticleListAPIView(generics.ListAPIView):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     pagination_class = ArticlePagination
+
+
+
+
+class PaymentRequestAPIView(APIView):
+    def post(self, request):
+        serializer = PaymentRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            plan_id = serializer.validated_data['plan_id']
+            user_phone = serializer.validated_data['user_phone']
+            user_email = serializer.validated_data['user_email']
+            
+            # پیدا کردن پلن انتخابی
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+            # اگر قیمت پلن صفر باشد (رایگان)
+            if plan.price == 0:
+                user_subscription, created = UserSubscription.objects.get_or_create(
+                    user=request.user,
+                    defaults={'plan': plan}
+                )
+                if created:
+                    user_subscription.start_date = now()
+                user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
+                user_subscription.save()
+
+                return Response({'message': 'اشتراک رایگان شما با موفقیت فعال شد.'}, status=status.HTTP_200_OK)
+
+            # اگر قیمت پلن غیر از صفر باشد، درخواست پرداخت زرین‌پال را ارسال می‌کنیم
+            merchant_id = settings.ZARINPAL_MERCHANT_ID
+            amount = float(plan.price)
+            description = f"اشتراک {plan.name}"
+            callback_url = request.build_absolute_uri('/payment/api_verify/')
+            sandbox = settings.ZARINPAL_SANDBOX
+            payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=sandbox)
+            result = payment_handler.request_payment(callback_url, description, mobile=user_phone, email=user_email)
+            
+            if result.get('success') and result['data']:
+                authority = result['data'].get('authority')
+                payment_url = result['data'].get('payment_url')
+
+                # ایجاد رکورد پرداخت
+                payment = Payment.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    authority=authority,
+                    amount=amount,
+                    status='pending'
+                )
+
+                # ذخیره اطلاعات در سشن
+                request.session['authority'] = authority
+                request.session['plan_id'] = plan_id
+                request.session['payment_id'] = payment.id  # ذخیره payment_id در سشن
+
+                return Response({
+                    'payment_url': payment_url,
+                    'payment_id': payment.id  # اضافه کردن payment_id به پاسخ
+                }, status=status.HTTP_200_OK)
+            else:
+                error_message = result.get('response_data', {}).get('data', {}).get('message', 'خطا در اتصال به درگاه پرداخت.')
+                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class PaymentVerificationAPIView(APIView):
+    def get(self, request):  # زرین‌پال از متد GET برای callback استفاده می‌کند
+        authority = request.GET.get('Authority')  # دریافت Authority از URL
+        if not authority:
+            return render(request, 'payment/payment_failed.html', {'message': "کد Authority ارسال نشده است."})
+
+        try:
+            # پیدا کردن رکورد پرداخت بر اساس Authority
+            payment = Payment.objects.get(authority=authority)
+            plan = payment.plan
+
+            # بررسی وضعیت پرداخت
+            merchant_id = settings.ZARINPAL_MERCHANT_ID
+            sandbox = settings.ZARINPAL_SANDBOX
+            payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=sandbox)
+            verification_result = payment_handler.verify_payment(authority)
+
+            if verification_result.get('success') and verification_result.get('data', {}).get('code') == 101:
+                # پرداخت موفقیت‌آمیز
+                user_subscription, created = UserSubscription.objects.get_or_create(
+                    user=payment.user,
+                    defaults={'plan': plan}
+                )
+
+                if created:
+                    user_subscription.start_date = now()
+                user_subscription.end_date = user_subscription.start_date + timedelta(days=365)
+                user_subscription.save()
+
+                # به‌روزرسانی رکورد پرداخت
+                payment.status = 'paid'
+                payment.ref_id = verification_result['data'].get('ref_id')
+                payment.verified_at = now()
+                payment.save()
+
+                return render(request, 'payment/payment_success.html', {
+                    'message': 'پرداخت شما با موفقیت انجام شد و اشتراک فعال گردید.'
+                })
+            else:
+                # پرداخت ناموفق
+                payment.status = 'failed'
+                payment.save()
+
+                return render(request, 'payment/payment_failed.html', {'message': 'پرداخت انجام نشد.'})
+        except Payment.DoesNotExist:
+            return render(request, 'payment/payment_failed.html', {'message': 'پرداخت پیدا نشد.'})
+
+
+
+
+class PaymentStatusAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]  # فقط کاربران احراز هویت شده می‌توانند از این ویو استفاده کنند
+
+    def get(self, request):
+        payment_id = request.query_params.get('payment_id')
+        if not payment_id:
+            return Response({'error': 'payment_id ارسال نشده است.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            payment = Payment.objects.get(id=payment_id)
+            # بررسی اینکه پرداخت متعلق به کاربر فعلی است
+            if payment.user != request.user:
+                return Response({'error': 'شما مجاز به مشاهده این پرداخت نیستید.'}, status=status.HTTP_403_FORBIDDEN)
+
+            return Response({
+                'status': payment.status,
+                'ref_id': payment.ref_id,
+                'verified_at': payment.verified_at,
+            }, status=status.HTTP_200_OK)
+        except Payment.DoesNotExist:
+            return Response({'error': 'پرداخت پیدا نشد.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+@api_view(['POST'])
+def send_otp(request):
+    phone_number = request.data.get('phone_number')
+    first_name = request.data.get('first_name')
+    last_name = request.data.get('last_name')
+    car_brand = request.data.get('car_brand')
+    city = request.data.get('city')
+    hardware_id = request.data.get('hardware_id')
+
+    if not phone_number:
+        return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بررسی وجود کاربر
+    if CustomUser.objects.filter(phone_number=phone_number).exists():
+        return Response({"error": "این شماره تماس قبلاً ثبت‌نام شده است."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # تولید OTP
+    otp = str(random.randint(100000, 999999))
+
+    # ذخیره اطلاعات موقت در کش به مدت ۵ دقیقه
+    cache_key = f"signup_data_{phone_number}"
+    cache.set(cache_key, {
+        "first_name": first_name,
+        "last_name": last_name,
+        "car_brand": car_brand,
+        "city": city,
+        "hardware_id": hardware_id,
+        "otp": otp,
+    }, timeout=300)  # ۵ دقیقه = ۳۰۰ ثانیه
+
+    # ارسال OTP به کاربر (این بخش نیاز به یک سرویس پیامکی دارد)
+    # send_sms(phone_number, f"کد OTP شما: {otp}")
+
+    # برای تست، OTP را در پاسخ برگردانید
+    return Response({
+        "message": "OTP ارسال شد.",
+        "otp": otp  # فقط برای تست، در حالت واقعی این فیلد را حذف کنید
+    })
+
+
+
+
+@api_view(['POST'])
+def verify_otp_and_signup(request):
+    phone_number = request.data.get('phone_number')
+    otp = request.data.get('otp')
+    password = request.data.get('password')
+
+    if not phone_number or not otp or not password:
+        return Response({"error": "شماره تماس، کد OTP و رمز عبور الزامی هستند."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بازیابی اطلاعات موقت از کش
+    cache_key = f"signup_data_{phone_number}"
+    cached_data = cache.get(cache_key)
+
+    if not cached_data:
+        return Response({"error": "کد OTP منقضی شده یا وجود ندارد."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if cached_data["otp"] == otp:
+        # OTP معتبر است
+        # حذف اطلاعات موقت از کش پس از تأیید
+        cache.delete(cache_key)
+
+        # ایجاد کاربر جدید
+        user = CustomUser.objects.create_user(
+            username=phone_number,  # استفاده از شماره تماس به عنوان نام کاربری
+            phone_number=phone_number,
+            first_name=cached_data["first_name"],
+            last_name=cached_data["last_name"],
+            password=password,
+            city=cached_data["city"],
+            car_brand=cached_data["car_brand"],
+            hardware_id=cached_data["hardware_id"],
+        )
+
+        return Response({"message": "ثبت‌نام با موفقیت انجام شد."})
+    else:
+        return Response({"error": "کد OTP نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)

@@ -27,4 +27,10 @@ urlpatterns = [
 
 
     path('articles/', views.ArticleListAPIView.as_view(), name='article-list'), 
+    path('payment/request/', views.PaymentRequestAPIView.as_view(), name='payment_request'),
+    path('payment/verify/', views.PaymentVerificationAPIView.as_view(), name='payment_verify'),
+    path('payment/status/', views.PaymentStatusAPIView.as_view(), name='payment_status'),
+    path('send-otp/', views.send_otp, name='send_otp'),
+    path('verify-otp-and-signup/', views.verify_otp_and_signup, name='verify_otp_and_signup'),
+    # path('signup/', views.SignupView.as_view(), name='signup'),
 ]

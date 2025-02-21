@@ -151,5 +151,8 @@ urlpatterns = [
     path('articles/create/<int:category_id>/', views.article_create, name='article_create'),
     path('articles/update/<int:article_id>/', views.article_update, name='article_update'),
     path('articles/delete/<int:article_id>/', views.article_delete, name='article_delete'),
+    path('payment_history/', views.payment_history, name='payment_history'),
+    
+
 
 ]

@@ -467,6 +467,31 @@
         $('#delete-selected, #delete-selected-floating').click(deleteSelectedItems);
         $('#confirm-update-category').click(updateCategory);
     });
+
+    // مدیریت فرم زیردسته
+$(document).ready(function() {
+    $('#add-subcategory').click(function(e) {
+        e.preventDefault();
+        $('#subcategory-form').toggle();
+    });
+
+    $('#new-subcategory-form').submit(function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: "{% url 'issue_category_create' %}",
+            method: "POST",
+            data: $(this).serialize(),
+            success: function(response) {
+                if(response.status === 'success') {
+                    location.reload();
+                }
+            },
+            error: function(xhr) {
+                alert('خطا: ' + xhr.responseJSON.error);
+            }
+        });
+    });
+});
 </script>
 
 <style>
