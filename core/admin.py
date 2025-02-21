@@ -22,7 +22,9 @@ from .models import (
     Advertisement,
     ChatSession,
     Message,
-    Article
+    Article,
+    DiscountCode,
+    ReferralCode
 
 )
 
@@ -185,3 +187,15 @@ class MessageAdmin(admin.ModelAdmin):
 class ArticleAdmin(BaseAdmin):
     list_display = ('title', 'content', 'created_at_formatted', 'updated_at_formatted')
     search_fields = ('title',)
+
+@admin.register(ReferralCode)
+class ReferralCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'user')
+   
+
+
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'discount_percentage', 'created_at')
+    

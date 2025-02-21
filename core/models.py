@@ -11,6 +11,22 @@ from django_jalali.db import models as jmodels
 from django.utils.timezone import now
 from datetime import timedelta
 from asgiref.sync import sync_to_async
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def default_end_date():
     return now() + timedelta(days=30)
@@ -409,3 +425,58 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.amount} - {self.ref_id} - {self.get_status_display()}"
+    
+
+
+class ReferralCode(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='referral_code')
+    code = models.CharField(max_length=20, unique=True, blank=True)  # کد رفرال (پیش‌فرض شماره موبایل)
+    
+
+
+    class Meta:
+        verbose_name = "کد معرف"
+        verbose_name_plural = "کد های معرف"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.user.username  # فرض بر این است که شماره موبایل به‌عنوان نام کاربری ذخیره شده
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.code}"
+    
+
+
+
+
+class DiscountCode(models.Model):
+    code = models.CharField(max_length=20, unique=True)  # کد تخفیف
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='discount_codes')  # تخصیص به کاربر خاص
+    discount_percentage = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(40)])  # حداکثر ۴۰٪
+    expiration_date = models.DateTimeField()  # تاریخ انقضا
+    max_usage = models.PositiveIntegerField(null=True, blank=True)  # تعداد مجاز استفاده (پیش‌فرض نامحدود)
+    usage_count = models.PositiveIntegerField(default=0)  # تعداد استفاده‌شده
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+
+
+    class Meta:
+        verbose_name = "کد تخفیف"
+        verbose_name_plural = "کدهای تخفیف"
+
+    def is_valid(self):
+        if self.max_usage is None:
+            return now() < self.expiration_date  # فقط تاریخ انقضا بررسی می‌شود
+        return self.usage_count < self.max_usage and now() < self.expiration_date
+
+    def use_code(self):
+        """افزایش تعداد مصرف در صورت معتبر بودن"""
+        if self.is_valid():
+            self.usage_count += 1
+            self.save()
+            return True
+        return False
+
+    def __str__(self):
+        return f"{self.code} - {self.discount_percentage}% - {self.user.username}"
