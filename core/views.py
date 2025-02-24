@@ -3221,6 +3221,7 @@ class DiscountCodeDetailAPIView(APIView):
 
 
 class UserProfileAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
