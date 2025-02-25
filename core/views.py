@@ -52,7 +52,7 @@ from .models import ChatSession, Message, UserChatSession
 from django.contrib.auth import get_user_model
 import os
 from rest_framework import viewsets
-from .models import Article  # Import the Article model
+from .models import Article, UserReferral  # Import the Article model
 from .forms import ArticleForm  # Import the form for Article
 from rest_framework.pagination import LimitOffsetPagination
 from django.conf import settings
