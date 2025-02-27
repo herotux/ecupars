@@ -2906,18 +2906,46 @@ class PaymentRequestAPIView(APIView):
             plan_id = serializer.validated_data['plan_id']
             user_phone = serializer.validated_data['user_phone']
             user_email = serializer.validated_data['user_email']
-            
+            discount_code = serializer.validated_data.get('discount_code')  # دریافت کد تخفیف
+
             # پیدا کردن پلن انتخابی
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
 
+            # محاسبه مبلغ نهایی با اعمال تخفیف
+            final_amount = float(plan.price)
+            discount_message = None
+
+            if discount_code:
+                try:
+                    # بررسی کد تخفیف
+                    discount = DiscountCode.objects.get(
+                        code=discount_code,
+                        user=request.user,  # کد تخفیف متعلق به کاربر فعلی باشد
+                        expiration_date__gte=timezone.now(),  # کد منقضی نشده باشد
+                    )
+                    # بررسی تعداد استفاده
+                    if discount.max_usage and discount.usage_count >= discount.max_usage:
+                        return Response({'error': 'تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                    # اعمال تخفیف
+                    final_amount = final_amount * (1 - discount.discount_percentage / 100)
+                    discount_message = f"تخفیف {discount.discount_percentage}% اعمال شد."
+
+                    # افزایش تعداد استفاده از کد تخفیف
+                    discount.usage_count += 1
+                    discount.save()
+
+                except DiscountCode.DoesNotExist:
+                    return Response({'error': 'کد تخفیف نامعتبر است.'}, status=status.HTTP_400_BAD_REQUEST)
+
             # اگر قیمت پلن صفر باشد (رایگان)
-            if plan.price == 0:
+            if final_amount == 0:
                 user_subscription, created = UserSubscription.objects.get_or_create(
                     user=request.user,
                     defaults={'plan': plan}
                 )
                 if created:
-                    user_subscription.start_date = now()
+                    user_subscription.start_date = timezone.now()
                 user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
                 user_subscription.save()
 
@@ -2925,11 +2953,10 @@ class PaymentRequestAPIView(APIView):
 
             # اگر قیمت پلن غیر از صفر باشد، درخواست پرداخت زرین‌پال را ارسال می‌کنیم
             merchant_id = settings.ZARINPAL_MERCHANT_ID
-            amount = float(plan.price)
             description = f"اشتراک {plan.name}"
             callback_url = request.build_absolute_uri('/payment/api_verify/')
             sandbox = settings.ZARINPAL_SANDBOX
-            payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=sandbox)
+            payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
             result = payment_handler.request_payment(callback_url, description, mobile=user_phone, email=user_email)
             
             if result.get('success') and result['data']:
@@ -2941,19 +2968,25 @@ class PaymentRequestAPIView(APIView):
                     user=request.user,
                     plan=plan,
                     authority=authority,
-                    amount=amount,
-                    status='pending'
+                    amount=final_amount,
+                    status='pending',
+                    discount_code=discount_code if discount_code else None  # ذخیره کد تخفیف
                 )
 
                 # ذخیره اطلاعات در سشن
                 request.session['authority'] = authority
                 request.session['plan_id'] = plan_id
-                request.session['payment_id'] = payment.id  # ذخیره payment_id در سشن
+                request.session['payment_id'] = payment.id
 
-                return Response({
+                response_data = {
                     'payment_url': payment_url,
-                    'payment_id': payment.id  # اضافه کردن payment_id به پاسخ
-                }, status=status.HTTP_200_OK)
+                    'payment_id': payment.id,
+                    'final_amount': final_amount,
+                }
+                if discount_message:
+                    response_data['discount_message'] = discount_message
+
+                return Response(response_data, status=status.HTTP_200_OK)
             else:
                 error_message = result.get('response_data', {}).get('data', {}).get('message', 'خطا در اتصال به درگاه پرداخت.')
                 return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
