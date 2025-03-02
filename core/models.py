@@ -148,7 +148,6 @@ class MapCategory(models.Model):
             current_category = current_category.parent_category
         return current_category
 
-4. 
 
 class Issue(models.Model):
     title = models.CharField(max_length=200)

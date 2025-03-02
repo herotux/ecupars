@@ -391,7 +391,7 @@
             Object.keys(selectedItems).forEach(section => {
                 if (selectedItems[section].length > 0) {
                     $.ajax({
-                        url: '/bulk-delete/',
+                        url: '/bulk/delete/',
                         method: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({
@@ -410,7 +410,7 @@
                 }
             });
 
-            location.reload();
+            // location.reload();
         }
 
         // تابع بروزرسانی دسته‌بندی
@@ -440,7 +440,7 @@
             Object.keys(selectedItems).forEach(section => {
                 if (selectedItems[section].length > 0) {
                     $.ajax({
-                        url: '/bulk-update-category/',
+                        url: '/bulk/update/',
                         method: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({
@@ -460,7 +460,7 @@
                 }
             });
 
-            location.reload();
+            // location.reload();
         }
 
         // اتصال رویدادها

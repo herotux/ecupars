@@ -3080,6 +3080,7 @@ def send_otp(request):
     car_brand = request.data.get('car_brand')
     city = request.data.get('city')
     hardware_id = request.data.get('hardware_id')
+    referrer_code = request.data.get('referrer_code')  # فیلد اختیاری کد معرف
 
     if not phone_number:
         return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
@@ -3087,6 +3088,15 @@ def send_otp(request):
     # بررسی وجود کاربر
     if CustomUser.objects.filter(phone_number=phone_number).exists():
         return Response({"error": "این شماره تماس قبلاً ثبت‌نام شده است."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بررسی وجود کاربر معرف (اگر کد معرف وارد شده باشد)
+    referrer = None
+    if referrer_code:
+        try:
+            referral_code_instance = ReferralCode.objects.get(code=referrer_code)
+            referrer = referral_code_instance.user
+        except ReferralCode.DoesNotExist:
+            return Response({"error": "کد معرف معتبر نیست."}, status=status.HTTP_400_BAD_REQUEST)
 
     # تولید OTP
     otp = str(random.randint(100000, 999999))
@@ -3099,6 +3109,7 @@ def send_otp(request):
         "car_brand": car_brand,
         "city": city,
         "hardware_id": hardware_id,
+        "referrer_code": referrer_code,  # ذخیره کد معرف
         "otp": otp,
     }, timeout=300)  # ۵ دقیقه = ۳۰۰ ثانیه
 
@@ -3113,6 +3124,14 @@ def send_otp(request):
 
 
 
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from django.core.cache import cache
+from django.contrib.auth import login
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import CustomUser, ReferralCode, UserReferral, LoginSession
 
 @api_view(['POST'])
 def verify_otp_and_signup(request):
@@ -3147,7 +3166,32 @@ def verify_otp_and_signup(request):
             hardware_id=cached_data["hardware_id"],
         )
 
-        return Response({"message": "ثبت‌نام با موفقیت انجام شد."})
+        # ایجاد کد معرفی برای کاربر جدید
+        ReferralCode.objects.create(user=user, code=phone_number)  # استفاده از شماره تماس به عنوان کد معرفی
+
+        # ایجاد رابطه معرفی (اگر کد معرف وجود داشته باشد)
+        referrer_code = cached_data.get("referrer_code")
+        if referrer_code:
+            try:
+                referral_code_instance = ReferralCode.objects.get(code=referrer_code)
+                referrer = referral_code_instance.user
+                UserReferral.objects.create(referrer=referrer, referred_user=user)
+            except ReferralCode.DoesNotExist:
+                # اگر کد معرف وجود نداشته باشد، خطا نمی‌دهیم (اختیاری است)
+                pass
+
+        # لاگین کردن کاربر
+        login(request, user)  # کاربر را در سیستم لاگین کنید
+
+        # ایجاد توکن‌ها
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "message": "ثبت‌نام با موفقیت انجام شد.",
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+        })
+
     else:
         return Response({"error": "کد OTP نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
     
