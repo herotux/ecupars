@@ -59,7 +59,7 @@ from django.conf import settings
 from .serializer import PaymentRequestSerializer, PaymentVerificationSerializer
 from django.utils.timezone import now
 from django.core.cache import cache
-
+from rest_framework.exceptions import APIException
 
 
 
@@ -2414,99 +2414,106 @@ def verify_otp_view(request):
 
 
 
+#استثناهای سفارشی
+class NoCategoryAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به این دسته‌بندی دسترسی ندارید."
+    default_code = "no_category_access"
+
+class NoIssueAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به این مشکل دسترسی ندارید."
+    default_code = "no_issue_access"
+
+class NoDiagnosticAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به مراحل عیب‌یابی دسترسی ندارید."
+    default_code = "no_diagnostic_access"
+
+class NoDeviceAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما با این دستگاه دسترسی ندارید."
+    default_code = "no_device_access"
+
+
+
 # پرمیشن سفارشی
+
 class HasCategoryAccess(BasePermission):
     def has_permission(self, request, view):
-        # گرفتن category_id از پارامترهای URL
-        category_id = view.kwargs.get('cat_id')  # مطابق با urlpatterns
+        category_id = view.kwargs.get('cat_id')
         if not category_id:
-            return False
+            raise NoCategoryAccessException()
 
         user = request.user
         if not user.is_authenticated:
-            return False
+            raise NoCategoryAccessException()
 
-        # گرفتن اشتراک کاربر
         subscription = getattr(user, 'subscription', None)
         if not subscription:
-            return False
+            raise NoCategoryAccessException()
 
-        # بررسی دسترسی به همه دسته‌بندی‌ها
         if subscription.plan.access_to_all_categories:
             return True
 
-        # بررسی دسترسی به دسته‌های محدود
         restricted_categories = subscription.plan.restricted_categories.all()
         if int(category_id) not in [cat.id for cat in restricted_categories]:
-            return True  # دسترسی به دسته‌بندی مجاز است
+            raise NoCategoryAccessException()
 
-        return False  # دسترسی مسدود است
-
-
-
-
-
+        return True
 
 class HasIssueAccess(BasePermission):
     def has_permission(self, request, view):
         issue_id = view.kwargs.get('issue_id')
         issue = get_object_or_404(Issue, id=issue_id)
-        logger.info(f"Issue ID: {issue_id}, User: {request.user.id}")
 
         category_id = issue.category
         if not category_id:
-            logger.warning("No category assigned to this issue.")
-            return False
+            raise NoIssueAccessException()
 
         subscription = getattr(request.user, 'subscription', None)
         if not subscription:
-            logger.warning("User has no subscription.")
-            return False
+            raise NoIssueAccessException()
 
         if subscription.plan.access_to_all_categories:
-            logger.info("User has access to all categories.")
             return True
 
         restricted_categories = subscription.plan.restricted_categories.all()
         if int(category_id) not in [cat.id for cat in restricted_categories]:
-            logger.warning(f"Access denied. Restricted categories: {restricted_categories}")
-            return False
+            raise NoIssueAccessException()
 
         return True
-
-
-
-
 
 class HasDiagnosticAccess(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated or not hasattr(user, 'subscription'):
-            return False
+            raise NoDiagnosticAccessException()
 
         subscription = user.subscription
+        if not subscription.plan.access_to_diagnostic_steps:
+            raise NoDiagnosticAccessException()
 
-        # بررسی دسترسی به مراحل عیب‌یابی
-        return subscription.plan.access_to_diagnostic_steps
-
+        return True
 
 class HasDeviceAccess(BasePermission):
     def has_permission(self, request, view):
-        # دریافت شناسه دستگاه از پارامترهای درخواست یا از session
-        device_id = request.META.get('HTTP_X_DEVICE_ID')  # فرض می‌کنیم این شناسه از هدر ارسال شده است
-
+        device_id = request.META.get('HTTP_X_DEVICE_ID')
         if not device_id:
-            return False  # اگر شناسه دستگاه موجود نبود، دسترسی رد می‌شود
+            raise NoDeviceAccessException()
 
         user = request.user
         if not user.is_authenticated:
-            return False
+            raise NoDeviceAccessException()
 
-        # بررسی دستگاه برای این کاربر
         if user.hardware_id != device_id:
-            return False  # اگر شناسه دستگاه با شناسه ذخیره‌شده برای کاربر مطابقت نداشت، دسترسی رد می‌شود
+            raise NoDeviceAccessException()
 
-        return True  # در غیر این صورت دسترسی مجاز است
+        return True
+
+
+
+        
     
 
 class HomeAPIView(APIView):
