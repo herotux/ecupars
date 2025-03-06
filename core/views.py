@@ -77,9 +77,21 @@ from django.core.cache import cache
 
 
 
-
 def is_admin(user):
-    return user.role == 'admin' or user.is_superuser
+    # بررسی آیا کاربر لاگین کرده است
+    if not user.is_authenticated:
+        return False
+    
+    # بررسی آیا کاربر سوپریوزر است
+    if user.is_superuser:
+        return True
+    
+    # بررسی آیا کاربر دارای نقش 'admin' است
+    if hasattr(user, 'role'):
+        return user.role == 'admin'
+    
+    # اگر کاربر لاگین کرده اما نقش ندارد
+    return False
 
 
 @login_required
@@ -3125,13 +3137,7 @@ def send_otp(request):
 
 
 
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from django.core.cache import cache
-from django.contrib.auth import login
-from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, ReferralCode, UserReferral, LoginSession
+
 
 @api_view(['POST'])
 def verify_otp_and_signup(request):
@@ -3324,3 +3330,41 @@ class UserProfileAPIView(APIView):
 
         except CustomUser.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+@csrf_exempt
+def bulk_copy_maps(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        map_ids = data.get('map_ids', [])
+        target_category_id = data.get('target_category_id')
+
+        try:
+            target_category = IssueCategory.objects.get(id=target_category_id)
+            for map_id in map_ids:
+                map_instance = Map.objects.get(id=map_id)
+                # ایجاد یک کپی از نقشه
+                new_map = Map.objects.create(
+                    title=map_instance.title,
+                    category=target_category,
+                    # سایر فیلدها را نیز کپی کنید
+                )
+            return JsonResponse({'status': 'success', 'message': 'نقشه‌ها با موفقیت کپی شدند.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
+
+
+
+
+
+class ArticleDetailAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, id=article_id)
+        serializer = ArticleSerializer(article)
+        return Response(serializer.data, status=status.HTTP_200_OK)

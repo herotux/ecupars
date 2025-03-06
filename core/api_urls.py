@@ -36,4 +36,5 @@ urlpatterns = [
     path('referral/<int:user_id>', views.ReferralCodeDetailAPIView.as_view(), name='referral-code'),
     path('discount-codes/<int:user_id>', views.DiscountCodeDetailAPIView.as_view(), name='discount-codes'),
     path('user-profile/', views.UserProfileAPIView.as_view(), name='user-profile'),
+    path('articles/<int:article_id>/', views.ArticleDetailAPIView.as_view(), name='article-detail'),
 ]
