@@ -2422,7 +2422,7 @@ class NoCategoryAccessException(APIException):
 
 class NoIssueAccessException(APIException):
     status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "شما به این مشکل دسترسی ندارید."
+    default_detail = "شما به این خطا دسترسی ندارید."
     default_code = "no_issue_access"
 
 class NoDiagnosticAccessException(APIException):
@@ -2513,7 +2513,7 @@ class HasDeviceAccess(BasePermission):
 
 
 
-        
+
     
 
 class HomeAPIView(APIView):
