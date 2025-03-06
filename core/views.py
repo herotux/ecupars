@@ -3326,6 +3326,31 @@ class UserProfileAPIView(APIView):
                 'national_id': user.national_id,
             }
 
+            # بررسی وجود پلن فعال برای کاربر
+            try:
+                subscription = UserSubscription.objects.get(user=user)
+                subscription_data = {
+                    'plan': {
+                        'id': subscription.plan.id,
+                        'name': subscription.plan.name,
+                        'description': subscription.plan.description,
+                        'price': str(subscription.plan.price),  # تبدیل به رشته برای جلوگیری از خطاهای سریال‌سازی
+                    },
+                    'active_categories': [
+                        {
+                            'id': category.id,
+                            'name': category.name
+                        }
+                        for category in subscription.active_categories.all()
+                    ],
+                    'start_date': subscription.start_date,
+                    'end_date': subscription.end_date,
+                    'is_active': subscription.is_active(),
+                }
+                user_data['subscription'] = subscription_data
+            except UserSubscription.DoesNotExist:
+                user_data['subscription'] = None
+
             return Response(user_data, status=status.HTTP_200_OK)
 
         except CustomUser.DoesNotExist:
