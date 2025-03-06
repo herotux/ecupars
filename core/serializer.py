@@ -149,14 +149,24 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['name']
 
+
+
 class ArticleSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     question = QuestionSerializer(read_only=True)
     category = IssueCategorySerializer(read_only=True)
+    author_name = serializers.SerializerMethodField()  # فیلد سفارشی برای نام نویسنده
 
     class Meta:
         model = Article
-        fields = ['id', 'title', 'content', 'author', 'category', 'tags', 'question']
+        fields = ['id', 'title', 'content', 'author_name', 'category', 'tags', 'question', 'created_at', 'updated_at']
+
+    def get_author_name(self, obj):
+        if obj.author:
+            first_name = obj.author.first_name or ""
+            last_name = obj.author.last_name or ""
+            return f"{first_name} {last_name}".strip()
+        return "ناشناس"
 
 
 

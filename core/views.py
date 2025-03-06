@@ -2601,15 +2601,17 @@ class UserIssueDetailView(generics.RetrieveAPIView):
             question_data = QuestionSerializer(issue.question).data
 
             # اطلاعات گزینه‌ها با اضافه کردن مقصد هر گزینه
+            
             options_data = [
-                {
-                    'id': option.id,
-                    'text': option.text,
-                    'next_step_id': option.next_step.id if option.next_step else None,
-                    'issue_id': option.issue.id if option.issue else None,
-                }
-                for option in issue.question.options.all()
-            ]
+                    {
+                        'id': option.id,
+                        'text': option.text,
+                        'next_step': option.next_step.id if option.next_step else None,
+                        'issue': option.issue.id if option.issue else None,
+                        'article': option.article.id if option.article else None,
+                    }
+                    for option in issue.question.options.all()
+            ]   
 
             # افزودن سوال و گزینه‌ها به پاسخ
             response_data.update({
@@ -3386,10 +3388,25 @@ def bulk_copy_maps(request):
 
 
 
-class ArticleDetailAPIView(APIView):
+class ArticleDetailView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
     def get(self, request, article_id):
-        article = get_object_or_404(Article, id=article_id)
-        serializer = ArticleSerializer(article)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            # پیدا کردن مقاله
+            article = Article.objects.get(id=article_id)
+            article_data = ArticleSerializer(article).data
+
+            # ساخت پاسخ
+            response_data = {
+                "status": "success",
+                "article": article_data,  # question به صورت خودکار در article_data وجود دارد
+            }
+
+            response = Response(response_data)
+            response['Content-Type'] = 'application/json; charset=utf-8'
+            return response
+
+        except Article.DoesNotExist:
+            return Response({"status": "error", "message": "مقاله یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
