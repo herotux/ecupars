@@ -2544,6 +2544,8 @@ class UserCarDetail(APIView):
         # گرفتن پارامترهای URL
         include_issues = request.query_params.get('include_issues', 'true').lower() == 'true'
         include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
+        include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'  # پارامتر جدید
+        include_maps = request.query_params.get('include_maps', 'true').lower() == 'true'  # پارامتر جدید
 
         try:
             # پیدا کردن دسته‌بندی اصلی
@@ -2567,7 +2569,19 @@ class UserCarDetail(APIView):
                 issues_serializer = IssueSerializer(issues, many=True)
                 response_data["issues"] = issues_serializer.data
 
-            logger.debug(f"Category {cat_id} returned with filters: include_issues={include_issues}, include_related_categories={include_related_categories}")
+            # افزودن مقالات اگر درخواست شده باشد
+            if include_articles:
+                articles = Article.objects.filter(category=cat_id)
+                articles_serializer = ArticleSerializer(articles, many=True)
+                response_data["articles"] = articles_serializer.data
+
+            # افزودن نقشه‌ها اگر درخواست شده باشد
+            if include_maps:
+                maps = Map.objects.filter(category=cat_id)
+                maps_serializer = MapSerializer(maps, many=True)
+                response_data["maps"] = maps_serializer.data
+
+            logger.debug(f"Category {cat_id} returned with filters: include_issues={include_issues}, include_related_categories={include_related_categories}, include_articles={include_articles}, include_maps={include_maps}")
 
             response = Response(response_data)
             response['Content-Type'] = 'application/json; charset=utf-8'
@@ -2665,8 +2679,8 @@ class UserStepDetail(APIView):
                 {
                     "id": option.id,
                     "text": option.text,
-                    "next_step_id": option.next_step.id if option.next_step else None,
-                    "issue_id": option.issue.id if option.issue else None,
+                    "next_step": option.next_step.id if option.next_step else None,
+                    "issue": option.issue.id if option.issue else None,
                     "atricle": option.article.id if option.article else None,
                 }
                 for option in options
