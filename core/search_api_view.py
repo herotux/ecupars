@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .forms import SearchForm
 from .serializer import SearchResultSerializer, IssueCategorySerializer, IssueSerializer, SolutionSerializer, TagSerializer
-from .models import IssueCategory, Issue, Tag, Solution
+from .models import Map, Article, IssueCategory, Issue, Tag, Solution
 
 
 
