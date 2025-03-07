@@ -8,6 +8,8 @@ from .models import Map, Article, IssueCategory, Issue, Tag, Solution
 
 
 
+from django.db.models import Q  # برای جستجوی ترکیبی
+
 class SearchAPIView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -39,11 +41,9 @@ class SearchAPIView(APIView):
 
         # Search in models based on filters and user access
         issues = Issue.objects.filter(
-            category__in=allowed_categories,
-            title__icontains=query
-        ) | Issue.objects.filter(
-            category__in=allowed_categories,
-            description__icontains=query
+            category__in=allowed_categories
+        ).filter(
+            Q(title__icontains=query) | Q(description__icontains=query)  # جستجو در عنوان و محتوا
         )
 
         cars = IssueCategory.objects.filter(
@@ -57,11 +57,9 @@ class SearchAPIView(APIView):
         # Include solutions if the user has access
         if subscription.plan.access_to_diagnostic_steps:
             solutions = Solution.objects.filter(
-                issues__category__in=allowed_categories,
-                title__icontains=query
-            ) | Solution.objects.filter(
-                issues__category__in=allowed_categories,
-                description__icontains=query
+                issues__category__in=allowed_categories
+            ).filter(
+                Q(title__icontains=query) | Q(description__icontains=query)  # جستجو در عنوان و محتوا
             )
         else:
             solutions = Solution.objects.none()
@@ -69,12 +67,13 @@ class SearchAPIView(APIView):
         # Search for maps and articles
         maps = Map.objects.filter(
             category__in=allowed_categories,
-            title__icontains=query
+            title__icontains=query  # فقط در عنوان جستجو می‌شود
         )
 
         articles = Article.objects.filter(
-            category__in=allowed_categories,
-            title__icontains=query
+            category__in=allowed_categories
+        ).filter(
+            Q(title__icontains=query) | Q(content__icontains=query)  # جستجو در عنوان و محتوا
         )
 
         # Initialize unique_results
@@ -114,10 +113,9 @@ class SearchAPIView(APIView):
             for tag in tags:
                 associated_issues = tag.issues.filter(category__in=allowed_categories)
                 associated_solutions = tag.solutions.filter(issues__category__in=allowed_categories) if subscription.plan.access_to_diagnostic_steps else []
-                associated_maps = tag.maps.filter(category__in=allowed_categories)  # اضافه کردن maps مرتبط با تگ
-                associated_articles = tag.article.filter(category__in=allowed_categories)  # اضافه کردن articles مرتبط با تگ
+                associated_maps = tag.maps.filter(category__in=allowed_categories)
+                associated_articles = tag.article.filter(category__in=allowed_categories)
 
-                # اضافه کردن issues مرتبط با تگ
                 for issue in associated_issues:
                     unique_results.append({
                         "id": tag.id,
@@ -128,8 +126,6 @@ class SearchAPIView(APIView):
                             "full_category_name": issue.category.get_full_category_name(),
                         }
                     })
-
-                # اضافه کردن solutions مرتبط با تگ
                 for solution in associated_solutions:
                     for issue in solution.issues.filter(category__in=allowed_categories):
                         unique_results.append({
@@ -142,8 +138,6 @@ class SearchAPIView(APIView):
                                 "full_category_name": issue.category.get_full_category_name(),
                             }
                         })
-
-                # اضافه کردن maps مرتبط با تگ
                 for map in associated_maps:
                     unique_results.append({
                         "id": tag.id,
@@ -154,8 +148,6 @@ class SearchAPIView(APIView):
                             "full_category_name": map.category.get_full_category_name(),
                         }
                     })
-
-                # اضافه کردن articles مرتبط با تگ
                 for article in associated_articles:
                     unique_results.append({
                         "id": tag.id,
