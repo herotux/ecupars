@@ -2667,7 +2667,7 @@ class UserStepDetail(APIView):
                     "text": option.text,
                     "next_step_id": option.next_step.id if option.next_step else None,
                     "issue_id": option.issue.id if option.issue else None,
-                    "atricle_id": option.article.id if option.article else None,
+                    "atricle": option.article.id if option.article else None,
                 }
                 for option in options
             ],

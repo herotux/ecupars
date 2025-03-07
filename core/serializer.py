@@ -130,8 +130,25 @@ class SearchResultSerializer(serializers.Serializer):
                     "issue": IssueSerializer(obj['data']['issue']).data,
                     "full_category_name": obj['data']['full_category_name']
                 }
+            elif 'map' in obj['data']:  # اضافه کردن پشتیبانی از map
+                return {
+                    "tag": TagSerializer(obj['data']['tag']).data,
+                    "map": MapSerializer(obj['data']['map']).data,
+                    "full_category_name": obj['data']['map'].category.get_full_category_name()
+                }
+            elif 'article' in obj['data']:  # اضافه کردن پشتیبانی از article
+                return {
+                    "tag": TagSerializer(obj['data']['tag']).data,
+                    "article": ArticleSerializer(obj['data']['article']).data,
+                    "full_category_name": obj['data']['article'].category.get_full_category_name()
+                }
+        elif obj['type'] == 'map':
+            map = obj['data']['map']
+            return {"map": MapSerializer(map).data}
+        elif obj['type'] == 'article':
+            article = obj['data']['article']
+            return {"article": ArticleSerializer(article).data}
         return {}
-
 
 
 

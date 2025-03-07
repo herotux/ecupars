@@ -66,6 +66,17 @@ class SearchAPIView(APIView):
         else:
             solutions = Solution.objects.none()
 
+        # Search for maps and articles
+        maps = Map.objects.filter(
+            category__in=allowed_categories,
+            title__icontains=query
+        )
+
+        articles = Article.objects.filter(
+            category__in=allowed_categories,
+            title__icontains=query
+        )
+
         # Initialize unique_results
         unique_results = []
 
@@ -103,6 +114,10 @@ class SearchAPIView(APIView):
             for tag in tags:
                 associated_issues = tag.issues.filter(category__in=allowed_categories)
                 associated_solutions = tag.solutions.filter(issues__category__in=allowed_categories) if subscription.plan.access_to_diagnostic_steps else []
+                associated_maps = tag.maps.filter(category__in=allowed_categories)  # اضافه کردن maps مرتبط با تگ
+                associated_articles = tag.article.filter(category__in=allowed_categories)  # اضافه کردن articles مرتبط با تگ
+
+                # اضافه کردن issues مرتبط با تگ
                 for issue in associated_issues:
                     unique_results.append({
                         "id": tag.id,
@@ -113,6 +128,8 @@ class SearchAPIView(APIView):
                             "full_category_name": issue.category.get_full_category_name(),
                         }
                     })
+
+                # اضافه کردن solutions مرتبط با تگ
                 for solution in associated_solutions:
                     for issue in solution.issues.filter(category__in=allowed_categories):
                         unique_results.append({
@@ -125,6 +142,44 @@ class SearchAPIView(APIView):
                                 "full_category_name": issue.category.get_full_category_name(),
                             }
                         })
+
+                # اضافه کردن maps مرتبط با تگ
+                for map in associated_maps:
+                    unique_results.append({
+                        "id": tag.id,
+                        "type": "tag",
+                        "data": {
+                            "tag": tag,
+                            "map": map,
+                            "full_category_name": map.category.get_full_category_name(),
+                        }
+                    })
+
+                # اضافه کردن articles مرتبط با تگ
+                for article in associated_articles:
+                    unique_results.append({
+                        "id": tag.id,
+                        "type": "tag",
+                        "data": {
+                            "tag": tag,
+                            "article": article,
+                            "full_category_name": article.category.get_full_category_name(),
+                        }
+                    })
+
+        if 'maps' in filter_options or 'all' in filter_options:
+            unique_results.extend([{
+                "id": map.id,
+                "type": "map",
+                "data": {"map": map}
+            } for map in maps])
+
+        if 'articles' in filter_options or 'all' in filter_options:
+            unique_results.extend([{
+                "id": article.id,
+                "type": "article",
+                "data": {"article": article}
+            } for article in articles])
 
         # Serialize the results
         serializer = SearchResultSerializer(unique_results, many=True)
