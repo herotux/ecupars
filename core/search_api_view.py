@@ -5,9 +5,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .forms import SearchForm
 from .serializer import SearchResultSerializer, IssueCategorySerializer, IssueSerializer, SolutionSerializer, TagSerializer
 from .models import Map, Article, IssueCategory, Issue, Tag, Solution
-
-
-
 from django.db.models import Q  # برای جستجوی ترکیبی
 
 class SearchAPIView(APIView):
@@ -43,8 +40,10 @@ class SearchAPIView(APIView):
         issues = Issue.objects.filter(
             category__in=allowed_categories
         ).filter(
-            Q(title__icontains=query) | Q(description__icontains=query)  # جستجو در عنوان و محتوا
-        )
+            Q(title__icontains=query) | 
+            Q(description__icontains=query) | 
+            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
+        ).distinct()
 
         cars = IssueCategory.objects.filter(
             parent_category__isnull=True,
@@ -59,22 +58,28 @@ class SearchAPIView(APIView):
             solutions = Solution.objects.filter(
                 issues__category__in=allowed_categories
             ).filter(
-                Q(title__icontains=query) | Q(description__icontains=query)  # جستجو در عنوان و محتوا
-            )
+                Q(title__icontains=query) | 
+                Q(description__icontains=query) | 
+                Q(tags__name__icontains=query)  # جستجو در تگ‌ها
+            ).distinct()
         else:
             solutions = Solution.objects.none()
 
         # Search for maps and articles
         maps = Map.objects.filter(
-            category__in=allowed_categories,
-            title__icontains=query  # فقط در عنوان جستجو می‌شود
-        )
+            category__in=allowed_categories
+        ).filter(
+            Q(title__icontains=query) | 
+            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
+        ).distinct()
 
         articles = Article.objects.filter(
             category__in=allowed_categories
         ).filter(
-            Q(title__icontains=query) | Q(content__icontains=query)  # جستجو در عنوان و محتوا
-        )
+            Q(title__icontains=query) | 
+            Q(content__icontains=query) | 
+            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
+        ).distinct()
 
         # Initialize unique_results
         unique_results = []
