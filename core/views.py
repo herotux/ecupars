@@ -510,11 +510,9 @@ def issue_cat_create(request, cat_id):
         if form.is_valid():
             issue = form.save(commit=False)  # Create issue instance without saving
             issue.category = category  # Set the category to the selected one
-            issue.save()  # Now save it
-            form.save()
-            form.save_m2m()  # This line saves the many-to-many relationship for tags
+            issue.save()  # Save the issue instance
+            form.save_m2m()  # Save many-to-many relationships (tags)
             return redirect('issue_detail', issue_id=issue.id)
-
     else:
         form = IssueCatForm()
 
@@ -2935,13 +2933,16 @@ class ArticleListAPIView(generics.ListAPIView):
 
 
 class PaymentRequestAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]        
+
     def post(self, request):
         serializer = PaymentRequestSerializer(data=request.data)
         if serializer.is_valid():
             plan_id = serializer.validated_data['plan_id']
             user_phone = serializer.validated_data['user_phone']
             user_email = serializer.validated_data['user_email']
-            discount_code = serializer.validated_data.get('discount_code')  # دریافت کد تخفیف
+            discount_code = serializer.validated_data.get('discount_code')
 
             # پیدا کردن پلن انتخابی
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
@@ -2955,8 +2956,8 @@ class PaymentRequestAPIView(APIView):
                     # بررسی کد تخفیف
                     discount = DiscountCode.objects.get(
                         code=discount_code,
-                        user=request.user,  # کد تخفیف متعلق به کاربر فعلی باشد
-                        expiration_date__gte=timezone.now(),  # کد منقضی نشده باشد
+                        user=request.user,  # کاربر احراز هویت شده
+                        expiration_date__gte=timezone.now(),
                     )
                     # بررسی تعداد استفاده
                     if discount.max_usage and discount.usage_count >= discount.max_usage:
@@ -3005,7 +3006,7 @@ class PaymentRequestAPIView(APIView):
                     authority=authority,
                     amount=final_amount,
                     status='pending',
-                    discount_code=discount_code if discount_code else None  # ذخیره کد تخفیف
+                    discount_code=discount_code if discount_code else None
                 )
 
                 # ذخیره اطلاعات در سشن
