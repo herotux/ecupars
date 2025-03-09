@@ -419,9 +419,10 @@ class Payment(models.Model):
     ref_id = models.CharField(max_length=255, blank=True, null=True)
     amount = models.IntegerField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    discount_code = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
-
+    
     def __str__(self):
         return f"{self.user.username} - {self.amount} - {self.ref_id} - {self.get_status_display()}"
     
