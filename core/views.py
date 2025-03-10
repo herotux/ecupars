@@ -60,6 +60,7 @@ from .serializer import PaymentRequestSerializer, PaymentVerificationSerializer
 from django.utils.timezone import now
 from django.core.cache import cache
 from rest_framework.exceptions import APIException
+from .services import LimoSMSClient
 
 
 
@@ -73,6 +74,36 @@ from rest_framework.exceptions import APIException
 
 
 
+def send_pattern_sms(otp_id, replace_tokens, mobile_number):
+    """
+    تابع برای ارسال پیامک با استفاده از پترن.
+    
+    :param otp_id: شناسه پترن (مثلاً 1145)
+    :param replace_tokens: لیست متغیرهای جایگزین در پترن
+    :param mobile_number: شماره تلفن دریافت‌کننده
+    :return: دیکشنری حاوی نتیجه ارسال پیامک
+    """
+    url = "https://api.limosms.com/api/sendpatternmessage"
+    payload = {
+        "OtpId": otp_id,
+        "ReplaceToken": replace_tokens,
+        "MobileNumber": mobile_number
+    }
+    headers = {"ApiKey": settings.LIMOSMS_API_KEY}  # استفاده از کلید API از تنظیمات
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response_data = response.json()
+        return {
+            "success": response_data.get("Success", False),
+            "message": response_data.get("Message", "خطا در ارسال پیامک"),
+            "data": response_data
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"خطا در ارتباط با سرور: {str(e)}"
+        }
 
 
 
@@ -3149,13 +3180,15 @@ def send_otp(request):
         "otp": otp,
     }, timeout=300)  # ۵ دقیقه = ۳۰۰ ثانیه
 
-    # ارسال OTP به کاربر (این بخش نیاز به یک سرویس پیامکی دارد)
-    # send_sms(phone_number, f"کد OTP شما: {otp}")
+    # ارسال OTP به کاربر با استفاده از پترن
+    otp_id = 1145  # شناسه پترن
+    replace_tokens = [otp]  # متغیرهای جایگزین در پترن
+    sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
 
-    # برای تست، OTP را در پاسخ برگردانید
+    # ارسال پاسخ
     return Response({
         "message": "OTP ارسال شد.",
-        "otp": otp  # فقط برای تست، در حالت واقعی این فیلد را حذف کنید
+        "sms_result": sms_result  # نتیجه ارسال پیامک
     })
 
 

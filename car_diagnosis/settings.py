@@ -405,3 +405,4 @@ SESSION_COOKIE_AGE = 15 * 60  # 15 دقیقه
 
 
 ZARINPAL_SANDBOX = True  
+LIMOSMS_API_KEY = "xxxx-xxx-xxxx"
