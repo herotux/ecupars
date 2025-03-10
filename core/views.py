@@ -61,45 +61,32 @@ from django.utils.timezone import now
 from django.core.cache import cache
 from rest_framework.exceptions import APIException
 from .services import LimoSMSClient
-
-
-
-
-
-
-
-
+import requests
 
 
 
 
 
 def send_pattern_sms(otp_id, replace_tokens, mobile_number):
-    """
-    تابع برای ارسال پیامک با استفاده از پترن.
-    
-    :param otp_id: شناسه پترن (مثلاً 1145)
-    :param replace_tokens: لیست متغیرهای جایگزین در پترن
-    :param mobile_number: شماره تلفن دریافت‌کننده
-    :return: دیکشنری حاوی نتیجه ارسال پیامک
-    """
     url = "https://api.limosms.com/api/sendpatternmessage"
     payload = {
         "OtpId": otp_id,
         "ReplaceToken": replace_tokens,
         "MobileNumber": mobile_number
     }
-    headers = {"ApiKey": settings.LIMOSMS_API_KEY}  # استفاده از کلید API از تنظیمات
+    headers = {"ApiKey": settings.LIMOSMS_API_KEY}
 
     try:
         response = requests.post(url, json=payload, headers=headers)
         response_data = response.json()
+        print("پاسخ سرور لیموپیامک:", response_data)  # لاگ پاسخ سرور
         return {
             "success": response_data.get("Success", False),
             "message": response_data.get("Message", "خطا در ارسال پیامک"),
             "data": response_data
         }
     except Exception as e:
+        print("خطا در ارسال درخواست:", str(e))  # لاگ خطا
         return {
             "success": False,
             "message": f"خطا در ارتباط با سرور: {str(e)}"
