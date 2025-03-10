@@ -3008,7 +3008,7 @@ class PaymentRequestAPIView(APIView):
             # اگر قیمت پلن غیر از صفر باشد، درخواست پرداخت زرین‌پال را ارسال می‌کنیم
             merchant_id = settings.ZARINPAL_MERCHANT_ID
             description = f"اشتراک {plan.name}"
-            callback_url = request.build_absolute_uri('/payment/api_verify/')
+            callback_url = request.build_absolute_uri('/payment/verify/')
             sandbox = settings.ZARINPAL_SANDBOX
             payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
             result = payment_handler.request_payment(callback_url, description, mobile=user_phone, email=user_email)
@@ -3165,7 +3165,7 @@ def send_otp(request):
         "hardware_id": hardware_id,
         "referrer_code": referrer_code,  # ذخیره کد معرف
         "otp": otp,
-    }, timeout=300)  # ۵ دقیقه = ۳۰۰ ثانیه
+    }, timeout=120)  # 2 دقیقه = 120 ثانیه
 
     # ارسال OTP به کاربر با استفاده از پترن
     otp_id = 1145  # شناسه پترن
@@ -3181,6 +3181,34 @@ def send_otp(request):
 
 
 
+@api_view(['POST'])
+def resend_otp(request):
+    phone_number = request.data.get('phone_number')
+    if not phone_number:
+        return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بررسی وجود OTP در کش
+    cache_key = f"signup_data_{phone_number}"
+    cached_data = cache.get(cache_key)
+    if not cached_data:
+        return Response({"error": "لطفاً ابتدا درخواست OTP بدهید."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # تولید OTP جدید
+    otp = str(random.randint(100000, 999999))
+    cached_data["otp"] = otp
+    cache.set(cache_key, cached_data, timeout=120)  # ذخیره OTP جدید در کش
+
+    # ارسال OTP جدید
+    otp_id = 1145  # شناسه پترن
+    replace_tokens = [otp]
+    sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
+
+    if sms_result["success"]:
+        return Response({"message": "کد OTP مجدداً ارسال شد."})
+    else:
+        return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 @api_view(['POST'])
@@ -3193,7 +3221,7 @@ def verify_otp_and_signup(request):
         return Response({"error": "شماره تماس، کد OTP و رمز عبور الزامی هستند."}, status=status.HTTP_400_BAD_REQUEST)
 
     # بازیابی اطلاعات موقت از کش
-    cache_key = f"signup_data_{phone_number}"
+    cache_key = f"otp_{phone_number}"
     cached_data = cache.get(cache_key)
 
     if not cached_data:
