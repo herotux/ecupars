@@ -2382,9 +2382,28 @@ def consultants_chat(request):
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
+    device_id = request.META.get('HTTP_X_DEVICE_ID')  # دریافت شناسه دستگاه از هدر درخواست
+
+    if not device_id:
+        return Response({"login_status": "failed", "error": "Device ID is required."}, status=400)
 
     user = authenticate(username=username, password=password)
     if user is not None:
+        # بررسی اینکه آیا کاربر قبلاً از دستگاه دیگری وارد شده است
+        if user.hardware_id and user.hardware_id != device_id:
+            return Response({
+                "login_status": "failed",
+                "error": "این شماره در حال حاضر روی دستگاه دیگری فعال است. لطفاً برای راهنمایی بیشتر با پشتیبانی تماس بگیرید.",
+                "support": {
+                    "telegram": "@ecupars",
+                    "instagram": "@ecupars"
+                }
+            }, status=403)
+
+        # اگر کاربر از دستگاه جدید وارد می‌شود، hardware_id را به‌روزرسانی کنید
+        user.hardware_id = device_id
+        user.save()
+
         # تولید OTP و ذخیره Session
         otp = str(random.randint(100000, 999999))
         session = LoginSession.objects.create(user=user, otp=otp)
