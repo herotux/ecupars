@@ -62,6 +62,14 @@ from django.core.cache import cache
 from rest_framework.exceptions import APIException
 from .services import LimoSMSClient
 import requests
+from django.db.models import Q
+
+
+
+
+
+
+
 
 
 
@@ -473,7 +481,7 @@ def issue_category_update(request, category_id):
         form = IssueCategoryForm(request.POST, request.FILES, instance=category)
         if form.is_valid():
             form.save()
-            return redirect('manage_issue_categories')
+            return redirect('car_detail', cat_id=category_id)
     else:
         form = IssueCategoryForm(instance=category)
         print(form.errors)
@@ -3395,7 +3403,7 @@ class DiscountCodeDetailAPIView(APIView):
             
             for discount_code in discount_codes:
                 # پیدا کردن کاربرانی که از این کد تخفیف استفاده کرده‌اند
-                users_with_discount = User.objects.filter(discount_code=discount_code)
+                users_with_discount = CustomUser.objects.filter(Q(payment__discount_code=discount_code)).distinct()
                 
                 user_data = []
                 for user_with_discount in users_with_discount:
