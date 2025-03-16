@@ -209,10 +209,30 @@ CKEDITOR_5_CONFIGS = {
     'default': {
         'extraPlugins': 'embed,embedbase,iframe',
         'toolbar': ['heading', '|', 'bold', 'italic', 'link',
-                    'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', ],
+                    'bulletedList', 'numberedList', 'blockQuote', 'imageUpload' , 'mediaEmbed', 'htmlEmbed' ],
         'allowedContent': True,
-        'extraAllowedContent': 'iframe[*]; video[*]',
+        'extraAllowedContent': 'iframe[*]; div[*]; script[*]; span[*]; style[*]',
+        'mediaEmbed': {
+            'previewsInData': True,  # نمایش پیش‌نمایش ویدیو
+            'providers': [
+                {
+                    'name': 'aparat',
+                    'url': [
+                        {
+                            'pattern': r'^https://www\.aparat\.com/v/(\w+)',
+                            'embedUrl': 'https://www.aparat.com/video/video/embed/videohash/{id}',
+                        }
+                    ],
+                },
+                # سایر سایت‌ها
+            ],
+        },
+        'htmlEmbed': {
+            'showPreviews': True,  # نمایش پیش‌نمایش کدهای HTML
+        },
 
+        'allowedContent': True,
+        'extraAllowedContent': 'iframe[*]; div[*]; script[*]; span[*]; style[*]',
     },
     'extends': {
         'language': 'fa',
@@ -226,7 +246,7 @@ CKEDITOR_5_CONFIGS = {
         'toolbar': ['heading', '|', 'outdent', 'indent', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
         'code','subscript', 'superscript', 'highlight', '|', 'codeBlock', 'sourceEditing', 'insertImage',
                     'bulletedList', 'numberedList', 'todoList', '|',  'blockQuote', 'imageUpload', '|',
-                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
+                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'htmlEmbed', 'removeFormat',
                     'insertTable',],
         'image': {
             'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft',
@@ -261,8 +281,25 @@ CKEDITOR_5_CONFIGS = {
             ]
         },
         'mediaEmbed': {
-            'previewsInData': "true",  # نمایش پیش‌نمایش ویدیو در داده‌ها
-        }
+            'previewsInData': True,  # نمایش پیش‌نمایش ویدیو
+            'providers': [
+                {
+                    'name': 'aparat',
+                    'url': [
+                        {
+                            'pattern': r'^https://www\.aparat\.com/v/(\w+)',
+                            'embedUrl': 'https://www.aparat.com/video/video/embed/videohash/{id}',
+                        }
+                    ],
+                },
+                # سایر سایت‌ها
+            ],
+        },
+        'htmlEmbed': {
+            'showPreviews': True,  # نمایش پیش‌نمایش کدهای HTML
+        },
+        'allowedContent': True,
+        'extraAllowedContent': 'iframe[*]; div[*]; script[*]; span[*]; style[*]',
     },
     'list': {
         'properties': {
@@ -401,7 +438,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-SESSION_COOKIE_AGE = 15 * 60  # 15 دقیقه
+# SESSION_COOKIE_AGE = 15 * 60  
 
 
 ZARINPAL_SANDBOX = True  
