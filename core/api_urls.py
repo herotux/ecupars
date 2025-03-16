@@ -5,6 +5,7 @@ from .search_api_view import SearchAPIView
 
 urlpatterns = [
     path('login', views.login_view, name='api-login'),
+    path('webapp_login', views.webapp_login_view, name='webapp-api-login')
     path('verify_otp', views.verify_otp_view, name='verify_otp'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('cars/', views.HomeAPIView.as_view(), name='cars-list'),
