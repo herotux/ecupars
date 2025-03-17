@@ -3238,7 +3238,7 @@ def send_otp(request):
     otp_id = 1145  # شناسه پترن
     replace_tokens = [otp]  # متغیرهای جایگزین در پترن
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
-
+    print(sms_result)
     # ارسال پاسخ
     return Response({
         "message": "OTP ارسال شد.",
