@@ -79,25 +79,36 @@ def send_pattern_sms(otp_id, replace_tokens, mobile_number):
     url = "https://api.limosms.com/api/sendpatternmessage"
     payload = {
         "OtpId": otp_id,
-        "ReplaceToken": replace_tokens,
+        "ReplaceToken": replace_tokens,  # آرایه ای از رشته‌ها (مطابق داکیومنت)
         "MobileNumber": mobile_number
     }
     headers = {"ApiKey": settings.LIMOSMS_API_KEY}
 
     try:
         response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # بررسی خطاهای HTTP مانند 404/500
+        
         response_data = response.json()
-        print("پاسخ سرور لیموپیامک:", response_data)  # لاگ پاسخ سرور
+        print("پاسخ سرور لیموپیامک:", response_data)
+
+        # استفاده از کلیدهای دقیق طبق داکیومنت (حساس به حروف بزرگ/کوچک)
         return {
             "success": response_data.get("Success", False),
-            "message": response_data.get("Message", "خطا در ارسال پیامک"),
+            "message": response_data.get("Message", "خطای نامشخص از سرور"),
             "data": response_data
         }
-    except Exception as e:
-        print("خطا در ارسال درخواست:", str(e))  # لاگ خطا
+
+    except requests.exceptions.HTTPError as http_err:
+        print("خطای HTTP:", http_err)
         return {
             "success": False,
-            "message": f"خطا در ارتباط با سرور: {str(e)}"
+            "message": f"خطای سرور: {http_err}"
+        }
+    except Exception as e:
+        print("خطای غیرمنتظره:", str(e))
+        return {
+            "success": False,
+            "message": f"خطای ارتباطی: {str(e)}"
         }
 
 
@@ -3201,16 +3212,15 @@ def send_otp(request):
     car_brand = request.data.get('car_brand')
     city = request.data.get('city')
     hardware_id = request.data.get('hardware_id')
-    referrer_code = request.data.get('referrer_code')  # فیلد اختیاری کد معرف
+    referrer_code = request.data.get('referrer_code')
 
     if not phone_number:
         return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # بررسی وجود کاربر
     if CustomUser.objects.filter(phone_number=phone_number).exists():
         return Response({"error": "این شماره تماس قبلاً ثبت‌نام شده است."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # بررسی وجود کاربر معرف (اگر کد معرف وارد شده باشد)
+    # بررسی کد معرف
     referrer = None
     if referrer_code:
         try:
@@ -3222,7 +3232,7 @@ def send_otp(request):
     # تولید OTP
     otp = str(random.randint(100000, 999999))
 
-    # ذخیره اطلاعات موقت در کش به مدت ۵ دقیقه
+    # ذخیره موقت اطلاعات
     cache_key = f"signup_data_{phone_number}"
     cache.set(cache_key, {
         "first_name": first_name,
@@ -3230,19 +3240,30 @@ def send_otp(request):
         "car_brand": car_brand,
         "city": city,
         "hardware_id": hardware_id,
-        "referrer_code": referrer_code,  # ذخیره کد معرف
+        "referrer_code": referrer_code,
         "otp": otp,
-    }, timeout=120)  # 2 دقیقه = 120 ثانیه
+    }, timeout=120)  # 2 دقیقه
 
-    # ارسال OTP به کاربر با استفاده از پترن
-    otp_id = 1145  # شناسه پترن
-    replace_tokens = [otp]  # متغیرهای جایگزین در پترن
+    # ارسال پیامک
+    otp_id = 1145
+    replace_tokens = [otp]
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
-    print(sms_result)
-    # ارسال پاسخ
+
+    # بررسی نتیجه ارسال پیامک
+    if not sms_result.get('success', False):
+        cache.delete(cache_key)  # حذف داده‌های کش در صورت خطا
+        return Response({
+            "error": "خطا در ارسال پیامک",
+            "sms_details": sms_result.get('message', 'خطای نامشخص')
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # پاسخ موفقیت‌آمیز
     return Response({
         "message": "OTP ارسال شد.",
-        "sms_result": sms_result  # نتیجه ارسال پیامک
+        "sms_result": {
+            "success": sms_result['success'],
+            "message": sms_result.get('message', '')
+        }
     })
 
 
