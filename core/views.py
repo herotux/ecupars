@@ -79,23 +79,21 @@ def send_pattern_sms(otp_id, replace_tokens, mobile_number):
     url = "https://api.limosms.com/api/sendpatternmessage"
     payload = {
         "OtpId": otp_id,
-        "ReplaceToken": replace_tokens,  # آرایه ای از رشته‌ها (مطابق داکیومنت)
+        "ReplaceToken": replace_tokens,
         "MobileNumber": mobile_number
     }
     headers = {"ApiKey": settings.LIMOSMS_API_KEY}
 
     try:
         response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()  # بررسی خطاهای HTTP مانند 404/500
-        
+        response.raise_for_status()  
         response_data = response.json()
         print("پاسخ سرور لیموپیامک:", response_data)
 
-        # استفاده از کلیدهای دقیق طبق داکیومنت (حساس به حروف بزرگ/کوچک)
+
         return {
-            "success": response_data.get("Success", False),
-            "message": response_data.get("Message", "خطای نامشخص از سرور"),
-            "data": response_data
+            "success": response_data.get("success", False),
+            "message": response_data.get("message", "خطای نامشخص از سرور")
         }
 
     except requests.exceptions.HTTPError as http_err:
@@ -110,7 +108,6 @@ def send_pattern_sms(otp_id, replace_tokens, mobile_number):
             "success": False,
             "message": f"خطای ارتباطی: {str(e)}"
         }
-
 
 
 
@@ -3248,22 +3245,18 @@ def send_otp(request):
     otp_id = 1145
     replace_tokens = [otp]
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
-
-    # بررسی نتیجه ارسال پیامک
-    if not sms_result.get('Success', False):
+    
+    if not sms_result['success']:  # بررسی موفقیت ارسال پیامک
         cache.delete(cache_key)  # حذف داده‌های کش در صورت خطا
         return Response({
             "error": "خطا در ارسال پیامک",
-            "sms_details": sms_result.get('Message', 'خطای نامشخص')
+            "sms_details": sms_result['message']
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # پاسخ موفقیت‌آمیز
+    # ارسال پاسخ موفقیت‌آمیز
     return Response({
         "message": "OTP ارسال شد.",
-        "sms_result": {
-            "success": sms_result['Success'],
-            "message": sms_result.get('Message', '')
-        }
+        "sms_result": sms_result
     })
 
 
