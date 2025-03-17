@@ -3250,19 +3250,19 @@ def send_otp(request):
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
 
     # بررسی نتیجه ارسال پیامک
-    if not sms_result.get('success', False):
+    if not sms_result.get('Success', False):
         cache.delete(cache_key)  # حذف داده‌های کش در صورت خطا
         return Response({
             "error": "خطا در ارسال پیامک",
-            "sms_details": sms_result.get('message', 'خطای نامشخص')
+            "sms_details": sms_result.get('Message', 'خطای نامشخص')
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # پاسخ موفقیت‌آمیز
     return Response({
         "message": "OTP ارسال شد.",
         "sms_result": {
-            "success": sms_result['success'],
-            "message": sms_result.get('message', '')
+            "success": sms_result['Success'],
+            "message": sms_result.get('Message', '')
         }
     })
 
