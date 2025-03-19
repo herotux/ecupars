@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Payment, Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import SearchForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
-from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer
+from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer, CategorySerializer
 from .models import DiscountCode, ReferralCode, SubscriptionPlan, UserSubscription
 from .serializer import CustomUserSerializer, MessageSerializer, SubscriptionPlanSerializer, UserSubscriptionSerializer
 from django.contrib.auth.models import User
@@ -3561,3 +3561,12 @@ class ArticleDetailView(APIView):
 
         except Article.DoesNotExist:
             return Response({"status": "error", "message": "مقاله یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class CategoryAPIView(APIView):
+    def get(self, request):
+        # دریافت تمام دسته‌های اصلی (دسته‌هایی که parent_category ندارند)
+        main_categories = IssueCategory.objects.filter(parent_category__isnull=True)
+        serializer = CategorySerializer(main_categories, many=True)
+        return Response(serializer.data)

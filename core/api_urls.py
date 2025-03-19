@@ -39,4 +39,5 @@ urlpatterns = [
     path('discount-codes/<int:user_id>', views.DiscountCodeDetailAPIView.as_view(), name='discount-codes'),
     path('user-profile/', views.UserProfileAPIView.as_view(), name='user-profile'),
     path('articles/<int:article_id>/', views.ArticleDetailView.as_view(), name='article-detail'),
+    path('categories/', views.CategoryAPIView.as_view(), name='categories'),
 ]

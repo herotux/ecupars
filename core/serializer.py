@@ -212,3 +212,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = CustomUser.objects.create_user(**validated_data)
         return user
+
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    subcategories = serializers.SerializerMethodField()
+
+    class Meta:
+        model = IssueCategory
+        fields = ['id', 'name', 'order', 'parent_category', 'subcategories', 'logo']
+
+    def get_subcategories(self, obj):
+        # بازگرداندن زیردسته‌ها به صورت بازگشتی
+        subcategories = obj.subcategories.all()
+        return CategorySerializer(subcategories, many=True).data
