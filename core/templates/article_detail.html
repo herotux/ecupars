@@ -462,7 +462,7 @@
                 // اگر شناسه وجود نداشته باشد، اضافه کردن گزینه جدید
                 console.log('Data being sent:', data);
                 $.ajax({
-                    url: '/api/add_option/',
+                    url: '/api/add_option',
                     method: 'POST',
                     data: data,
                     success: function (response) {
