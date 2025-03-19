@@ -1482,8 +1482,11 @@ def add_option(request):
         nextissue_id = request.POST.get('nextissueId')
         nextarticle_id = request.POST.get('nextarticleId')
         
+        if not question_id:
+            return JsonResponse({'status': 'error', 'message': 'شناسه سوال ارسال نشده است.'}, status=400)
+
         question = get_object_or_404(Question, id=question_id)
-        print(f"article id is: ",nextarticle_id)
+
         # اگر شناسه مرحله موجود بود
         if step_id:
             step = get_object_or_404(DiagnosticStep, id=step_id)
@@ -1492,18 +1495,17 @@ def add_option(request):
         
         if nextarticle_id:
             article = get_object_or_404(Article, id=nextarticle_id)
-            print(article)
-
             option = Option.objects.create(text=text, question=question, article=article)
             return JsonResponse({'status': 'success'})
+        
         if nextissue_id:
             issue = get_object_or_404(Issue, id=nextissue_id)
             option = Option.objects.create(text=text, question=question, issue=issue)
             return JsonResponse({'status': 'success'})
+        
         # اگر شناسه راهکار موجود بود
         elif solution_id:
             solution = get_object_or_404(Solution, id=solution_id)
-
             step = DiagnosticStep.objects.create(issue=issue, solution=solution)
             option = Option.objects.create(text=text, question=question, next_step=step)
             return JsonResponse({'status': 'success'})
@@ -1512,11 +1514,13 @@ def add_option(request):
             if issue_id:
                 issue = get_object_or_404(Issue, id=issue_id)
                 step = DiagnosticStep.objects.create(issue=issue)
-            
-            option = Option.objects.create(text=text, question=question, next_step=step)
-            return JsonResponse({'status': 'success'})
+                option = Option.objects.create(text=text, question=question, next_step=step)
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'هیچ شناسه مرتبطی ارسال نشده است.'}, status=400)
 
-        return JsonResponse({'status': 'error', 'message': 'کدام شناسه ارسال نشده است.'})
+    # اگر درخواست GET باشد
+    return HttpResponseNotAllowed(['POST'], content="این درخواست فقط برای POST مجاز است.")
 
 
 
