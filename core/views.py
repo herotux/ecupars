@@ -1490,8 +1490,8 @@ def add_option(request):
             option = Option.objects.create(text=text, question=question, next_step=step)
             return JsonResponse({'status': 'success'})
         
-        if article_id:
-            article = get_object_or_404(Article, id=article_id)
+        if nextarticle_id:
+            article = get_object_or_404(Article, id=nextarticle_id)
             print(article)
 
             option = Option.objects.create(text=text, question=question, article=article)
