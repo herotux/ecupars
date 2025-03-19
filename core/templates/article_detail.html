@@ -417,6 +417,7 @@
                 question_id: questionId,
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             };
+
             if (optionId) {
                 // اگر شناسه موجود باشد، یعنی می‌خواهیم ویرایش کنیم
                 data.id = optionId; // شناسه گزینه برای ویرایش
@@ -434,7 +435,9 @@
                             alert(response.message); // نمایش خطا در ویرایش
                         }
                     },
-                    error: function () {
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('خطا در ویرایش گزینه:', textStatus, errorThrown);
+                        console.error('پاسخ سرور:', jqXHR.responseText);
                         alert('خطایی در ویرایش گزینه وجود دارد.');
                     }
                 });
@@ -462,7 +465,6 @@
                     url: '/api/add_option/',
                     method: 'POST',
                     data: data,
-                    
                     success: function (response) {
                         if (response.status === 'success') {
                             loadOptions(); // بارگذاری مجدد گزینه‌ها
@@ -472,7 +474,9 @@
                             alert(response.message);
                         }
                     },
-                    error: function () {
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('خطا در ایجاد گزینه:', textStatus, errorThrown);
+                        console.error('پاسخ سرور:', jqXHR.responseText);
                         alert('خطایی در ایجاد گزینه وجود دارد.');
                     }
                 });
