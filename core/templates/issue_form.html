@@ -51,4 +51,25 @@
         });
     });
 </script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
+    const editor = document.querySelector('.django_ckeditor_5');
+
+    if (form && editor) {
+        form.addEventListener('submit', function (e) {
+            const ckEditorInstance = window.CKEDITOR.instances[Object.keys(window.CKEDITOR.instances)[0]];
+            const uploadRepository = ckEditorInstance.plugins.get('FileRepository');
+            const pendingUploads = uploadRepository.loaders.length;
+
+            if (pendingUploads > 0) {
+                e.preventDefault(); // جلوگیری از ارسال فرم
+                alert('لطفا صبر کنید تا عکس‌ها به‌طور کامل بارگذاری شوند.');
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 
