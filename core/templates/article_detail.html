@@ -459,7 +459,7 @@
                 // اگر شناسه وجود نداشته باشد، اضافه کردن گزینه جدید
                 console.log('Data being sent:', data);
                 $.ajax({
-                    url: '/api/add_option/',
+                    url: '/api/v1/add_option/',
                     method: 'POST',
                     data: data,
                     
@@ -529,4 +529,6 @@
 
     });
 </script>
+
+    
 {% endblock %}
