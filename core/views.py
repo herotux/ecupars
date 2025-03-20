@@ -3542,7 +3542,6 @@ def bulk_copy_maps(request):
 
 
 
-
 class ArticleDetailView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -3556,8 +3555,30 @@ class ArticleDetailView(APIView):
             # ساخت پاسخ
             response_data = {
                 "status": "success",
-                "article": article_data,  # question به صورت خودکار در article_data وجود دارد
+                "article": article_data,
             }
+
+            # اگر مقاله سوال مرتبط داشته باشد
+            if article.question:
+                question_data = QuestionSerializer(article.question).data
+
+                # اطلاعات گزینه‌ها با اضافه کردن مقصد هر گزینه
+                options_data = [
+                    {
+                        'id': option.id,
+                        'text': option.text,
+                        'next_step': option.next_step.id if option.next_step else None,
+                        'issue': option.issue.id if option.issue else None,
+                        'article': option.article.id if option.article else None,
+                    }
+                    for option in article.question.options.all()
+                ]
+
+                # افزودن سوال و گزینه‌ها به پاسخ
+                response_data.update({
+                    'question': question_data,
+                    'options': options_data,
+                })
 
             response = Response(response_data)
             response['Content-Type'] = 'application/json; charset=utf-8'
