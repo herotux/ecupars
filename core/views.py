@@ -3269,29 +3269,65 @@ def send_otp(request):
 @api_view(['POST'])
 def resend_otp(request):
     phone_number = request.data.get('phone_number')
-    if not phone_number:
-        return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+    username = request.data.get('username')
+    password = request.data.get('password')
+    request_type = request.data.get('request_type')  # 'signup' یا 'login'
 
-    # بررسی وجود OTP در کش
-    cache_key = f"signup_data_{phone_number}"
-    cached_data = cache.get(cache_key)
-    if not cached_data:
-        return Response({"error": "لطفاً ابتدا درخواست OTP بدهید."}, status=status.HTTP_400_BAD_REQUEST)
+    if request_type == 'signup':
+        if not phone_number:
+            return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # تولید OTP جدید
-    otp = str(random.randint(100000, 999999))
-    cached_data["otp"] = otp
-    cache.set(cache_key, cached_data, timeout=120)  # ذخیره OTP جدید در کش
+        # بررسی وجود OTP در کش
+        cache_key = f"signup_data_{phone_number}"
+        cached_data = cache.get(cache_key)
+        if not cached_data:
+            return Response({"error": "لطفاً ابتدا درخواست OTP بدهید."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # ارسال OTP جدید
-    otp_id = 1145  # شناسه پترن
-    replace_tokens = [otp]
-    sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
+        # تولید OTP جدید
+        otp = str(random.randint(100000, 999999))
+        cached_data["otp"] = otp
+        cache.set(cache_key, cached_data, timeout=120)  # ذخیره OTP جدید در کش
 
-    if sms_result["success"]:
-        return Response({"message": "کد OTP مجدداً ارسال شد."})
+        # ارسال OTP جدید
+        otp_id = 1145  # شناسه پترن
+        replace_tokens = [otp]
+        sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
+
+        if sms_result["success"]:
+            return Response({"message": "کد OTP مجدداً ارسال شد."})
+        else:
+            return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request_type == 'login':
+        if not username or not password:
+            return Response({"error": "نام کاربری و رمز عبور الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=username, password=password)
+        if user is None:
+            return Response({"error": "نام کاربری یا رمز عبور اشتباه است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # بررسی وجود session برای کاربر
+        login_session = LoginSession.objects.filter(user=user).order_by('-created_at').first()
+        if not login_session:
+            return Response({"error": "هیچ درخواست لاگینی برای این کاربر وجود ندارد."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # تولید OTP جدید
+        otp = str(random.randint(100000, 999999))
+        login_session.otp = otp
+        login_session.save()
+
+        # ارسال OTP جدید
+        otp_id = 1145  # شناسه پترن
+        replace_tokens = [otp]
+        sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
+
+        if sms_result["success"]:
+            return Response({"message": "کد OTP مجدداً ارسال شد."})
+        else:
+            return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     else:
-        return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": "نوع درخواست نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
