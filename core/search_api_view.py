@@ -113,6 +113,7 @@ class SearchAPIView(APIView):
         if 'solutions' in filter_options or 'all' in filter_options:
             for solution in solutions:
                 diagnostic_step = DiagnosticStep.objects.filter(solution_id=solution.id).first()
+                print(f"Solution ID: {solution.id}, Diagnostic Step: {diagnostic_step}")
                 if diagnostic_step:
                     step_id = diagnostic_step.id
                 else:
