@@ -2548,14 +2548,19 @@ class HasCategoryAccess(BasePermission):
         if not subscription:
             raise NoCategoryAccessException()
 
+        # اگر کاربر به همه دسته‌بندی‌ها دسترسی دارد، اجازه دسترسی بدهید
         if subscription.plan.access_to_all_categories:
             return True
 
+        # اگر کاربر به همه دسته‌بندی‌ها دسترسی ندارد، بررسی کنید که دسته‌بندی درخواستی در لیست دسته‌بندی‌های محدود شده باشد
         restricted_categories = subscription.plan.restricted_categories.all()
         if int(category_id) not in [cat.id for cat in restricted_categories]:
             raise NoCategoryAccessException()
 
         return True
+
+
+        
 
 class HasIssueAccess(BasePermission):
     def has_permission(self, request, view):
