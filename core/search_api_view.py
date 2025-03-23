@@ -124,9 +124,7 @@ class SearchAPIView(APIView):
                     "type": "solution",
                     "data": {
                         "step_id": step_id,
-                        "solution": solution,
-                        "issue": issue,
-                        "full_category_name": issue.category.get_full_category_name(),
+                        "solution": solution
                     }
                 })
 
