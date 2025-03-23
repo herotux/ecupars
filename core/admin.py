@@ -191,6 +191,7 @@ class ArticleAdmin(BaseAdmin):
 @admin.register(ReferralCode)
 class ReferralCodeAdmin(admin.ModelAdmin):
     list_display = ('code', 'user')
+    autocomplete_fields = ['user']
    
 
 
@@ -198,4 +199,5 @@ class ReferralCodeAdmin(admin.ModelAdmin):
 @admin.register(DiscountCode)
 class DiscountCodeAdmin(admin.ModelAdmin):
     list_display = ('code', 'discount_percentage', 'created_at')
+    autocomplete_fields = ['user']
     
