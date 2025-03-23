@@ -117,7 +117,7 @@ class SearchAPIView(APIView):
                     step_id = diagnostic_step.id
                 else:
                     step_id = None  # یا مقدار پیش‌فرض دیگری که مناسب باشد
-                print(step_id)
+
                 for issue in solution.issues.filter(category__in=allowed_categories):
                     unique_results.append({
                         "id": solution.id,
