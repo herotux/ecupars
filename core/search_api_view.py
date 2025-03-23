@@ -113,21 +113,22 @@ class SearchAPIView(APIView):
         if 'solutions' in filter_options or 'all' in filter_options:
             for solution in solutions:
                 diagnostic_step = DiagnosticStep.objects.filter(solution_id=solution.id).first()
-                print(f"Solution ID: {solution.id}, Diagnostic Step: {diagnostic_step}")
                 if diagnostic_step:
                     step_id = diagnostic_step.id
                 else:
                     step_id = None  # یا مقدار پیش‌فرض دیگری که مناسب باشد
                 print(step_id)
-                
-                unique_results.append({
-                    "id": solution.id,
-                    "type": "solution",
-                    "data": {
-                        "step_id": step_id,
-                        "solution": solution
-                    }
-                })
+                for issue in solution.issues.filter(category__in=allowed_categories):
+                    unique_results.append({
+                        "id": solution.id,
+                        "type": "solution",
+                        "data": {
+                            "step_id": step_id,
+                            "solution": solution,
+                            "issue": issue,
+                            "full_category_name": issue.category.get_full_category_name(),
+                        }
+                    })
 
         if 'tags' in filter_options or 'all' in filter_options:
             for tag in tags:
