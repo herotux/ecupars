@@ -2568,22 +2568,34 @@ class HasIssueAccess(BasePermission):
         issue_id = view.kwargs.get('issue_id')
         issue = get_object_or_404(Issue, id=issue_id)
 
-        category_id = issue.category
+        # دریافت صحیح شناسه دسته‌بندی
+        category_id = issue.category.id if issue.category else None
         if not category_id:
+            raise NoIssueAccessException("Issue فاقد دسته‌بندی معتبر است.")
+
+        user = request.user
+        if not user.is_authenticated:
             raise NoIssueAccessException()
 
-        subscription = getattr(request.user, 'subscription', None)
-        if not subscription:
+        subscription = getattr(user, 'subscription', None)
+        
+        # بررسی فعال بودن اشتراک
+        if not subscription or not subscription.is_active():
             raise NoIssueAccessException()
 
+        # دسترسی به همه دسته‌بندی‌ها
         if subscription.plan.access_to_all_categories:
             return True
 
-        restricted_categories = subscription.plan.restricted_categories.all()
-        if int(category_id) not in [cat.id for cat in restricted_categories]:
+        # بررسی دسترسی از طریق active_categories کاربر
+        allowed_category_ids = subscription.active_categories.values_list('id', flat=True)
+        if category_id not in allowed_category_ids:
             raise NoIssueAccessException()
 
         return True
+
+
+
 
 class HasDiagnosticAccess(BasePermission):
     def has_permission(self, request, view):
@@ -2592,14 +2604,25 @@ class HasDiagnosticAccess(BasePermission):
             raise NoDiagnosticAccessException()
 
         subscription = user.subscription
+        
+        # بررسی فعال بودن اشتراک
+        if not subscription.is_active():
+            raise NoDiagnosticAccessException("اشتراک شما منقضی شده است.")
+
+        # بررسی دسترسی به قابلیت عیب‌یابی
         if not subscription.plan.access_to_diagnostic_steps:
             raise NoDiagnosticAccessException()
 
         return True
+    
+
+
+
 
 class HasDeviceAccess(BasePermission):
     def has_permission(self, request, view):
-        device_id = request.META.get('HTTP_X_DEVICE_ID')
+
+        device_id = request.headers.get('X-Device-ID', '').strip()
         if not device_id:
             raise NoDeviceAccessException()
 
@@ -2607,6 +2630,7 @@ class HasDeviceAccess(BasePermission):
         if not user.is_authenticated:
             raise NoDeviceAccessException()
 
+        # تطابق دقیق شناسه دستگاه
         if user.hardware_id != device_id:
             raise NoDeviceAccessException()
 
