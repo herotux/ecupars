@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .forms import SearchForm
@@ -10,7 +11,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
 from django.core.exceptions import ObjectDoesNotExist
 
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 
@@ -216,7 +219,7 @@ class SearchAPIView(APIView):
         } for article in articles]
     
 
-    
+
 
 
 
