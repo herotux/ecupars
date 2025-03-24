@@ -34,6 +34,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+     'django_crontab',
     'channels',
     'django_jalali',
     'rest_framework',
@@ -443,3 +444,6 @@ CHANNEL_LAYERS = {
 
 ZARINPAL_SANDBOX = True  
 LIMOSMS_API_KEY = "xxxx-xxx-xxxx"
+CRONJOBS = [
+    ('0 0 * * *', 'core.management.commands.check_subscriptions.Command')
+]

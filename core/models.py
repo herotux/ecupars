@@ -153,7 +153,7 @@ class Issue(models.Model):
     title = models.CharField(max_length=200)
     description = CKEditor5Field('Text', config_name='extends')
     category = models.ForeignKey(IssueCategory, on_delete=models.CASCADE)
-    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True)
+    question = models.ForeignKey('Question', on_delete=models.PROTECT, blank=True, null=True)
     tags = models.ManyToManyField('Tag', related_name='issues', blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_creators")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="issue_updaters")
@@ -229,10 +229,10 @@ class Article(models.Model):
 
 class DiagnosticStep(models.Model):
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='diagnostic_steps')
-    solution = models.ForeignKey(Solution, on_delete=models.SET_NULL, blank=True, null=True)
+    solution = models.ForeignKey(Solution, on_delete=models.SET_NULL, blank=True, null=True, )
     letter = models.CharField(max_length=1, editable=False)
     map = models.ForeignKey(Map, on_delete=models.SET_NULL, blank=True, null=True, related_name='diagnostic_steps')
-    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True)
+    question = models.ForeignKey('Question', on_delete=models.SET_NULL, blank=True, null=True, related_name='steps')
     has_cycle = models.BooleanField(default=False)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     updated_at = jmodels.jDateTimeField(auto_now=True)
@@ -333,6 +333,9 @@ class UserSubscription(models.Model):
     active_categories = models.ManyToManyField(IssueCategory, blank=True)  
     start_date = models.DateTimeField(default=default_start_date)
     end_date = models.DateTimeField(default=default_end_date)  
+    is_active = models.BooleanField(default=True)
+
+
 
     def is_active(self):
         return self.end_date > now()

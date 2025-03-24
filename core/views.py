@@ -2545,15 +2545,15 @@ class HasCategoryAccess(BasePermission):
             raise NoCategoryAccessException()
 
         subscription = getattr(user, 'subscription', None)
-        if not subscription:
+        if not subscription or not subscription.is_active():
             raise NoCategoryAccessException()
 
-        # اگر کاربر به همه دسته‌بندی‌ها دسترسی دارد، اجازه دسترسی بدهید
+        # If plan grants access to all categories, allow immediately
         if subscription.plan.access_to_all_categories:
             return True
 
-        # اگر کاربر به همه دسته‌بندی‌ها دسترسی ندارد، بررسی کنید که دسته‌بندی درخواستی در لیست دسته‌بندی‌های مجاز باشد
-        allowed_categories = subscription.plan.allowed_categories.all()  # تغییر به allowed_categories
+        # Check if the requested category is in the user's ACTIVE categories
+        allowed_categories = subscription.active_categories.all()  # Corrected line
         if int(category_id) not in [cat.id for cat in allowed_categories]:
             raise NoCategoryAccessException()
 
