@@ -2552,15 +2552,15 @@ class HasCategoryAccess(BasePermission):
         if subscription.plan.access_to_all_categories:
             return True
 
-        # اگر کاربر به همه دسته‌بندی‌ها دسترسی ندارد، بررسی کنید که دسته‌بندی درخواستی در لیست دسته‌بندی‌های محدود شده باشد
-        restricted_categories = subscription.plan.restricted_categories.all()
-        if int(category_id) not in [cat.id for cat in restricted_categories]:
+        # اگر کاربر به همه دسته‌بندی‌ها دسترسی ندارد، بررسی کنید که دسته‌بندی درخواستی در لیست دسته‌بندی‌های مجاز باشد
+        allowed_categories = subscription.plan.allowed_categories.all()  # تغییر به allowed_categories
+        if int(category_id) not in [cat.id for cat in allowed_categories]:
             raise NoCategoryAccessException()
 
         return True
 
 
-        
+
 
 class HasIssueAccess(BasePermission):
     def has_permission(self, request, view):
@@ -2636,7 +2636,7 @@ class HomeAPIView(APIView):
 
 class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasCategoryAccess, HasDeviceAccess]
+    permission_classes = [IsAuthenticated, HasCategoryAccess]
 
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
