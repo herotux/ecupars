@@ -103,19 +103,26 @@ class SearchResultSerializer(serializers.Serializer):
         if obj['type'] == 'car':
             car = obj['data']['car']
             return {"car": IssueCategorySerializer(car).data}
+            
         elif obj['type'] == 'issue':
             issue = obj['data']['issue']
             return {
                 "issue": IssueSerializer(issue).data,
                 "full_category_name": obj['data']['full_category_name']
             }
+            
         elif obj['type'] == 'solution':
             solution = obj['data']['solution']
-            return {
+            response_data = {
                 "solution": SolutionSerializer(solution).data,
                 "issue": IssueSerializer(obj['data']['issue']).data,
                 "full_category_name": obj['data']['full_category_name']
             }
+            # اضافه کردن step_id اگر وجود دارد
+            if 'step_id' in obj['data']:
+                response_data['step_id'] = obj['data']['step_id']
+            return response_data
+        
         elif obj['type'] == 'tag':
             if 'issue' in obj['data']:
                 return {
