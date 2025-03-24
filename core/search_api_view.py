@@ -41,7 +41,7 @@ class HasSearchPermission(BasePermission):
             if 'maps' in filter_options and not plan.access_to_maps:
                 return False
                 
-            if 'articles' in filter_options and not plan.access_to_articles:
+            if 'articles' in filter_options :
                 return False
                 
             return True
@@ -154,7 +154,7 @@ class SearchAPIView(APIView):
             results.extend(self.build_map_results(maps))
 
         # جستجوی Articles
-        if ('articles' in filter_options or 'all' in filter_options) and plan.access_to_articles:
+        if ('articles' in filter_options or 'all' in filter_options):
             articles = Article.objects.filter(
                 category__in=allowed_categories
             ).filter(
