@@ -7,7 +7,45 @@ from .serializer import SearchResultSerializer, IssueCategorySerializer, IssueSe
 from .models import Option, Question, DiagnosticStep, Map, Article, IssueCategory, Issue, Tag, Solution
 from django.db.models import Q, Prefetch  # برای جستجوی ترکیبی
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import BasePermission
+from django.core.exceptions import ObjectDoesNotExist
 
+
+
+
+
+
+
+class HasSearchPermission(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+            
+        try:
+            subscription = user.subscription
+            if not subscription.is_active():
+                return False
+                
+            plan = subscription.plan
+            
+            # بررسی دسترسی بر اساس فیلترهای درخواستی
+            filter_options = request.GET.getlist('filter_option', ['all'])
+            
+            if 'solutions' in filter_options and not plan.access_to_diagnostic_steps:
+                return False
+                
+            if 'maps' in filter_options and not plan.access_to_maps:
+                return False
+                
+            if 'articles' in filter_options and not plan.access_to_articles:
+                return False
+                
+            return True
+            
+        except ObjectDoesNotExist:
+            return False
+        
 
 
 class DiagnosticPagination(PageNumberPagination):
@@ -18,185 +56,167 @@ class DiagnosticPagination(PageNumberPagination):
     
 class SearchAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasSearchPermission]
 
     def get(self, request):
-        query = request.GET.get('query', '')
-        filter_options = request.GET.getlist('filter_option', ['all'])
-        category_ids = request.GET.getlist('category_id')  # دریافت لیست category_idها
-        subcategory_ids = request.GET.getlist('subcategory_id')  # دریافت لیست subcategory_idها
+        try:
+            # دریافت و اعتبارسنجی پارامترها
+            query = request.GET.get('query', '').strip()
+            if not query or len(query) < 2:
+                return Response({'error': 'حداقل طول جستجو ۲ کاراکتر است'}, status=400)
 
-        # Check user access
-        user = request.user
-        subscription = getattr(user, 'subscription', None)
+            filter_options = request.GET.getlist('filter_option', ['all'])
+            category_ids = request.GET.getlist('category_id', [])
+            subcategory_ids = request.GET.getlist('subcategory_id', [])
 
-        if not subscription:
-            return Response({'results': []})
+            # بررسی دسترسی کاربر
+            user = request.user
+            subscription = user.subscription
+            plan = subscription.plan
 
-        # Categories the user has access to
-        if subscription.plan.access_to_all_categories:
-            allowed_categories = IssueCategory.objects.all()
+            # مدیریت دسته‌بندی‌های مجاز
+            allowed_categories = self.get_allowed_categories(plan, category_ids, subcategory_ids)
+
+            # جستجوی داده‌ها بر اساس دسترسی‌ها
+            results = self.perform_search(
+                query=query,
+                filter_options=filter_options,
+                allowed_categories=allowed_categories,
+                plan=plan
+            )
+
+            return Response({
+                'count': len(results),
+                'results': SearchResultSerializer(results, many=True).data
+            })
+
+        except ObjectDoesNotExist:
+            logger.warning(f"User {user.id} has no active subscription")
+            return Response({'results': []}, status=403)
+        except Exception as e:
+            logger.error(f"Search error: {str(e)}")
+            raise PermissionDenied(detail="خطا در پردازش درخواست جستجو")
+
+    def get_allowed_categories(self, plan, category_ids, subcategory_ids):
+        """مدیریت دسته‌بندی‌های مجاز"""
+        if plan.access_to_all_categories:
+            categories = IssueCategory.objects.all()
         else:
-            allowed_categories = subscription.plan.restricted_categories.all()
+            categories = plan.restricted_categories.all()
 
-        # Filter by categories and subcategories
         if category_ids:
-            allowed_categories = allowed_categories.filter(id__in=category_ids)
+            categories = categories.filter(id__in=category_ids)
         if subcategory_ids:
-            allowed_categories = allowed_categories.filter(id__in=subcategory_ids)
+            categories = categories.filter(id__in=subcategory_ids)
 
-        # Search in models based on filters and user access
-        issues = Issue.objects.filter(
-            category__in=allowed_categories
-        ).filter(
-            Q(title__icontains=query) | 
-            Q(description__icontains=query) | 
-            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
-        ).distinct()
+        return categories
 
-        cars = IssueCategory.objects.filter(
-            parent_category__isnull=True,
-            name__icontains=query,
-            id__in=allowed_categories
-        )
+    def perform_search(self, query, filter_options, allowed_categories, plan):
+        """انجام عملیات جستجو با توجه به دسترسی‌ها"""
+        results = []
 
-        tags = Tag.objects.filter(name__icontains=query)
+        # جستجوی Issues
+        if 'issues' in filter_options or 'all' in filter_options:
+            issues = Issue.objects.filter(
+                category__in=allowed_categories
+            ).filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            
+            results.extend(self.build_issue_results(issues))
 
-        # Include solutions if the user has access
-        if subscription.plan.access_to_diagnostic_steps:
+        # جستجوی Solutions
+        if ('solutions' in filter_options or 'all' in filter_options) and plan.access_to_diagnostic_steps:
             solutions = Solution.objects.filter(
                 issues__category__in=allowed_categories
             ).filter(
-                Q(title__icontains=query) | 
-                Q(description__icontains=query) | 
-                Q(tags__name__icontains=query)  # جستجو در تگ‌ها
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(tags__name__icontains=query)
             ).distinct()
-        else:
-            solutions = Solution.objects.none()
+            
+            results.extend(self.build_solution_results(solutions, allowed_categories))
 
-        # Search for maps and articles
-        maps = Map.objects.filter(
-            category__in=allowed_categories
-        ).filter(
-            Q(title__icontains=query) | 
-            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
-        ).distinct()
+        # جستجوی Maps
+        if ('maps' in filter_options or 'all' in filter_options) and plan.access_to_maps:
+            maps = Map.objects.filter(
+                category__in=allowed_categories
+            ).filter(
+                Q(title__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            
+            results.extend(self.build_map_results(maps))
 
-        articles = Article.objects.filter(
-            category__in=allowed_categories
-        ).filter(
-            Q(title__icontains=query) | 
-            Q(content__icontains=query) | 
-            Q(tags__name__icontains=query)  # جستجو در تگ‌ها
-        ).distinct()
+        # جستجوی Articles
+        if ('articles' in filter_options or 'all' in filter_options) and plan.access_to_articles:
+            articles = Article.objects.filter(
+                category__in=allowed_categories
+            ).filter(
+                Q(title__icontains=query) |
+                Q(content__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            
+            results.extend(self.build_article_results(articles))
 
-        # Initialize unique_results
-        unique_results = []
+        return results
 
-        if 'cars' in filter_options or 'all' in filter_options:
-            unique_results.extend([{
-                "id": car.id,
-                "type": "car",
-                "data": {"car": car}
-            } for car in cars])
+    # توابع ساخت نتایج
+    def build_issue_results(self, issues):
+        return [{
+            'id': issue.id,
+            'type': 'issue',
+            'data': {
+                'issue': issue,
+                'full_category_name': issue.category.get_full_category_name()
+            }
+        } for issue in issues]
 
-        if 'issues' in filter_options or 'all' in filter_options:
-            unique_results.extend([{
-                "id": issue.id,
-                "type": "issue",
-                "data": {
-                    "issue": issue,
-                    "full_category_name": issue.category.get_full_category_name()
-                }
-            } for issue in issues])
+    def build_solution_results(self, solutions, allowed_categories):
+        results = []
+        for solution in solutions:
+            diagnostic_step = DiagnosticStep.objects.filter(
+                solution_id=solution.id
+            ).first()
+            
+            for issue in solution.issues.filter(category__in=allowed_categories):
+                results.append({
+                    'id': solution.id,
+                    'type': 'solution',
+                    'data': {
+                        'step_id': diagnostic_step.id if diagnostic_step else None,
+                        'solution': solution,
+                        'issue': issue,
+                        'full_category_name': issue.category.get_full_category_name()
+                    }
+                })
+        return results
 
-        if 'solutions' in filter_options or 'all' in filter_options:
-            for solution in solutions:
-                diagnostic_step = DiagnosticStep.objects.filter(solution_id=solution.id).first()
-                if diagnostic_step:
-                    step_id = diagnostic_step.id
-                else:
-                    step_id = None  # یا مقدار پیش‌فرض دیگری که مناسب باشد
+    def build_map_results(self, maps):
+        return [{
+            'id': map.id,
+            'type': 'map',
+            'data': {
+                'map': map,
+                'full_category_name': map.category.get_full_category_name()
+            }
+        } for map in maps]
 
-                for issue in solution.issues.filter(category__in=allowed_categories):
-                    unique_results.append({
-                        "id": solution.id,
-                        "type": "solution",
-                        "data": {
-                            "step_id": step_id,
-                            "solution": solution,
-                            "issue": issue,
-                            "full_category_name": issue.category.get_full_category_name(),
-                        }
-                    })
+    def build_article_results(self, articles):
+        return [{
+            'id': article.id,
+            'type': 'article',
+            'data': {
+                'article': article,
+                'full_category_name': article.category.get_full_category_name()
+            }
+        } for article in articles]
+    
 
-        if 'tags' in filter_options or 'all' in filter_options:
-            for tag in tags:
-                associated_issues = tag.issues.filter(category__in=allowed_categories)
-                associated_solutions = tag.solutions.filter(issues__category__in=allowed_categories) if subscription.plan.access_to_diagnostic_steps else []
-                associated_maps = tag.maps.filter(category__in=allowed_categories)
-                associated_articles = tag.article.filter(category__in=allowed_categories)
-
-                for issue in associated_issues:
-                    unique_results.append({
-                        "id": tag.id,
-                        "type": "tag",
-                        "data": {
-                            "tag": tag,
-                            "issue": issue,
-                            "full_category_name": issue.category.get_full_category_name(),
-                        }
-                    })
-                for solution in associated_solutions:
-                    for issue in solution.issues.filter(category__in=allowed_categories):
-                        unique_results.append({
-                            "id": tag.id,
-                            "type": "tag",
-                            "data": {
-                                "tag": tag,
-                                "solution": solution,
-                                "issue": issue,
-                                "full_category_name": issue.category.get_full_category_name(),
-                            }
-                        })
-                for map in associated_maps:
-                    unique_results.append({
-                        "id": tag.id,
-                        "type": "tag",
-                        "data": {
-                            "tag": tag,
-                            "map": map,
-                            "full_category_name": map.category.get_full_category_name(),
-                        }
-                    })
-                for article in associated_articles:
-                    unique_results.append({
-                        "id": tag.id,
-                        "type": "tag",
-                        "data": {
-                            "tag": tag,
-                            "article": article,
-                            "full_category_name": article.category.get_full_category_name(),
-                        }
-                    })
-
-        if 'maps' in filter_options or 'all' in filter_options:
-            unique_results.extend([{
-                "id": map.id,
-                "type": "map",
-                "data": {"map": map}
-            } for map in maps])
-
-        if 'articles' in filter_options or 'all' in filter_options:
-            unique_results.extend([{
-                "id": article.id,
-                "type": "article",
-                "data": {"article": article}
-            } for article in articles])
-
-        # Serialize the results
-        serializer = SearchResultSerializer(unique_results, many=True)
-        return Response({'results': serializer.data})
+    
 
 
 
