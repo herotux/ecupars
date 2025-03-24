@@ -3382,7 +3382,7 @@ def verify_otp_and_signup(request):
         return Response({"error": "شماره تماس، کد OTP و رمز عبور الزامی هستند."}, status=status.HTTP_400_BAD_REQUEST)
 
     # بازیابی اطلاعات موقت از کش
-    cache_key = f"otp_{phone_number}"
+    cache_key = f"signup_data_{phone_number}"
     cached_data = cache.get(cache_key)
 
     if not cached_data:
