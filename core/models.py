@@ -320,6 +320,7 @@ class SubscriptionPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     access_to_all_categories = models.BooleanField(default=False)
     access_to_diagnostic_steps = models.BooleanField(default=False)
+    access_to_maps = models.BooleanField(default=False)
     restricted_categories = models.ManyToManyField('IssueCategory', blank=True)
     price = models.IntegerField(default=0)
 
