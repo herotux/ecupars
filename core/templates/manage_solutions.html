@@ -17,6 +17,7 @@
                         </ul>
                     </span>
                     <span>
+                        <a href="{% url 'solution_detail' solution.id %}" class="btn btn-warning btn-sm">مشاهده</a>
                         <a href="{% url 'solution_update' solution.id %}" class="btn btn-warning btn-sm">ویرایش</a>
                         <a href="{% url 'solution_delete' solution.id %}" class="btn btn-danger btn-sm">حذف</a>
                     </span>
