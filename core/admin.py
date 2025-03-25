@@ -210,3 +210,8 @@ class DiscountCodeAdmin(admin.ModelAdmin):
 @admin.register(UserReferral)
 class UserReferralAdmin(admin.ModelAdmin):
     list_display = ('referrer', 'referred_user', 'created_at')
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user','amount', 'amount', 'status',  'created_at')
