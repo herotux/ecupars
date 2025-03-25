@@ -1,5 +1,6 @@
 {% extends 'base2.html' %}
 
+{% load custom_filters %}
 {% block title %} پلن‌های اشتراک {% endblock %}
 
 {% block content %}
@@ -63,7 +64,7 @@
                     <h2 class="card-title">{{ plan.name }}</h2>
                     <p class="card-text">{{ plan.description }}</p>
                 </div>
-                <h5 class="card-price">قیمت: {{ plan.price }} تومان</h5>
+                <h5 class="card-price">قیمت:  {{ plan.price|toman_format }} تومان</h5>
                 <a href="{% url 'subscribe' plan.id %}" class="btn btn-primary btn-full-width">اشتراک</a>
             </div>
         </div>
