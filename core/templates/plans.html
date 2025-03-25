@@ -10,13 +10,14 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        background-color: #f8f9fa; /* رنگ پس‌زمینه روشن */
-        border: 1px solid #007bff; /* مرز آبی */
-        transition: transform 0.3s, box-shadow 0.3s; /* انیمیشن برای بزرگ شدن و سایه */
+        background-color: #f8f9fa;
+        border: 1px solid #007bff;
+        transition: transform 0.3s, box-shadow 0.3s;
+        margin-bottom: 20px;
     }
     .card:hover {
-        transform: scale(1.05); /* بزرگ شدن در حالت هاور */
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* سایه در حالت هاور */
+        transform: scale(1.05);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
     .card-body {
         flex-grow: 1;
@@ -26,18 +27,40 @@
         margin-top: auto;
     }
     .btn-primary {
-        background-color: #007bff; /* رنگ دکمه */
+        background-color: #007bff;
         border: none;
     }
     .btn-primary:hover {
-        background-color: #0056b3; /* رنگ دکمه در حالت هاور */
+        background-color: #0056b3;
     }
     .card-price {
-        font-weight: bold; /* پررنگ بودن قیمت */
-        font-size: 1.5em; /* اندازه بزرگتر */
-        color: #dc3545; /* رنگ خاص برای قیمت */
-        text-align: center; /* تراز در وسط */
-        margin: 15px 0; /* فاصله بالایی و پایینی */
+        font-weight: bold;
+        font-size: 1.5em;
+        color: #dc3545;
+        text-align: center;
+        margin: 15px 0;
+    }
+    /* استایل‌های جدید برای چیدمان بهتر */
+    .plans-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+    }
+    .plan-card {
+        flex: 1 1 calc(33.333% - 40px);
+        min-width: 300px;
+        max-width: 400px;
+    }
+    @media (max-width: 992px) {
+        .plan-card {
+            flex: 1 1 calc(50% - 30px);
+        }
+    }
+    @media (max-width: 768px) {
+        .plan-card {
+            flex: 1 1 100%;
+        }
     }
 </style>
 
@@ -53,23 +76,23 @@
         </div>
     {% endif %}
 
-
     <h1 class="text-center mb-4">پلن‌های اشتراک</h1>
-    <div class="row">
+    
+    <div class="plans-container">
         {% for plan in plans %}
-        <div class="col-md-4">
-            <div class="card mb-4 shadow-sm">
-                
+        <div class="plan-card">
+            <div class="card shadow-sm">
                 <div class="card-body">
                     <h2 class="card-title">{{ plan.name }}</h2>
                     <p class="card-text">{{ plan.description }}</p>
                 </div>
-                <h5 class="card-price">قیمت:  {{ plan.price|toman_format }} تومان</h5>
+                <h5 class="card-price">قیمت: {{ plan.price|toman_format }} تومان</h5>
                 <a href="{% url 'subscribe' plan.id %}" class="btn btn-primary btn-full-width">اشتراک</a>
             </div>
         </div>
         {% endfor %}
     </div>
+    
     <div class="text-center mt-4">
         <a href="{% url 'my_subscription' %}" class="btn btn-secondary">مشاهده اشتراک من</a>
     </div>
