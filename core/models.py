@@ -302,7 +302,7 @@ class Option(models.Model):
         return self.text
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    name = models.TextField(unique=True)
 
     def __str__(self):
         return self.name
