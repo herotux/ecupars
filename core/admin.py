@@ -215,4 +215,4 @@ class UserReferralAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user','amount', 'amount', 'status',  'created_at')
+    list_display = ('id', 'user', 'amount', 'status',  'created_at')
