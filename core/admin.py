@@ -25,7 +25,8 @@ from .models import (
     Article,
     DiscountCode,
     ReferralCode,
-    UserReferral
+    UserReferral,
+    Payment
 
 )
 
