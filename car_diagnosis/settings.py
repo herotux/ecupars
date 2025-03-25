@@ -34,7 +34,8 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
-     'django_crontab',
+    "django.contrib.admin",
+    'django_crontab',
     'channels',
     'django_jalali',
     'rest_framework',
@@ -45,7 +46,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_select2',
     'django_ckeditor_5',
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -141,7 +141,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'fa-ir'
+LANGUAGE_CODE = 'fa'
 
 TIME_ZONE = 'Asia/Tehran'
 
@@ -446,4 +446,8 @@ ZARINPAL_SANDBOX = True
 LIMOSMS_API_KEY = "xxxx-xxx-xxxx"
 CRONJOBS = [
     ('0 0 * * *', 'core.management.commands.check_subscriptions.Command')
+]
+
+LANGUAGES = [
+    ('fa', 'Persian'),
 ]

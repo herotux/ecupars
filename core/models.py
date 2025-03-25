@@ -495,4 +495,9 @@ class UserReferral(models.Model):
     
     def __str__(self):
         return f"{self.referrer.username} referred {self.referred_user.username}"
+    
+
+    class Meta:
+        verbose_name = "معرفی کاربر"
+        verbose_name_plural = "کاربران معرفی شده"
 
