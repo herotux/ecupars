@@ -2425,11 +2425,24 @@ def login_view(request):
         otp = str(random.randint(100000, 999999))
         session = LoginSession.objects.create(user=user, otp=otp)
 
+        # ارسال پیامک OTP
+        otp_id = 1145  # ID الگوی پیامک
+        replace_tokens = [otp]
+        sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
+        
+        if not sms_result['success']:
+            logger.error(f"خطا در ارسال پیامک به شماره {user.phone_number}: {sms_result['message']}")
+            return Response({
+                "login_status": "failed",
+                "error": "خطا در ارسال پیامک OTP",
+                "sms_details": sms_result['message']
+            }, status=500)
+
         # ارسال پاسخ
         return Response({
             "login_status": "pending",
             "session_id": str(session.session_id),
-            "otp": otp  # این فقط برای تست است، در حالت واقعی باید OTP به کاربر ارسال شود.
+            "message": "کد تأیید به شماره شما ارسال شد."
         })
 
     return Response({"login_status": "failed", "error": "Invalid username or password."}, status=400)
@@ -2466,11 +2479,24 @@ def webapp_login_view(request):
         otp = str(random.randint(100000, 999999))
         session = LoginSession.objects.create(user=user, otp=otp)
 
+        # ارسال پیامک OTP
+        otp_id = 1145  # ID الگوی پیامک
+        replace_tokens = [otp]
+        sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
+        
+        if not sms_result['success']:
+            logger.error(f"خطا در ارسال پیامک به شماره {user.phone_number}: {sms_result['message']}")
+            return Response({
+                "login_status": "failed",
+                "error": "خطا در ارسال پیامک OTP",
+                "sms_details": sms_result['message']
+            }, status=500)
+
         # ارسال پاسخ
         return Response({
             "login_status": "pending",
             "session_id": str(session.session_id),
-            "otp": otp  # این فقط برای تست است، در حالت واقعی باید OTP به کاربر ارسال شود.
+            "message": "کد تأیید به شماره شما ارسال شد."
         })
 
     return Response({"login_status": "failed", "error": "Invalid username or password."}, status=400)
