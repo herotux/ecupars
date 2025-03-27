@@ -444,6 +444,19 @@ CHANNEL_LAYERS = {
 
 ZARINPAL_SANDBOX = True  
 LIMOSMS_API_KEY = os.getenv("sms"),
+LIMOSMS_API_KEY = os.getenv('ZARINPAL_API_KEY', '')
+
+# 2. اطمینان از رشته بودن (حتی اگر None باشد)
+if LIMOSMS_API_KEY is None:
+    LIMOSMS_API_KEY = ''
+else:
+    LIMOSMS_API_KEY = str(api_key)  # تبدیل صریح به رشته
+
+# 3. بررسی وجود کلید
+if not LIMOSMS_API_KEY.strip():
+    raise ValueError("کلید API زارینپال تنظیم نشده است")
+
+
 CRONJOBS = [
     ('0 0 * * *', 'core.management.commands.check_subscriptions.Command')
 ]
