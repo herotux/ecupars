@@ -450,7 +450,7 @@ LIMOSMS_API_KEY = os.getenv('ZARINPAL_API_KEY', '')
 if LIMOSMS_API_KEY is None:
     LIMOSMS_API_KEY = ''
 else:
-    LIMOSMS_API_KEY = str(api_key)  # تبدیل صریح به رشته
+    LIMOSMS_API_KEY = str(LIMOSMS_API_KEY)  # تبدیل صریح به رشته
 
 # 3. بررسی وجود کلید
 if not LIMOSMS_API_KEY.strip():
