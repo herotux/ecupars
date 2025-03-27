@@ -2420,9 +2420,6 @@ def login_view(request):
                 }
             }, status=403)
 
-        # اگر کاربر از دستگاه جدید وارد می‌شود، hardware_id را به‌روزرسانی کنید
-        user.hardware_id = device_id
-        user.save()
 
         # تولید OTP و ذخیره Session
         otp = str(random.randint(100000, 999999))
