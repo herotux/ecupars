@@ -443,7 +443,7 @@ CHANNEL_LAYERS = {
 
 
 ZARINPAL_SANDBOX = True  
-LIMOSMS_API_KEY = "xxxx-xxx-xxxx"
+LIMOSMS_API_KEY = os.getenv("sms"),
 CRONJOBS = [
     ('0 0 * * *', 'core.management.commands.check_subscriptions.Command')
 ]
