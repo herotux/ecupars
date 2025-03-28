@@ -55,19 +55,20 @@ class CustomUser(AbstractUser):
         ('other', 'سایر'),
     )
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='normal')
-    national_id = models.CharField(max_length=10, unique=True, null=True, blank=True)
-    city = models.CharField(max_length=50, null=True, blank=True)
-    job = models.CharField(max_length=50, null=True, blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='normal', verbose_name="نقش")
+    national_id = models.CharField(max_length=10, unique=True, null=True, blank=True, verbose_name="کد ملی")
+    city = models.CharField(max_length=50, null=True, blank=True, verbose_name="شهر")
+    job = models.CharField(max_length=50, null=True, blank=True, verbose_name="شغل ")
     phone_number = models.CharField(
         max_length=15,
         unique=True,
+        verbose_name="شماره موبایل",
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')]
     )
-    hardware_id = models.CharField(max_length=255, null=True, blank=True)
+    hardware_id = models.CharField(max_length=255, null=True, blank=True, verbose_name="شناسه دستگاه")
     license_key = models.CharField(max_length=255, null=True, blank=True)
     #car_brand = models.CharField(max_length=10, choices=CAR_BRAND_CHOICES, default='other')
-    car_brand = models.CharField(max_length=10)
+    car_brand = models.CharField(max_length=10, verbose_name="برند خودرو")
     groups = models.ManyToManyField(
         Group,
         related_name='customuser_set',
