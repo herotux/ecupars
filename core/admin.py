@@ -1,6 +1,12 @@
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.admin import UserAdmin
+
+
+
+
+
 
 from .models import (
     CustomUser,
@@ -54,10 +60,27 @@ class BaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'role', 'national_id','first_name', 'last_name','car_brand', 'city', 'job', 'phone_number')
+class CustomUserAdmin(UserAdmin):  # استفاده از UserAdmin به جای ModelAdmin
+    list_display = ('username', 'email', 'role', 'national_id', 'first_name', 'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'national_id', 'phone_number')
-    list_filter = ('role',)
+    list_filter = ('role', 'is_staff', 'is_superuser', 'is_active')
+    
+    # تنظیمات فیلدها برای صفحه ویرایش کاربر
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('اطلاعات شخصی', {'fields': ('first_name', 'last_name', 'email', 'national_id', 'phone_number')}),
+        ('اطلاعات اضافی', {'fields': ('role', 'car_brand', 'city', 'job')}),
+        ('دسترسی‌ها', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('تاریخ‌های مهم', {'fields': ('last_login', 'date_joined')}),
+    )
+    
+    # تنظیمات فیلدها برای صفحه ایجاد کاربر جدید
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2', 'email', 'first_name', 'last_name'),
+        }),
+    )
 
 
 @admin.register(LoginSession)
