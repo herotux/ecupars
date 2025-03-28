@@ -1,6 +1,9 @@
 from django.contrib import admin
-from django.utils import timezone
+from django_jalali.admin import ModelAdminJalaliMixin
+from django_jalali.admin.widgets import AdminJalaliDateWidget, AdminSplitJalaliDateTime
+from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
     CustomUser,
@@ -27,193 +30,241 @@ from .models import (
     ReferralCode,
     UserReferral,
     Payment
-
 )
 
 # تنظیمات عمومی پنل ادمین
-admin.site.site_header = _("ECUPARS")
-admin.site.site_title = _("ECUPARS")
-admin.site.index_title = _("ECUPARS")
+admin.site.site_header = _("پنل مدیریت ECUPARS")
+admin.site.site_title = _("مدیریت ECUPARS")
+admin.site.index_title = _("داشبورد مدیریت")
 
 
-def format_datetime(value):
-    if value:
-        return timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S')
-    return ''
+class JalaliAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
+    """کلاس پایه ادمین با پشتیبانی از تاریخ شمسی"""
+    formfield_overrides = {
+        models.DateTimeField: {'widget': AdminSplitJalaliDateTime},
+        models.DateField: {'widget': AdminJalaliDateWidget},
+    }
+    
+    class Media:
+        js = (
+            'admin/js/jquery.init.js',
+            'jalali_date/js/admin_jalali_date.js',
+        )
 
 
-class BaseAdmin(admin.ModelAdmin):
-    """یک کلاس پایه برای اضافه کردن متدهای مشترک"""
-    def created_at_formatted(self, obj):
-        return format_datetime(obj.created_at)
-    created_at_formatted.short_description = 'تاریخ ایجاد'
+class BaseAdmin(JalaliAdmin):
+    """کلاس پایه برای مدل‌های دارای created_at و updated_at"""
+    list_display = ('__str__', 'created_at_jalali', 'updated_at_jalali')
+    readonly_fields = ('created_at_jalali', 'updated_at_jalali')
+    
+    def created_at_jalali(self, obj):
+        return obj.created_at.strftime('%Y/%m/%d %H:%M:%S') if obj.created_at else '-'
+    created_at_jalali.short_description = _('تاریخ ایجاد')
+    created_at_jalali.admin_order_field = 'created_at'
+    
+    def updated_at_jalali(self, obj):
+        return obj.updated_at.strftime('%Y/%m/%d %H:%M:%S') if obj.updated_at else '-'
+    updated_at_jalali.short_description = _('تاریخ بروزرسانی')
+    updated_at_jalali.admin_order_field = 'updated_at'
 
-    def updated_at_formatted(self, obj):
-        return format_datetime(obj.updated_at)
-    updated_at_formatted.short_description = 'تاریخ بروزرسانی'
 
-
+# --- مدل CustomUser ---
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'role', 'national_id','first_name', 'last_name','car_brand', 'city', 'job', 'phone_number')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'national_id', 'phone_number')
-    list_filter = ('role',)
+class CustomUserAdmin(BaseUserAdmin, JalaliAdmin):
+    list_display = ('username', 'email', 'phone_number', 'first_name', 'last_name',
+                   'national_id', 'role', 'is_active', 'date_joined_jalali')
+    list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
+    search_fields = ('username', 'email', 'phone_number', 'first_name', 'last_name', 'national_id')
+    ordering = ('-date_joined',)
+    filter_horizontal = ('groups', 'user_permissions',)
+    
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        (_('اطلاعات شخصی'), {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'national_id')}),
+        (_('اطلاعات تکمیلی'), {'fields': ('role', 'city', 'car_brand', 'job')}),
+        (_('دسترسی‌ها'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        (_('تاریخ‌های مهم'), {'fields': ('last_login', 'date_joined')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2', 'email', 'phone_number'),
+        }),
+    )
+    
+    def date_joined_jalali(self, obj):
+        return obj.date_joined.strftime('%Y/%m/%d %H:%M:%S') if obj.date_joined else '-'
+    date_joined_jalali.short_description = _('تاریخ عضویت')
+    date_joined_jalali.admin_order_field = 'date_joined'
 
 
+# --- مدل‌های سیستم احراز هویت ---
 @admin.register(LoginSession)
-class LoginSessionAdmin(BaseAdmin):
-    list_display = ('user', 'session_id', 'is_verified', 'created_at_formatted')
-    search_fields = ('user__username', 'session_id')
+class LoginSessionAdmin(JalaliAdmin):
+    list_display = ('user', 'session_id', 'ip_address', 'is_verified', 'created_at_jalali')
+    list_filter = ('is_verified',)
+    search_fields = ('user__username', 'session_id', 'ip_address')
+    
+    def created_at_jalali(self, obj):
+        return obj.created_at.strftime('%Y/%m/%d %H:%M:%S')
+    created_at_jalali.short_description = _('تاریخ ایجاد')
 
 
+# --- مدل‌های محتوای آموزشی ---
 @admin.register(IssueCategory)
 class IssueCategoryAdmin(BaseAdmin):
-    list_display = ('name', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
+    list_display = ('name', 'created_by', 'created_at_jalali', 'updated_at_jalali')
     search_fields = ('name',)
 
 
 @admin.register(MapCategory)
 class MapCategoryAdmin(BaseAdmin):
-    list_display = ('name', 'created_at_formatted', 'updated_at_formatted')
+    list_display = ('name', 'created_at_jalali', 'updated_at_jalali')
     search_fields = ('name',)
 
 
 @admin.register(Issue)
 class IssueAdmin(BaseAdmin):
-    list_display = ('title', 'category', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('title',)
+    list_display = ('title', 'category', 'created_by', 'created_at_jalali', 'updated_at_jalali')
+    search_fields = ('title', 'description')
+    list_filter = ('category',)
 
 
 @admin.register(Solution)
 class SolutionAdmin(BaseAdmin):
-    list_display = ('title', 'is_public', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('title',)
+    list_display = ('title', 'is_public', 'created_by', 'created_at_jalali', 'updated_at_jalali')
+    search_fields = ('title', 'content')
+    list_filter = ('is_public',)
 
 
 @admin.register(Map)
 class MapAdmin(BaseAdmin):
-    list_display = ('title', 'category', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('title',)
+    list_display = ('title', 'category', 'created_by', 'created_at_jalali', 'updated_at_jalali')
+    search_fields = ('title', 'description')
+    list_filter = ('category',)
 
 
 @admin.register(DiagnosticStep)
 class DiagnosticStepAdmin(BaseAdmin):
-    list_display = ('issue', 'letter', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('issue__title',)
+    list_display = ('issue', 'letter', 'created_by', 'created_at_jalali', 'updated_at_jalali')
+    search_fields = ('issue__title', 'description')
+    list_filter = ('issue',)
 
 
-@admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'access_level', 'active', 'expiry_date', 'status_display')
-    search_fields = ('user__username',)
-
-    def status_display(self, obj):
-        return "فعال" if obj.is_active() else "غیرفعال"
-    status_display.short_description = 'وضعیت'
-
-
-@admin.register(Bookmark)
-class BookmarkAdmin(BaseAdmin):
-    list_display = ('user', 'title', 'created_at_formatted')
-    search_fields = ('user__username', 'title')
-
-
-@admin.register(Question)
-class QuestionAdmin(BaseAdmin):
-    list_display = ('text', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('text',)
-
-
-@admin.register(Option)
-class OptionAdmin(BaseAdmin):
-    list_display = ('text', 'question', 'created_at_formatted', 'updated_at_formatted', 'created_by', 'updated_by')
-    search_fields = ('text', 'question__text')
-
-
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+# --- مدل‌های اشتراک و پرداخت ---
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(JalaliAdmin):
+    list_display = ('name', 'price', 'duration_days', 'access_to_all_categories', 'created_at_jalali')
+    list_filter = ('access_to_all_categories',)
     search_fields = ('name',)
-    list_filter = ('name',)
-
-
-@admin.register(UserActivity)
-class UserActivityAdmin(admin.ModelAdmin):
-    list_display = ('user', 'login_time_formatted', 'logout_time_formatted')
-    search_fields = ('user__username',)
-
-    def login_time_formatted(self, obj):
-        return format_datetime(obj.login_time)
-    login_time_formatted.short_description = 'زمان ورود'
-
-    def logout_time_formatted(self, obj):
-        return format_datetime(obj.logout_time)
-    logout_time_formatted.short_description = 'زمان خروج'
 
 
 @admin.register(UserSubscription)
-class UserSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'plan', 'start_date', 'end_date', 'is_active_display')
-    search_fields = ('user__username', 'plan__name')
-    autocomplete_fields = ['user']
-
-    def is_active_display(self, obj):
-        return "فعال" if obj.is_active() else "غیرفعال"
-    is_active_display.short_description = 'وضعیت'
-
-
-@admin.register(SubscriptionPlan)
-class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'access_to_all_categories', 'access_to_diagnostic_steps')
-    search_fields = ('name',)
-    list_filter = ('access_to_all_categories', 'access_to_diagnostic_steps')
+class UserSubscriptionAdmin(JalaliAdmin):
+    list_display = ('user', 'plan', 'start_date_jalali', 'end_date_jalali', 'is_active')
+    list_filter = ('plan', 'is_active')
+    search_fields = ('user__username',)
+    
+    def start_date_jalali(self, obj):
+        return obj.start_date.strftime('%Y/%m/%d')
+    start_date_jalali.short_description = _('تاریخ شروع')
+    
+    def end_date_jalali(self, obj):
+        return obj.end_date.strftime('%Y/%m/%d')
+    end_date_jalali.short_description = _('تاریخ پایان')
 
 
-@admin.register(Advertisement)
-class AdvertisementAdmin(admin.ModelAdmin):
-    list_display = ('title', 'link', 'created_at')
+@admin.register(Payment)
+class PaymentAdmin(JalaliAdmin):
+    list_display = ('id', 'user', 'amount', 'status', 'created_at_jalali')
+    list_filter = ('status',)
+    search_fields = ('user__username', 'authority')
+    
+    def created_at_jalali(self, obj):
+        return obj.created_at.strftime('%Y/%m/%d %H:%M:%S')
+    created_at_jalali.short_description = _('تاریخ پرداخت')
+
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(JalaliAdmin):
+    list_display = ('code', 'user', 'discount_percentage', 'max_usage', 'usage_count', 'expiration_date_jalali')
+    list_filter = ('discount_percentage',)
+    search_fields = ('code', 'user__username')
+    
+    def expiration_date_jalali(self, obj):
+        return obj.expiration_date.strftime('%Y/%m/%d') if obj.expiration_date else '-'
+    expiration_date_jalali.short_description = _('تاریخ انقضا')
+
+
+# --- مدل‌های سیستم ارجاع ---
+@admin.register(ReferralCode)
+class ReferralCodeAdmin(JalaliAdmin):
+    list_display = ('code', 'user', 'created_at_jalali')
+    search_fields = ('code', 'user__username')
+
+
+@admin.register(UserReferral)
+class UserReferralAdmin(JalaliAdmin):
+    list_display = ('referrer', 'referred_user', 'created_at_jalali')
+    search_fields = ('referrer__username', 'referred_user__username')
+
+
+# --- سایر مدل‌ها ---
+@admin.register(Bookmark)
+class BookmarkAdmin(JalaliAdmin):
+    list_display = ('user', 'content_object', 'created_at_jalali')
+    search_fields = ('user__username',)
+
+
+@admin.register(UserActivity)
+class UserActivityAdmin(JalaliAdmin):
+    list_display = ('user', 'login_time_jalali', 'logout_time_jalali', 'ip_address')
+    search_fields = ('user__username', 'ip_address')
+    
+    def login_time_jalali(self, obj):
+        return obj.login_time.strftime('%Y/%m/%d %H:%M:%S') if obj.login_time else '-'
+    login_time_jalali.short_description = _('زمان ورود')
+    
+    def logout_time_jalali(self, obj):
+        return obj.logout_time.strftime('%Y/%m/%d %H:%M:%S') if obj.logout_time else '-'
+    logout_time_jalali.short_description = _('زمان خروج')
 
 
 @admin.register(ChatSession)
-class ChatSessionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'consultant', 'is_active', 'created_at')
+class ChatSessionAdmin(JalaliAdmin):
+    list_display = ('user', 'consultant', 'is_active', 'created_at_jalali')
     list_filter = ('is_active',)
+    search_fields = ('user__username', 'consultant__username')
+
 
 @admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'session', 'sender', 'timestamp')
-
-
+class MessageAdmin(JalaliAdmin):
+    list_display = ('session', 'sender', 'timestamp_jalali', 'is_read')
+    list_filter = ('is_read',)
+    search_fields = ('content',)
+    
+    def timestamp_jalali(self, obj):
+        return obj.timestamp.strftime('%Y/%m/%d %H:%M:%S')
+    timestamp_jalali.short_description = _('زمان ارسال')
 
 
 @admin.register(Article)
 class ArticleAdmin(BaseAdmin):
-    list_display = ('title', 'content', 'created_at_formatted', 'updated_at_formatted')
-    search_fields = ('title',)
+    list_display = ('title', 'author', 'created_at_jalali', 'updated_at_jalali')
+    search_fields = ('title', 'content')
+    prepopulated_fields = {'slug': ('title',)}
 
 
-
-
-@admin.register(ReferralCode)
-class ReferralCodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'user')
-    autocomplete_fields = ['user']
-   
-
-
-
-@admin.register(DiscountCode)
-class DiscountCodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'discount_percentage', 'created_at')
-    autocomplete_fields = ['user']
+@admin.register(Advertisement)
+class AdvertisementAdmin(JalaliAdmin):
+    list_display = ('title', 'is_active', 'start_date_jalali', 'end_date_jalali')
+    list_filter = ('is_active',)
     
-
-
-@admin.register(UserReferral)
-class UserReferralAdmin(admin.ModelAdmin):
-    list_display = ('referrer', 'referred_user', 'created_at')
-
-
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'amount', 'status',  'created_at')
+    def start_date_jalali(self, obj):
+        return obj.start_date.strftime('%Y/%m/%d') if obj.start_date else '-'
+    start_date_jalali.short_description = _('تاریخ شروع')
+    
+    def end_date_jalali(self, obj):
+        return obj.end_date.strftime('%Y/%m/%d') if obj.end_date else '-'
+    end_date_jalali.short_description = _('تاریخ پایان')
