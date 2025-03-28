@@ -2031,13 +2031,24 @@ def map_cat_create(request, cat_id):
 
 
 
+
+
 @user_passes_test(is_admin)
 @login_required
 def manage_maps(request):
-    cats = IssueCategory.objects.filter(parent_category__isnull=True)
-    rendered_categories = render_mapcategories(cats)
-    page_title = "مدیریت نقشه ها"
-    return render(request, 'manage_maps.html', {'rendered_categories': rendered_categories, 'cats': cats, 'page_title': page_title})
+    page_title = "لیست نقشه ها"
+    map_list = Map.objects.all().order_by('-id')  
+
+    # تنظیم pagination - مثلاً 50 آیتم در هر صفحه
+    paginator = Paginator(map_list, 50)
+    page_number = request.GET.get('page')
+    maps = paginator.get_page(page_number)
+    
+    return render(request, 'manage_maps.html', {
+        'maps': maps,
+        'page_title': page_title
+    })
+
 
 
 @user_passes_test(is_admin)
