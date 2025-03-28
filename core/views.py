@@ -512,10 +512,10 @@ def issue_category_delete(request, category_id):
 @login_required
 def manage_issues(request):
     page_title = "مدیریت خطاها"
-    issues_list = Issue.objects.all().order_by('-id')  # معمولاً بهتر است مرتب سازی داشته باشد
+    issues_list = Issue.objects.all().order_by('-id')  
     
-    # تنظیم pagination - مثلاً 10 آیتم در هر صفحه
-    paginator = Paginator(issues_list, 10)
+    # تنظیم pagination - مثلاً 50 آیتم در هر صفحه
+    paginator = Paginator(issues_list, 50)
     page_number = request.GET.get('page')
     issues = paginator.get_page(page_number)
     
