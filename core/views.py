@@ -3090,8 +3090,8 @@ class PaymentRequestAPIView(APIView):
         serializer = PaymentRequestSerializer(data=request.data)
         if serializer.is_valid():
             plan_id = serializer.validated_data['plan_id']
-            user_phone = serializer.validated_data['user_phone']
-            user_email = serializer.validated_data['user_email']
+            user_phone = serializer.validated_data.get('user_phone')
+            user_email = serializer.validated_data.get('user_email')
             discount_code = serializer.validated_data.get('discount_code')
 
             # پیدا کردن پلن انتخابی
@@ -3143,7 +3143,15 @@ class PaymentRequestAPIView(APIView):
             callback_url = request.build_absolute_uri('/payment/verify/')
             sandbox = settings.ZARINPAL_SANDBOX
             payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
-            result = payment_handler.request_payment(callback_url, description, mobile=user_phone, email=user_email)
+            
+            # ارسال ایمیل و موبایل فقط در صورتی که وجود داشته باشند
+            payment_kwargs = {}
+            if user_phone:
+                payment_kwargs['mobile'] = user_phone
+            if user_email:
+                payment_kwargs['email'] = user_email
+                
+            result = payment_handler.request_payment(callback_url, description, **payment_kwargs)
             
             if result.get('success') and result['data']:
                 authority = result['data'].get('authority')

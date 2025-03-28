@@ -197,8 +197,9 @@ class ArticleSerializer(serializers.ModelSerializer):
 
 class PaymentRequestSerializer(serializers.Serializer):
     plan_id = serializers.IntegerField()
-    user_phone = serializers.CharField(max_length=15)
-    user_email = serializers.EmailField()
+    user_phone = serializers.CharField(max_length=15, required=False, allow_null=True)
+    user_email = serializers.EmailField(required=False, allow_null=True)
+    discount_code = serializers.CharField(required=False, allow_null=True)
 
 class PaymentVerificationSerializer(serializers.Serializer):
     authority = serializers.CharField(max_length=100)
