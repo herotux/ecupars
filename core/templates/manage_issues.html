@@ -5,8 +5,7 @@
     <div class="container mt-5">
         <h1>مدیریت خطاها</h1>
 
-
-        <ul class="list-group">
+        <ul class="list-group mb-4">
             {% for issue in issues %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span>{{ issue.category.get_full_category_name }} - {{ issue.title }} </span>
@@ -16,7 +15,55 @@
                         <a href="{% url 'issue_delete' issue.id %}" class="btn btn-danger btn-sm">حذف</a>
                     </span>
                 </li>
+            {% empty %}
+                <li class="list-group-item">هیچ خطایی یافت نشد.</li>
             {% endfor %}
         </ul>
+
+        <!-- Pagination -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if issues.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ issues.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in issues.paginator.page_range %}
+                    {% if issues.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% elif num > issues.number|add:'-3' and num < issues.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if issues.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ issues.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ issues.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <!-- End Pagination -->
+
+        <div class="text-center mt-2">
+            <span class="text-muted">
+                نمایش صفحه {{ issues.number }} از {{ issues.paginator.num_pages }}
+            </span>
+        </div>
     </div>
 {% endblock %}

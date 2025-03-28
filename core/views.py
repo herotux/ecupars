@@ -64,7 +64,7 @@ from .services import LimoSMSClient
 import requests
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseNotAllowed
-
+from django.core.paginator import Paginator
 
 
 
@@ -512,8 +512,17 @@ def issue_category_delete(request, category_id):
 @login_required
 def manage_issues(request):
     page_title = "مدیریت خطاها"
-    issues = Issue.objects.all()
-    return render(request, 'manage_issues.html', {'issues': issues, 'page_title': page_title})
+    issues_list = Issue.objects.all().order_by('-id')  # معمولاً بهتر است مرتب سازی داشته باشد
+    
+    # تنظیم pagination - مثلاً 10 آیتم در هر صفحه
+    paginator = Paginator(issues_list, 10)
+    page_number = request.GET.get('page')
+    issues = paginator.get_page(page_number)
+    
+    return render(request, 'manage_issues.html', {
+        'issues': issues,
+        'page_title': page_title
+    })
 
 
 
