@@ -55,8 +55,8 @@ class BaseAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'role', 'national_id','car_brand', 'city', 'job', 'phone_number')
-    search_fields = ('username', 'email', 'national_id', 'phone_number')
+    list_display = ('username', 'role', 'national_id','first_name', 'last_name','car_brand', 'city', 'job', 'phone_number')
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'national_id', 'phone_number')
     list_filter = ('role',)
 
 
