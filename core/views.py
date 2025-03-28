@@ -2481,19 +2481,17 @@ def webapp_login_view(request):
     user = authenticate(username=username, password=password)
     if user is not None:
         # بررسی اینکه آیا کاربر قبلاً از دستگاه دیگری وارد شده است
-        if user.hardware_id and user.hardware_id != device_id:
-            return Response({
-                "login_status": "failed",
-                "error": "این شماره در حال حاضر روی دستگاه دیگری فعال است. لطفاً برای راهنمایی بیشتر با پشتیبانی تماس بگیرید.",
-                "support": {
-                    "telegram": "@ecupars",
-                    "instagram": "@ecupars"
-                }
-            }, status=403)
+        # if user.hardware_id and user.hardware_id != device_id:
+        #     return Response({
+        #         "login_status": "failed",
+        #         "error": "این شماره در حال حاضر روی دستگاه دیگری فعال است. لطفاً برای راهنمایی بیشتر با پشتیبانی تماس بگیرید.",
+        #         "support": {
+        #             "telegram": "@ecupars",
+        #             "instagram": "@ecupars"
+        #         }
+        #     }, status=403)
 
-        # اگر کاربر از دستگاه جدید وارد می‌شود، hardware_id را به‌روزرسانی کنید
-        user.hardware_id = device_id
-        user.save()
+        
 
         # تولید OTP و ذخیره Session
         otp = str(random.randint(100000, 999999))
