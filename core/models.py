@@ -66,7 +66,8 @@ class CustomUser(AbstractUser):
     )
     hardware_id = models.CharField(max_length=255, null=True, blank=True)
     license_key = models.CharField(max_length=255, null=True, blank=True)
-    car_brand = models.CharField(max_length=10, choices=CAR_BRAND_CHOICES, default='other')
+    #car_brand = models.CharField(max_length=10, choices=CAR_BRAND_CHOICES, default='other')
+    car_brand = models.CharField(max_length=10)
     groups = models.ManyToManyField(
         Group,
         related_name='customuser_set',
