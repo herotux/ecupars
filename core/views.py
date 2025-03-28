@@ -3297,37 +3297,42 @@ def send_otp(request):
     # تولید OTP
     otp = str(random.randint(100000, 999999))
 
-    # ذخیره موقت اطلاعات
-    cache_key = f"signup_data_{phone_number}"
-    cache.set(cache_key, {
+    # ذخیره اطلاعات کاربر بدون تایم‌اوت
+    user_data_cache_key = f"user_data_{phone_number}"
+    cache.set(user_data_cache_key, {
         "first_name": first_name,
         "last_name": last_name,
         "car_brand": car_brand,
         "city": city,
         "hardware_id": hardware_id,
         "referrer_code": referrer_code,
-        "otp": otp,
-    }, timeout=120)  # 2 دقیقه
+    }, timeout=None)  # بدون تایم‌اوت
+
+    # ذخیره OTP با تایم‌اوت کوتاه
+    otp_cache_key = f"otp_{phone_number}"
+    cache.set(otp_cache_key, otp, timeout=300)  # 5 دقیقه
 
     # ارسال پیامک
     otp_id = 1145
     replace_tokens = [otp]
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
     
-    if not sms_result['success']:  # بررسی موفقیت ارسال پیامک
-        cache.delete(cache_key)  # حذف داده‌های کش در صورت خطا
+    if not sms_result['success']:
+        cache.delete(otp_cache_key)  # فقط حذف OTP در صورت خطا
         logger.error(f"خطا در ارسال پیامک به شماره {phone_number}: {sms_result['message']}")
         return Response({
             "error": "خطا در ارسال پیامک",
             "sms_details": sms_result['message']
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # ارسال پاسخ موفقیت‌آمیز
     logger.info(f"OTP با موفقیت ارسال شد به شماره {phone_number}")
     return Response({
         "message": "OTP ارسال شد.",
         "sms_result": sms_result
     })
+
+
+
 
 @api_view(['POST'])
 def resend_otp(request):
@@ -3341,17 +3346,19 @@ def resend_otp(request):
             logger.error("شماره تماس الزامی است.")
             return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # بررسی وجود OTP در کش
-        cache_key = f"signup_data_{phone_number}"
-        cached_data = cache.get(cache_key)
-        if not cached_data:
+        # بازیابی اطلاعات کاربر از کش (بدون تایم‌اوت)
+        user_data_cache_key = f"user_data_{phone_number}"
+        user_data = cache.get(user_data_cache_key)
+        if not user_data:
             logger.error(f"لطفاً ابتدا درخواست OTP بدهید برای شماره {phone_number}")
             return Response({"error": "لطفاً ابتدا درخواست OTP بدهید."}, status=status.HTTP_400_BAD_REQUEST)
 
         # تولید OTP جدید
         otp = str(random.randint(100000, 999999))
-        cached_data["otp"] = otp
-        cache.set(cache_key, cached_data, timeout=120)  # ذخیره OTP جدید در کش
+        
+        # ذخیره OTP جدید با تایم‌اوت کوتاه
+        otp_cache_key = f"otp_{phone_number}"
+        cache.set(otp_cache_key, otp, timeout=300)  # 5 دقیقه
 
         # ارسال OTP جدید
         otp_id = 1145  # شناسه پترن
@@ -3362,6 +3369,7 @@ def resend_otp(request):
             logger.info(f"OTP مجدداً ارسال شد به شماره {phone_number}")
             return Response({"message": "کد OTP مجدداً ارسال شد."})
         else:
+            cache.delete(otp_cache_key)  # حذف OTP در صورت خطا
             logger.error(f"خطا در ارسال مجدد کد OTP به شماره {phone_number}")
             return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -3386,6 +3394,10 @@ def resend_otp(request):
         login_session.otp = otp
         login_session.save()
 
+        # ذخیره OTP در کش با تایم‌اوت کوتاه
+        otp_cache_key = f"otp_{user.phone_number}"
+        cache.set(otp_cache_key, otp, timeout=300)  # 5 دقیقه
+
         # ارسال OTP جدید
         otp_id = 1145  # شناسه پترن
         replace_tokens = [otp]
@@ -3395,12 +3407,17 @@ def resend_otp(request):
             logger.info(f"OTP مجدداً ارسال شد به شماره {user.phone_number}")
             return Response({"message": "کد OTP مجدداً ارسال شد."})
         else:
+            cache.delete(otp_cache_key)  # حذف OTP در صورت خطا
             logger.error(f"خطا در ارسال مجدد کد OTP به شماره {user.phone_number}")
             return Response({"error": "خطا در ارسال مجدد کد OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     else:
         logger.error(f"نوع درخواست نامعتبر است: {request_type}")
         return Response({"error": "نوع درخواست نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+        
 
 @api_view(['POST'])
 def verify_otp_and_signup(request):
@@ -3412,50 +3429,58 @@ def verify_otp_and_signup(request):
         logger.error("شماره تماس، کد OTP و رمز عبور الزامی هستند.")
         return Response({"error": "شماره تماس، کد OTP و رمز عبور الزامی هستند."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # بازیابی اطلاعات موقت از کش
-    cache_key = f"signup_data_{phone_number}"
-    cached_data = cache.get(cache_key)
+    # بررسی OTP
+    otp_cache_key = f"otp_{phone_number}"
+    cached_otp = cache.get(otp_cache_key)
 
-    if not cached_data:
-        logger.error(f"کد OTP منقضی شده یا وجود ندارد برای شماره {phone_number}")
-        return Response({"error": "کد OTP منقضی شده یا وجود ندارد."}, status=status.HTTP_400_BAD_REQUEST)
+    if not cached_otp or cached_otp != otp:
+        logger.error(f"کد OTP نامعتبر یا منقضی شده است برای شماره {phone_number}")
+        return Response({"error": "کد OTP نامعتبر یا منقضی شده است."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if cached_data["otp"] == otp:
-        # OTP معتبر است
-        # حذف اطلاعات موقت از کش پس از تأیید
-        cache.delete(cache_key)
+    # بازیابی اطلاعات کاربر
+    user_data_cache_key = f"user_data_{phone_number}"
+    user_data = cache.get(user_data_cache_key)
 
-        # ایجاد کاربر جدید
+    if not user_data:
+        logger.error(f"داده‌های کاربر یافت نشد برای شماره {phone_number}")
+        return Response({"error": "لطفاً مراحل ثبت‌نام را از ابتدا آغاز کنید."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # حذف OTP از کش (دیگر نیازی به آن نیست)
+    cache.delete(otp_cache_key)
+
+    # ایجاد کاربر جدید
+    try:
         user = CustomUser.objects.create_user(
-            username=phone_number,  # استفاده از شماره تماس به عنوان نام کاربری
+            username=phone_number,
             phone_number=phone_number,
-            first_name=cached_data["first_name"],
-            last_name=cached_data["last_name"],
+            first_name=user_data["first_name"],
+            last_name=user_data["last_name"],
             password=password,
-            city=cached_data["city"],
-            car_brand=cached_data["car_brand"],
-            hardware_id=cached_data["hardware_id"],
+            city=user_data["city"],
+            car_brand=user_data["car_brand"],
+            hardware_id=user_data["hardware_id"],
         )
 
         # ایجاد کد معرفی برای کاربر جدید
-        ReferralCode.objects.create(user=user, code=phone_number)  # استفاده از شماره تماس به عنوان کد معرفی
+        ReferralCode.objects.create(user=user, code=phone_number)
 
         # ایجاد رابطه معرفی (اگر کد معرف وجود داشته باشد)
-        referrer_code = cached_data.get("referrer_code")
+        referrer_code = user_data.get("referrer_code")
         if referrer_code:
             try:
                 referral_code_instance = ReferralCode.objects.get(code=referrer_code)
-                referrer = referral_code_instance.user
-                UserReferral.objects.create(referrer=referrer, referred_user=user)
+                UserReferral.objects.create(referrer=referral_code_instance.user, referred_user=user)
             except ReferralCode.DoesNotExist:
-                # اگر کد معرف وجود نداشته باشد، خطا نمی‌دهیم (اختیاری است)
                 logger.warning(f"کد معرف وجود ندارد: {referrer_code}")
 
         # لاگین کردن کاربر
-        login(request, user)  # کاربر را در سیستم لاگین کنید
+        login(request, user)
 
         # ایجاد توکن‌ها
         refresh = RefreshToken.for_user(user)
+
+        # حذف اطلاعات کاربر از کش پس از ثبت‌نام موفق
+        cache.delete(user_data_cache_key)
 
         logger.info(f"ثبت‌نام با موفقیت انجام شد برای کاربر {phone_number}")
         return Response({
@@ -3464,9 +3489,9 @@ def verify_otp_and_signup(request):
             "refresh_token": str(refresh),
         })
 
-    else:
-        logger.error(f"کد OTP نامعتبر است برای شماره {phone_number}")
-        return Response({"error": "کد OTP نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"خطا در ایجاد کاربر برای شماره {phone_number}: {str(e)}")
+        return Response({"error": "خطا در ثبت‌نام کاربر."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 
