@@ -155,6 +155,7 @@ class UserActivityAdmin(admin.ModelAdmin):
 class UserSubscriptionAdmin(admin.ModelAdmin):
     list_display = ('user', 'plan', 'start_date', 'end_date', 'is_active_display')
     search_fields = ('user__username', 'plan__name')
+    autocomplete_fields = ['user']
 
     def is_active_display(self, obj):
         return "فعال" if obj.is_active() else "غیرفعال"
