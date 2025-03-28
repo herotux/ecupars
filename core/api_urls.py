@@ -40,4 +40,8 @@ urlpatterns = [
     path('user-profile/', views.UserProfileAPIView.as_view(), name='user-profile'),
     path('articles/<int:article_id>/', views.ArticleDetailView.as_view(), name='article-detail'),
     path('categories/', views.CategoryAPIView.as_view(), name='categories'),
+
+    path('password/reset/request-otp/', views.request_password_reset_otp, name='request-password-reset-otp'),
+    path('password/reset/verify-otp/', views.verify_password_reset_otp, name='verify-password-reset-otp'),
+    path('password/reset/complete/', views.complete_password_reset, name='complete-password-reset'),
 ]

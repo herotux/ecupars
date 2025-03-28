@@ -3750,3 +3750,128 @@ class CategoryAPIView(APIView):
         main_categories = IssueCategory.objects.filter(parent_category__isnull=True)
         serializer = CategorySerializer(main_categories, many=True)
         return Response(serializer.data)
+
+
+
+
+@api_view(['POST'])
+def request_password_reset_otp(request):
+    User = get_user_model()
+    phone_number = request.data.get('phone_number')
+    
+    if not phone_number:
+        logger.error("شماره تماس الزامی است.")
+        return Response({"error": "شماره تماس الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(phone_number=phone_number)
+    except User.DoesNotExist:
+        logger.error(f"کاربری با شماره {phone_number} یافت نشد")
+        return Response({"error": "کاربری با این شماره تماس یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+    # تولید OTP
+    otp = str(random.randint(100000, 999999))
+
+    # ذخیره OTP در کش با تایم‌اوت 5 دقیقه
+    otp_cache_key = f"password_reset_otp_{phone_number}"
+    cache.set(otp_cache_key, {
+        'otp': otp,
+        'user_id': user.id
+    }, timeout=300)  # 5 دقیقه اعتبار
+
+    # ارسال پیامک
+    otp_id = 1146  # ID الگوی پیامک ریست پسورد
+    replace_tokens = [otp]
+    sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
+    
+    if not sms_result['success']:
+        cache.delete(otp_cache_key)  # حذف OTP در صورت خطا
+        logger.error(f"خطا در ارسال پیامک به شماره {phone_number}: {sms_result['message']}")
+        return Response({
+            "error": "خطا در ارسال پیامک",
+            "sms_details": sms_result['message']
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    logger.info(f"OTP ریست پسورد برای شماره {phone_number} ارسال شد")
+    return Response({
+        "message": "کد تأیید برای ریست پسورد ارسال شد.",
+        "expires_in": 300  # زمان انقضا به ثانیه
+    })
+
+@api_view(['POST'])
+def verify_password_reset_otp(request):
+    User = get_user_model()
+    phone_number = request.data.get('phone_number')
+    otp = request.data.get('otp')
+    
+    if not all([phone_number, otp]):
+        logger.error("شماره تماس و کد تأیید الزامی هستند")
+        return Response({"error": "شماره تماس و کد تأیید الزامی هستند"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بررسی OTP در کش
+    otp_cache_key = f"password_reset_otp_{phone_number}"
+    cached_data = cache.get(otp_cache_key)
+    
+    if not cached_data or cached_data['otp'] != otp:
+        logger.error(f"کد تأیید نامعتبر یا منقضی شده برای شماره {phone_number}")
+        return Response({"error": "کد تأیید نامعتبر یا منقضی شده است"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ایجاد توکن برای مراحل بعدی (اختیاری)
+    verification_token = str(random.randint(100000, 999999))
+    token_cache_key = f"password_reset_token_{phone_number}"
+    cache.set(token_cache_key, {
+        'user_id': cached_data['user_id'],
+        'verified': True
+    }, timeout=600)  # 10 دقیقه اعتبار
+
+    # حذف OTP از کش پس از تأیید موفق
+    cache.delete(otp_cache_key)
+
+    logger.info(f"OTP برای شماره {phone_number} با موفقیت تأیید شد")
+    return Response({
+        "message": "کد تأیید معتبر است",
+        "verification_token": verification_token,
+        "expires_in": 600
+    })
+
+@api_view(['POST'])
+def complete_password_reset(request):
+    User = get_user_model()
+    phone_number = request.data.get('phone_number')
+    verification_token = request.data.get('verification_token')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    
+    if not all([phone_number, verification_token, new_password, confirm_password]):
+        logger.error("تمامی فیلدها الزامی هستند")
+        return Response({"error": "تمامی فیلدها الزامی هستند"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_password != confirm_password:
+        logger.error("رمزهای عبور مطابقت ندارند")
+        return Response({"error": "رمزهای عبور مطابقت ندارند"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # بررسی توکن تأیید در کش
+    token_cache_key = f"password_reset_token_{phone_number}"
+    cached_data = cache.get(token_cache_key)
+    
+    if not cached_data or not cached_data.get('verified'):
+        logger.error(f"توکن تأیید نامعتبر یا منقضی شده برای شماره {phone_number}")
+        return Response({"error": "توکن تأیید نامعتبر یا منقضی شده است"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(id=cached_data['user_id'])
+    except User.DoesNotExist:
+        logger.error(f"کاربر یافت نشد برای شماره {phone_number}")
+        return Response({"error": "کاربر یافت نشد"}, status=status.HTTP_404_NOT_FOUND)
+
+    # تغییر رمز عبور
+    user.set_password(new_password)
+    user.save()
+
+    # حذف توکن از کش پس از تکمیل فرآیند
+    cache.delete(token_cache_key)
+
+    logger.info(f"رمز عبور برای کاربر {user.id} با موفقیت تغییر یافت")
+    return Response({
+        "message": "رمز عبور با موفقیت تغییر یافت"
+    })
