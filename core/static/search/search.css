@@ -1,0 +1,111 @@
+@font-face {
+    font-family: vazir;
+    src: url(font/Vazir-Bold.ttf);
+}
+
+* {
+    font-family: vazir;
+}
+
+.search-box {
+    position: relative;
+}
+
+.form-control {
+    padding-left: 30px;
+}
+
+.nav-item input[type="checkbox"] {
+    margin: 10px;
+}
+
+.nav-item label {
+    pointer-events: none;
+}
+
+.icon-filter {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+}
+
+#categories-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#categories-list li {
+    position: relative;
+    display: block;
+    margin-bottom: 20px;
+
+}
+
+#categories-list li ul {
+    display: none;
+    position: relative;
+    top: 100%;
+    left: 0;
+    background-color: #f9f9f9;
+    padding: 10px;
+    margin: 10px 0px;
+}
+
+
+#categories-list li ul li {
+    display: block;
+    margin-right: 30px;
+}
+
+.fas.fa-chevron-left,
+.fas.fa-chevron-down {
+    font-size: 12px;
+    margin-left: 5px;
+    margin-right: 50px;
+    /* اضافه کردن فاصله بین فلش و متن */
+}
+
+
+
+
+.result-link {
+    display: block;
+    padding: 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+}
+
+.result-link:hover {
+    background-color: #f5f5f5;
+    text-decoration: none;
+}
+
+.result-link h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.result-link:hover h3 {
+    color: #1a73e8;
+}
+
+.result-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: white;
+}
+
+.result-type.issue { background-color: #e74c3c; }
+.result-type.solution { background-color: #2ecc71; }
+.result-type.map { background-color: #3498db; }
+.result-type.article { background-color: #9b59b6; }

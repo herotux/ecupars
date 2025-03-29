@@ -3873,3 +3873,9 @@ def complete_password_reset(request):
     return Response({
         "message": "رمز عبور با موفقیت تغییر یافت"
     })
+
+
+
+@login_required
+def search_webapp(request):
+    return render(request, 'search.html')

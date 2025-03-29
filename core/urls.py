@@ -27,7 +27,7 @@ urlpatterns = [
     
     path('manage-solutions/', views.manage_solutions, name='manage_solutions'),
     path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
-    path('search/', views.search, name='search'),  # برای جستجوی 
+    path('search/', views.search_webapp, name='search'),  # برای جستجوی 
     
      
     path('issue/<int:issue_id>/', views.issue_detail, name='issue_detail'),
@@ -130,7 +130,6 @@ urlpatterns = [
     path('mapcat/<int:cat_id>/', views.mapcat_detail, name='mapcat_detail'),
 
     path('map/update/<int:map_id>/', views.map_update, name='map_update'),
-    path('map/delete/<int:map_id>/', views.map_delete, name='map_delete'),
     path('map/delete/<int:map_id>/', views.map_delete, name='map_delete'),
     path('search_maps/', views.search_maps, name='search_maps'),
     path('check_bookmark/', views.check_bookmark, name='check_bookmark'),
