@@ -2507,7 +2507,8 @@ def webapp_login_view(request):
             return Response({
                 "login_status": "failed",
                 "error": "خطا در ارسال پیامک OTP",
-                "sms_details": sms_result['message']
+                "sms_details": sms_result['message'],
+                "otp":otp
             }, status=500)
 
         # ارسال پاسخ
