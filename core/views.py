@@ -2496,7 +2496,7 @@ def webapp_login_view(request):
         # تولید OTP و ذخیره Session
         otp = str(random.randint(100000, 999999))
         session = LoginSession.objects.create(user=user, otp=otp)
-
+        logger.info(f"کد تأیید   {otp}")
         # ارسال پیامک OTP
         otp_id = 1145  # ID الگوی پیامک
         replace_tokens = [otp]
