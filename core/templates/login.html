@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 
 <head>
   <meta charset="utf-8">
@@ -18,6 +18,24 @@
     .help-text {
       display: none;
     }
+    .error-message {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -27,15 +45,13 @@
     <div class="card">
       <div class="card-body login-card-body">
         <p class="login-box-msg">فرم زیر را تکمیل کنید و ورود بزنید</p>
-
-
         
         <form id="loginForm">
           {% csrf_token %}
           <div class="input-group mb-3">
             <input type="text" name="username" id="username" class="form-control" placeholder="نام کاربری" required>
             <div class="input-group-append">
-              <span class="fa fa-envelope input-group-text"></span>
+              <span class="fa fa-user input-group-text"></span>
             </div>
           </div>
           <div class="input-group mb-3">
@@ -44,46 +60,55 @@
               <span class="fa fa-lock input-group-text"></span>
             </div>
           </div>
+          <div id="loginError" class="error-message mb-3"></div>
           <div class="row">
             <div class="col">
-              <button type="submit" class="btn btn-primary btn-block btn-flat">ورود</button>
+              <button type="submit" class="btn btn-primary btn-block btn-flat" id="loginBtn">
+                <span id="loginBtnText">ورود</span>
+                <span id="loginSpinner" class="loading" style="display: none;"></span>
+              </button>
             </div>
           </div>
         </form>
 
-        <p class="mb-0">
-          <a href="/register" class="text-center">ثبت نام</a>
+        <p class="mb-0 mt-3">
+          <a href="/register" class="text-center">حساب کاربری ندارید؟ ثبت نام کنید</a>
         </p>
       </div>
-
     </div>
   </div>
+
   <div class="otp-box" style="display:none;">
     <div class="otp-logo">
-      <a href="#"><b>تایید OTP</b></a>
+      <a href="#"><b>تایید کد یکبار مصرف</b></a>
     </div>
 
     <div class="card">
       <div class="card-body login-card-body">
-        <p class="login-box-msg">لطفاً OTP ارسال شده را وارد کنید</p>
+        <p class="login-box-msg">لطفاً کد یکبار مصرف ارسال شده به تلفن همراه خود را وارد کنید</p>
 
         <form id="otpForm">
+          {% csrf_token %}
           <div class="input-group mb-3">
-            <input type="text" name="otp" id="otp" class="form-control" placeholder="OTP" required>
+            <input type="text" name="otp" id="otp" class="form-control" placeholder="کد یکبار مصرف" required>
             <div class="input-group-append">
               <span class="fa fa-key input-group-text"></span>
             </div>
           </div>
-          <input type="hidden" id="session_id" />
+          <input type="hidden" id="session_id">
+          <div id="otpError" class="error-message mb-3"></div>
           <div class="row">
             <div class="col">
-              <button type="submit" class="btn btn-primary btn-block btn-flat">تایید OTP</button>
+              <button type="submit" class="btn btn-primary btn-block btn-flat" id="otpBtn">
+                <span id="otpBtnText">تایید کد</span>
+                <span id="otpSpinner" class="loading" style="display: none;"></span>
+              </button>
             </div>
           </div>
         </form>
 
-        <p class="mb-0">
-          <a href="/register" class="text-center">ثبت نام</a>
+        <p class="mb-0 mt-3">
+          <a href="#" id="resendOtp" class="text-center">ارسال مجدد کد</a>
         </p>
       </div>
     </div>
@@ -91,6 +116,21 @@
 
   <script>
     $(document).ready(function () {
+      // تابع برای گرفتن توکن CSRF از کوکی
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
 
       // تابع برای گرفتن پارامترهای URL
       function getQueryParam(param) {
@@ -98,73 +138,125 @@
         return urlParams.get(param);
       }
 
-      const nextUrl = getQueryParam('next') || '/';  // اگر پارامتر next نبود به صفحه اصلی میره
+      const nextUrl = getQueryParam('next') || '/';
+      const csrftoken = getCookie('csrftoken');
 
+      // تنظیم هدر CSRF برای تمام درخواست‌های AJAX
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+          if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url)) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          }
+        }
+      });
 
       $('#loginForm').on('submit', function (event) {
-        event.preventDefault(); // جلوگیری از ارسال فرم به صورت معمول
+        event.preventDefault();
+        $('#loginError').text('');
+        $('#loginBtnText').text('در حال ورود...');
+        $('#loginSpinner').show();
 
-        const username = $('#username').val();
-        const password = $('#password').val();
+        const formData = {
+          username: $('#username').val(),
+          password: $('#password').val(),
+          csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+        };
 
-        // ارسال درخواست به سرور
         $.ajax({
-          url: '/api/v1/webapp_login', // آدرس API
+          url: '/api/v1/webapp_login',
           method: 'POST',
+          data: JSON.stringify(formData),
           contentType: 'application/json',
-          data: JSON.stringify({
-            username: username,
-            password: password
-          }),
+          headers: {
+            'X-CSRFToken': csrftoken
+          },
           success: function (data) {
-            // نمایش فرم OTP
             $('.login-box').hide();
             $('.otp-box').show();
-            $('#session_id').val(data.session_id); // ذخیره session_id
-
-            // وارد کردن OTP به فیلد مربوطه
-            $('#otp').val(data.otp); // فرض بر این است که OTP در پاسخ سرور موجود است
-            console.log(data);
+            $('#session_id').val(data.session_id);
+            $('#otp').focus();
           },
           error: function (xhr) {
-            // مدیریت خطا
-            alert('ورود ناموفق. لطفاً نام کاربری یا رمز عبور را بررسی کنید.');
+            $('#loginBtnText').text('ورود');
+            $('#loginSpinner').hide();
+            
+            if (xhr.status === 400) {
+              $('#loginError').text('نام کاربری یا رمز عبور نامعتبر است');
+            } else {
+              $('#loginError').text('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید');
+            }
           }
         });
       });
 
       $('#otpForm').on('submit', function (event) {
-        event.preventDefault(); // جلوگیری از ارسال فرم به صورت معمول
+        event.preventDefault();
+        $('#otpError').text('');
+        $('#otpBtnText').text('در حال تایید...');
+        $('#otpSpinner').show();
 
-        const otp = $('#otp').val();
-        const session_id = $('#session_id').val();
+        const formData = {
+          otp: $('#otp').val(),
+          session_id: $('#session_id').val(),
+          csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+        };
 
-        // ارسال درخواست به سرور برای تایید OTP
         $.ajax({
-          url: '/api/v1/verify_otp', // آدرس API
+          url: '/api/v1/verify_otp',
           method: 'POST',
+          data: JSON.stringify(formData),
           contentType: 'application/json',
-          data: JSON.stringify({
-            otp: otp,
-            session_id: session_id
-          }),
+          headers: {
+            'X-CSRFToken': csrftoken
+          },
           success: function (data) {
-            // ذخیره توکن در Local Storage (در صورتی که نیاز به ذخیره توکن باشد)
-            localStorage.setItem('access_token', data.access_token);
-            localStorage.setItem('refresh_token', data.refresh_token);
-
-            // هدایت به صفحه‌ای که کاربر قبلاً قصد ورود به آن را داشت
-            window.location.href = nextUrl;
+            if (data.access_token) {
+              localStorage.setItem('access_token', data.access_token);
+              localStorage.setItem('refresh_token', data.refresh_token);
+              window.location.href = nextUrl;
+            } else {
+              $('#otpBtnText').text('تایید کد');
+              $('#otpSpinner').hide();
+              $('#otpError').text('کد وارد شده نامعتبر است');
+            }
           },
           error: function (xhr) {
-            // مدیریت خطا
-            alert('تایید OTP ناموفق. لطفاً دوباره تلاش کنید.');
+            $('#otpBtnText').text('تایید کد');
+            $('#otpSpinner').hide();
+            
+            if (xhr.status === 400) {
+              $('#otpError').text('کد وارد شده نامعتبر یا منقضی شده است');
+            } else {
+              $('#otpError').text('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید');
+            }
+          }
+        });
+      });
+
+      $('#resendOtp').on('click', function(e) {
+        e.preventDefault();
+        $('#otpError').text('');
+        
+        $.ajax({
+          url: '/api/v1/resend_otp',
+          method: 'POST',
+          data: JSON.stringify({
+            session_id: $('#session_id').val()
+          }),
+          contentType: 'application/json',
+          headers: {
+            'X-CSRFToken': csrftoken
+          },
+          success: function(data) {
+            $('#otpError').text('کد جدید ارسال شد').css('color', 'green');
+            $('#otp').val('');
+          },
+          error: function(xhr) {
+            $('#otpError').text('خطا در ارسال مجدد کد. لطفاً دوباره تلاش کنید');
           }
         });
       });
     });
   </script>
-
 </body>
-
 </html>
