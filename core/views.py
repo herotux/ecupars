@@ -2484,7 +2484,7 @@ def webapp_login_view(request):
         
         # دیباگ: اطلاعات OTP
         logger.error(f"OTP ایجاد شده: {otp} برای جلسه: {session.session_id}")
-        
+        print(f"OTP ایجاد شده: {otp} برای جلسه: {session.session_id}")
         try:
             sms_result = send_pattern_sms(
                 template_id=1145,
