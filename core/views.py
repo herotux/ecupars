@@ -2473,52 +2473,47 @@ def login_view(request):
 def webapp_login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
-    device_id = request.META.get('HTTP_X_DEVICE_ID')  # دریافت شناسه دستگاه از هدر درخواست
-
-    # if not device_id:
-    #     return Response({"login_status": "failed", "error": "Device ID is required."}, status=400)
-
+    
     user = authenticate(username=username, password=password)
     if user is not None:
-        # بررسی اینکه آیا کاربر قبلاً از دستگاه دیگری وارد شده است
-        # if user.hardware_id and user.hardware_id != device_id:
-        #     return Response({
-        #         "login_status": "failed",
-        #         "error": "این شماره در حال حاضر روی دستگاه دیگری فعال است. لطفاً برای راهنمایی بیشتر با پشتیبانی تماس بگیرید.",
-        #         "support": {
-        #             "telegram": "@ecupars",
-        #             "instagram": "@ecupars"
-        #         }
-        #     }, status=403)
-
+        # دیباگ: اطلاعات کاربر
+        logger.error(f"اطلاعات کاربر: {user.username}, شماره تلفن: {user.phone_number}")
         
-
-        # تولید OTP و ذخیره Session
         otp = str(random.randint(100000, 999999))
         session = LoginSession.objects.create(user=user, otp=otp)
-        logger.info(f"کد تأیید   {otp}")
-        # ارسال پیامک OTP
-        otp_id = 1145  # ID الگوی پیامک
-        replace_tokens = [otp]
-        sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
         
-        if not sms_result['success']:
-            logger.error(f"خطا در ارسال پیامک به شماره {user.phone_number}: {sms_result['message']}")
+        # دیباگ: اطلاعات OTP
+        logger.error(f"OTP ایجاد شده: {otp} برای جلسه: {session.session_id}")
+        
+        try:
+            sms_result = send_pattern_sms(
+                template_id=1145,
+                tokens=[otp],
+                mobile=user.phone_number
+            )
+            logger.error(f"نتیجه ارسال پیامک: {sms_result}")
+            
+            if not sms_result.get('success'):
+                return Response({
+                    "login_status": "failed",
+                    "error": "خطا در ارسال پیامک",
+                    "debug_info": sms_result
+                }, status=500)
+                
+            return Response({
+                "login_status": "pending",
+                "session_id": str(session.session_id),
+                "message": "کد تأیید ارسال شد"
+            })
+            
+        except Exception as e:
+            logger.error(f"خطای غیرمنتظره در ارسال پیامک: {str(e)}")
             return Response({
                 "login_status": "failed",
-                "error": "خطا در ارسال پیامک OTP",
-                "sms_details": sms_result['message'],
-                "otp":otp
+                "error": "خطای سیستمی"
             }, status=500)
-
-        # ارسال پاسخ
-        return Response({
-            "login_status": "pending",
-            "session_id": str(session.session_id),
-            "message": "کد تأیید به شماره شما ارسال شد."
-        })
-
-    return Response({"login_status": "failed", "error": "Invalid username or password."}, status=400)
+    
+    return Response({"login_status": "failed", "error": "نام کاربری یا رمز عبور نامعتبر"}, status=400)
 
 
 
