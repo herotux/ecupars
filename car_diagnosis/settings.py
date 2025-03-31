@@ -366,7 +366,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 
 
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -382,13 +381,13 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'ERROR',
+            'level': 'DEBUG',  
             'class': 'logging.FileHandler',
-            'filename': 'error.log',
+            'filename': 'debug.log',  # تغییر نام فایل
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'ERROR',
+            'level': 'DEBUG', 
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -396,12 +395,12 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'level': 'INFO', 
             'propagate': True,
         },
-        'core': {
+        'core': { 
             'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'level': 'DEBUG', 
             'propagate': False,
         },
     },
