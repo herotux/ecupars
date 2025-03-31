@@ -2486,11 +2486,10 @@ def webapp_login_view(request):
         logger.error(f"OTP ایجاد شده: {otp} برای جلسه: {session.session_id}")
         print(f"OTP ایجاد شده: {otp} برای جلسه: {session.session_id}")
         try:
-            sms_result = send_pattern_sms(
-                template_id=1145,
-                tokens=[otp],
-                mobile=user.phone_number
-            )
+            otp_id = 1145  # ID الگوی پیامک
+            replace_tokens = [otp]
+            sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
+            
             logger.error(f"نتیجه ارسال پیامک: {sms_result}")
             
             if not sms_result.get('success'):
