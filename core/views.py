@@ -208,40 +208,27 @@ def has_category_access(view_func):
         category_id = kwargs.get('cat_id')
         user = request.user
 
-        if not user.is_authenticated or not hasattr(user, 'subscription'):
-            raise PermissionDenied("You do not have permission to access this category.")
+        if not user.is_authenticated:
+            raise PermissionDenied("برای دسترسی باید وارد شوید")
+
+        if not hasattr(user, 'subscription'):
+            raise PermissionDenied("طرح اشتراکی فعال ندارید")
 
         subscription = user.subscription
         plan = subscription.plan
 
-        # Check access to all categories
+        # اگر طرح به همه دسته‌ها دسترسی دارد
         if plan.access_to_all_categories:
             return view_func(request, *args, **kwargs)
 
-        # Get the specified category
         try:
             category = IssueCategory.objects.get(id=category_id)
         except IssueCategory.DoesNotExist:
-            raise PermissionDenied("The specified category does not exist.")
+            raise PermissionDenied("دسته مورد نظر یافت نشد")
 
-        # Check if category is in restricted categories
+        # اگر دسته در لیست محدودیت‌های طرح باشد
         if plan.restricted_categories.filter(id=category_id).exists():
-            raise PermissionDenied("This category is restricted for your subscription plan.")
-
-        # Get all parent categories
-        parent_categories = []
-        current_category = category
-        while current_category.parent_category is not None:
-            parent_categories.append(current_category.parent_category.id)
-            current_category = current_category.parent_category
-
-        # Combine all relevant category IDs
-        category_ids = parent_categories + [category_id]
-        
-        # Check access in active categories
-        active_category_ids = subscription.active_categories.values_list('id', flat=True)
-        if not any(cat_id in active_category_ids for cat_id in category_ids):
-            raise PermissionDenied("You do not have access to this category or its parent categories.")
+            raise PermissionDenied("دسترسی به این دسته محدود شده است")
 
         return view_func(request, *args, **kwargs)
 
