@@ -3628,7 +3628,7 @@ class UserProfileAPIView(APIView):
                 'phone_number': user.phone_number,
                 'city': user.city,
                 'job': user.job,
-                'car_brand': user.get_car_brand_display(),
+                'car_brand': user.car_brand,
                 'national_id': user.national_id,
             }
 
