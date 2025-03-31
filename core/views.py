@@ -205,16 +205,17 @@ def article_delete(request, article_id):
 def has_category_access(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        category_id = kwargs.get('cat_id')  # Get the category ID from URL kwargs
+        category_id = kwargs.get('cat_id')
         user = request.user
 
         if not user.is_authenticated or not hasattr(user, 'subscription'):
             raise PermissionDenied("You do not have permission to access this category.")
 
         subscription = user.subscription
+        plan = subscription.plan
 
         # Check access to all categories
-        if subscription.plan.access_to_all_categories:
+        if plan.access_to_all_categories:
             return view_func(request, *args, **kwargs)
 
         # Get the specified category
@@ -223,20 +224,23 @@ def has_category_access(view_func):
         except IssueCategory.DoesNotExist:
             raise PermissionDenied("The specified category does not exist.")
 
-        # Get the ID of the specified category and all its parent categories
+        # Check if category is in restricted categories
+        if plan.restricted_categories.filter(id=category_id).exists():
+            raise PermissionDenied("This category is restricted for your subscription plan.")
+
+        # Get all parent categories
         parent_categories = []
         current_category = category
-
-        # Traverse up to find all parent categories
         while current_category.parent_category is not None:
             parent_categories.append(current_category.parent_category.id)
             current_category = current_category.parent_category
 
-        # Combine the parent categories and the current category
+        # Combine all relevant category IDs
         category_ids = parent_categories + [category_id]
         
-        # Check if the user has access to the specified category or any of its parent categories
-        if not any(cat_id in subscription.active_categories.values_list('id', flat=True) for cat_id in category_ids):
+        # Check access in active categories
+        active_category_ids = subscription.active_categories.values_list('id', flat=True)
+        if not any(cat_id in active_category_ids for cat_id in category_ids):
             raise PermissionDenied("You do not have access to this category or its parent categories.")
 
         return view_func(request, *args, **kwargs)
@@ -2490,7 +2494,7 @@ def webapp_login_view(request):
             replace_tokens = [otp]
             sms_result = send_pattern_sms(otp_id, replace_tokens, user.phone_number)
             
-            logger.error(f"نتیجه ارسال پیامک: {sms_result}")
+            logger.error(f"نتیجه ارسال پیامک: {otp}")
             
             if not sms_result.get('success'):
                 return Response({
