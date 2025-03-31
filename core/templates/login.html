@@ -143,11 +143,12 @@
 
       // تنظیم هدر CSRF برای تمام درخواست‌های AJAX
       $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-          if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          beforeSend: function(xhr, settings) {
+        
+              if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              }
           }
-        }
       });
 
       $('#loginForm').on('submit', function (event) {
