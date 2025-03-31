@@ -101,18 +101,31 @@ class SearchAPIView(APIView):
             raise PermissionDenied(detail="خطا در پردازش درخواست جستجو")
 
     def get_allowed_categories(self, plan, category_ids, subcategory_ids):
-        """مدیریت دسته‌بندی‌های مجاز"""
+        """مدیریت دسته‌بندی‌های مجاز با در نظر گرفتن تمام زیردسته‌ها"""
         if plan.access_to_all_categories:
-            categories = IssueCategory.objects.all()
+            base_categories = IssueCategory.objects.all()
         else:
-            categories = plan.restricted_categories.all()
+            base_categories = plan.restricted_categories.all()
 
+        # فیلتر بر اساس category_ids و subcategory_ids اگر وجود داشته باشند
         if category_ids:
-            categories = categories.filter(id__in=category_ids)
+            base_categories = base_categories.filter(id__in=category_ids)
         if subcategory_ids:
-            categories = categories.filter(id__in=subcategory_ids)
+            base_categories = base_categories.filter(id__in=subcategory_ids)
 
-        return categories
+        # جمع‌آوری تمام شناسه‌های دسته‌های اصلی و زیردسته‌هایشان
+        def get_all_subcategories(category):
+            subcategories = list(IssueCategory.objects.filter(parent_category=category))
+            for subcategory in subcategories:
+                subcategories.extend(get_all_subcategories(subcategory))
+            return subcategories
+
+        allowed_category_ids = set(base_categories.values_list('id', flat=True))
+        for category in base_categories:
+            subcategories = get_all_subcategories(category)
+            allowed_category_ids.update([sub.id for sub in subcategories])
+
+        return IssueCategory.objects.filter(id__in=allowed_category_ids)
 
     def perform_search(self, query, filter_options, allowed_categories, plan):
         """انجام عملیات جستجو با توجه به دسترسی‌ها"""
