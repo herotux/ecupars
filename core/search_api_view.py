@@ -227,10 +227,14 @@ class SearchAPIView(APIView):
             }
         } for issue in issues]
 
-    def build_solution_results(self, solutions, full_access_ids, allowed_categories):
+    def build_solution_results(self, solutions, category_ids):
+        """
+        پارامتر category_ids می‌تواند شامل:
+        - full_access_ids (برای جستجو در دسته‌های با دسترسی کامل)
+        - allowed_categories (برای جستجو در دسته‌های معمولی)
+        باشد
+        """
         results = []
-        allowed_category_ids = set(allowed_categories.values_list('id', flat=True)) | set(full_access_ids)
-        
         for solution in solutions:
             diagnostic_step = DiagnosticStep.objects.filter(
                 solution_id=solution.id
@@ -250,7 +254,7 @@ class SearchAPIView(APIView):
                 })
             else:
                 # فقط Issues مربوط به دسته‌بندی‌های مجاز
-                for issue in solution.issues.filter(category__id__in=allowed_category_ids):
+                for issue in solution.issues.filter(category__id__in=category_ids):
                     results.append({
                         'id': solution.id,
                         'type': 'solution',
