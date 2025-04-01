@@ -322,8 +322,18 @@ class SubscriptionPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     access_to_all_categories = models.BooleanField(default=False)
     access_to_diagnostic_steps = models.BooleanField(default=False)
-    access_to_maps = models.BooleanField(default=False)
+    access_to_maps = models.BooleanField(
+        default=False,
+        verbose_name="دسترسی به نقشه‌ها"
+    )
     restricted_categories = models.ManyToManyField('IssueCategory', blank=True)
+     # فیلد جدید برای دسته‌های با دسترسی ویژه
+    full_access_categories = models.ManyToManyField(
+        'IssueCategory',
+        blank=True,
+        related_name='plans_with_full_access',
+        verbose_name="دسته‌های با دسترسی کامل"
+    )
     price = models.IntegerField(default=0)
 
     def __str__(self):
@@ -333,7 +343,7 @@ class SubscriptionPlan(models.Model):
 class UserSubscription(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="subscription")
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE)
-    active_categories = models.ManyToManyField(IssueCategory, blank=True)  
+
     start_date = models.DateTimeField(default=default_start_date)
     end_date = models.DateTimeField(default=default_end_date)  
     is_active = models.BooleanField(default=True)
