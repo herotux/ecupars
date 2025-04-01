@@ -187,9 +187,40 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'access_to_all_categories', 'access_to_diagnostic_steps')
-    search_fields = ('name',)
-    list_filter = ('access_to_all_categories', 'access_to_diagnostic_steps')
+    list_display = ('name', 'price', 'access_to_all_categories', 
+                   'access_to_diagnostic_steps', 'access_to_maps', 'access_to_issues')
+    search_fields = ('name', 'description')
+    list_filter = ('access_to_all_categories', 'access_to_diagnostic_steps',
+                  'access_to_maps', 'access_to_issues')
+    list_per_page = 20
+    autocomplete_fields = ('restricted_categories', 'full_access_categories')
+    
+    fieldsets = (
+        ('اطلاعات پایه', {
+            'fields': ('name', 'description', 'price')
+        }),
+        ('تنظیمات دسترسی', {
+            'fields': (
+                'access_to_all_categories',
+                'access_to_diagnostic_steps',
+                'access_to_maps',
+                'access_to_issues'
+            )
+        }),
+        ('مدیریت دسته‌بندی‌ها', {
+            'classes': ('collapse',),
+            'fields': ('restricted_categories', 'full_access_categories')
+        }),
+    )
+    
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        try:
+            price = int(search_term)
+            queryset |= self.model.objects.filter(price=price)
+        except ValueError:
+            pass
+        return queryset, use_distinct
 
 
 @admin.register(Advertisement)
