@@ -2760,7 +2760,12 @@ class HasDiagnosticAccess(BasePermission):
             return self.check_category_access(request, view)
             
         try:
-            step = DiagnosticStep.objects.select_related('solution__issue__category').get(id=step_id)
+            step = DiagnosticStep.objects.select_related(
+                'solution',
+                'issue__category'  # این رابطه مستقیم از DiagnosticStep به Issue است
+            ).prefetch_related(
+                'solution__issues__category'  # برای رابطه ManyToMany
+            ).get(id=step_id)
             category = step.solution.issue.category if step.solution and step.solution.issue else None
             
             return self.check_access(user, category)
