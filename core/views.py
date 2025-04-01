@@ -3094,9 +3094,16 @@ class PaymentRequestAPIView(APIView):
         serializer = PaymentRequestSerializer(data=request.data)
         if serializer.is_valid():
             plan_id = serializer.validated_data['plan_id']
-            user_phone = serializer.validated_data.get('user_phone')
-            user_email = serializer.validated_data.get('user_email')
+            user_phone = serializer.validated_data.get('user_phone') or None
+            user_email = serializer.validated_data.get('user_email') or None
             discount_code = serializer.validated_data.get('discount_code')
+
+
+            if user_phone == '':
+                user_phone = None
+            if user_email == '':
+                user_email = None
+
 
             # پیدا کردن پلن انتخابی
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
@@ -3148,12 +3155,12 @@ class PaymentRequestAPIView(APIView):
             sandbox = settings.ZARINPAL_SANDBOX
             payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
             
-            # ارسال ایمیل و موبایل فقط در صورتی که وجود داشته باشند
+
             payment_kwargs = {}
-            if user_phone:
-                payment_kwargs['mobile'] = user_phone
-            if user_email:
-                payment_kwargs['email'] = user_email
+            if user_phone and user_phone.strip():
+                payment_kwargs['mobile'] = user_phone.strip()
+            if user_email and user_email.strip():  
+                payment_kwargs['email'] = user_email.strip()
                 
             result = payment_handler.request_payment(callback_url, description, **payment_kwargs)
             
