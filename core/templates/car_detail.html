@@ -150,16 +150,17 @@
 
     <button class="btn btn-info mb-3" onclick="toggleUploadForm()">آپلود دسته‌ای نقشه‌ها</button>
 
+    <!-- اصلاح فرم آپلود -->
     <form id="uploadForm" enctype="multipart/form-data" class="mb-4" style="display: none;">
         <div class="mb-3">
-            <label for="imageInput" class="form-label">انتخاب فایل‌های نقشه (تصاویر)</label>
-            <input type="file" id="imageInput" name="image_files" multiple class="form-control" required>
+            <label for="imageInput" class="form-label">تصاویر نقشه‌ها</label>
+            <input type="file" id="imageInput" name="images" multiple class="form-control" required accept="image/*">
         </div>
         <div class="mb-3">
-            <label for="textInput" class="form-label">انتخاب فایل‌های متنی (TXT)</label>
-            <input type="file" id="textInput" name="txt_files" multiple class="form-control" required>
+            <label for="textInput" class="form-label">فایل‌های متنی</label>
+            <input type="file" id="textInput" name="texts" multiple class="form-control" required accept=".txt">
         </div>
-        <button type="button" class="btn btn-success" onclick="uploadMaps()">آپلود نقشه‌ها</button>
+        <button type="button" class="btn btn-success" onclick="uploadMaps()">آپلود</button>
     </form>
 
     {% if maps %}
@@ -235,6 +236,9 @@
         const formData = new FormData();
         const imageInputs = document.getElementById('imageInput').files;
         const textInputs = document.getElementById('textInput').files;
+        
+        // دریافت صحیح category_id
+        const category_id = {{ car.id }}; // اطمینان از رندر صحیح
 
         if (imageInputs.length === 0 || textInputs.length === 0) {
             alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
@@ -247,27 +251,33 @@
         }
 
         for (let i = 0; i < imageInputs.length; i++) {
-            formData.append('image_files', imageInputs[i]);
-            formData.append('txt_files', textInputs[i]);
+            formData.append('images', imageInputs[i]); // تغییر به جمع
+            formData.append('texts', textInputs[i]);   // تغییر به جمع
         }
 
-        fetch(`/import-maps/{{ car.id }}`, {
+        fetch(`/import-maps/${category_id}/`, { // اضافه کردن slash انتهایی
             method: 'POST',
             body: formData,
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
             },
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert('نقشه‌ها با موفقیت آپلود شدند.');
-                    location.reload();
-                } else {
-                    alert('خطا در آپلود: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert('نقشه‌ها با موفقیت آپلود شدند.');
+                location.reload();
+            } else {
+                alert('خطا در آپلود: ' + (data.message || 'خطای ناشناخته'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('خطا در ارتباط با سرور: ' + error.message);
+        });
     }
 
     function toggleUploadForm() {
