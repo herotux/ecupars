@@ -33,7 +33,7 @@ urlpatterns = [
     path('issue/<int:issue_id>/', views.issue_detail, name='issue_detail'),
 
     path('step/<int:step_id>/', views.step_detail, name='step_detail'),
-    path('user_step/<int:step_id>/', views.user_step_detail, name='user_step_detail'),
+    path('user_step/<int:step_id>/', views.UserStepDetailView.as_view(), name='user_step_detail'),
     
     
     path('user_issue/<int:issue_id>/', views.user_issue_detail, name='user_issue_detail'),
