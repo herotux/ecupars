@@ -2565,28 +2565,26 @@ class HasCategoryAccess(BasePermission):
     def has_permission(self, request, view):
         category_id = view.kwargs.get('cat_id')
         if not category_id:
-            raise NoCategoryAccessException("دسته‌بندی مشخص نشده است.")
+            raise PermissionDenied("دسته‌بندی مشخص نشده است")
 
         user = request.user
         if not user.is_authenticated:
-            raise NoCategoryAccessException("ورود به سیستم الزامی است.")
+            raise PermissionDenied("نیاز به ورود به سیستم")
 
-        subscription = getattr(user, 'subscription', None)
-        
-        # بررسی وجود اشتراک و فعال بودن آن
-        if not subscription or not subscription.is_active():
-            raise NoCategoryAccessException("اشتراک شما فعال نیست یا منقضی شده است.")
+        if not hasattr(user, 'subscription') or not user.subscription.is_active():
+            raise PermissionDenied("اشتراک فعال وجود ندارد")
 
-        # اگر پلن به همه دسته‌بندی‌ها دسترسی دارد
-        if subscription.plan.access_to_all_categories:
+        plan = user.subscription.plan
+
+        # 1. بررسی دسته‌های محدود شده
+        if plan.restricted_categories.filter(id=category_id).exists():
+            raise PermissionDenied("این دسته برای طرح شما محدود شده است")
+
+        # 2. بررسی دسترسی عمومی
+        if plan.access_to_all_categories:
             return True
 
-        # بررسی وجود دسته‌بندی در لیست فعال کاربر
-        allowed_category_ids = subscription.active_categories.values_list('id', flat=True)
-        if int(category_id) not in allowed_category_ids:
-            raise NoCategoryAccessException("دسترسی به این دسته‌بندی مجاز نیست.")
-
-        return True
+        raise PermissionDenied("دسترسی به این دسته مجاز نیست")
 
 
 
