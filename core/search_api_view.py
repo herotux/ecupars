@@ -77,14 +77,16 @@ class SearchAPIView(APIView):
             subscription = user.subscription
             plan = subscription.plan
 
-            # مدیریت دسته‌بندی‌های مجاز
-            allowed_categories = self.get_allowed_categories(plan, category_ids, subcategory_ids)
+            # مدیریت دسته‌بندی‌های مجاز با اولویت‌های جدید
+            allowed_categories, full_access_ids, restricted_ids = self.get_categories_access(plan, category_ids, subcategory_ids)
 
             # جستجوی داده‌ها بر اساس دسترسی‌ها
             results = self.perform_search(
                 query=query,
                 filter_options=filter_options,
                 allowed_categories=allowed_categories,
+                full_access_ids=full_access_ids,
+                restricted_ids=restricted_ids,
                 plan=plan
             )
 
@@ -100,20 +102,29 @@ class SearchAPIView(APIView):
             logger.error(f"Search error: {str(e)}")
             raise PermissionDenied(detail="خطا در پردازش درخواست جستجو")
 
-    def get_allowed_categories(self, plan, category_ids, subcategory_ids):
-        """مدیریت دسته‌بندی‌های مجاز با در نظر گرفتن تمام زیردسته‌ها"""
-        if plan.access_to_all_categories:
-            base_categories = IssueCategory.objects.all()
-        else:
-            base_categories = plan.restricted_categories.all()
+    def get_categories_access(self, plan, category_ids, subcategory_ids):
+        """تعیین دسته‌بندی‌های مجاز با در نظر گرفتن اولویت‌ها"""
+        # دسته‌های با دسترسی کامل
+        full_access_categories = plan.full_access_categories.all()
+        full_access_ids = set(full_access_categories.values_list('id', flat=True))
 
-        # فیلتر بر اساس category_ids و subcategory_ids اگر وجود داشته باشند
+        # دسته‌های محدود شده
+        restricted_categories = plan.restricted_categories.all()
+        restricted_ids = set(restricted_categories.values_list('id', flat=True))
+
+        # دسته‌های معمولی
+        if plan.access_to_all_categories:
+            base_categories = IssueCategory.objects.exclude(id__in=restricted_ids)
+        else:
+            base_categories = IssueCategory.objects.none()  # فقط دسته‌های خاص
+
+        # فیلتر بر اساس انتخاب کاربر
         if category_ids:
             base_categories = base_categories.filter(id__in=category_ids)
         if subcategory_ids:
             base_categories = base_categories.filter(id__in=subcategory_ids)
 
-        # جمع‌آوری تمام شناسه‌های دسته‌های اصلی و زیردسته‌هایشان
+        # جمع‌آوری تمام زیردسته‌ها برای دسته‌های معمولی
         def get_all_subcategories(category):
             subcategories = list(IssueCategory.objects.filter(parent_category=category))
             for subcategory in subcategories:
@@ -125,14 +136,32 @@ class SearchAPIView(APIView):
             subcategories = get_all_subcategories(category)
             allowed_category_ids.update([sub.id for sub in subcategories])
 
-        return IssueCategory.objects.filter(id__in=allowed_category_ids)
+        # حذف دسته‌های محدود شده از نتایج
+        allowed_category_ids -= restricted_ids
 
-    def perform_search(self, query, filter_options, allowed_categories, plan):
+        return (
+            IssueCategory.objects.filter(id__in=allowed_category_ids),
+            full_access_ids,
+            restricted_ids
+        )
+
+    def perform_search(self, query, filter_options, allowed_categories, full_access_ids, restricted_ids, plan):
         """انجام عملیات جستجو با توجه به دسترسی‌ها"""
         results = []
 
         # جستجوی Issues
         if 'issues' in filter_options or 'all' in filter_options:
+            # در دسته‌های با دسترسی کامل
+            full_access_issues = Issue.objects.filter(
+                category__in=full_access_ids
+            ).filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            results.extend(self.build_issue_results(full_access_issues))
+
+            # در دسته‌های معمولی
             issues = Issue.objects.filter(
                 category__in=allowed_categories
             ).filter(
@@ -140,34 +169,63 @@ class SearchAPIView(APIView):
                 Q(description__icontains=query) |
                 Q(tags__name__icontains=query)
             ).distinct()
-            
             results.extend(self.build_issue_results(issues))
 
         # جستجوی Solutions
         if ('solutions' in filter_options or 'all' in filter_options) and plan.access_to_diagnostic_steps:
-            solutions = Solution.objects.filter(
-                issues__category__in=allowed_categories
+            # در دسته‌های با دسترسی کامل
+            full_access_solutions = Solution.objects.filter(
+                Q(issues__category__in=full_access_ids) | Q(issues__isnull=True)
             ).filter(
                 Q(title__icontains=query) |
                 Q(description__icontains=query) |
                 Q(tags__name__icontains=query)
             ).distinct()
-            
+            results.extend(self.build_solution_results(full_access_solutions, full_access_ids))
+
+            # در دسته‌های معمولی
+            solutions = Solution.objects.filter(
+                Q(issues__category__in=allowed_categories) | Q(issues__isnull=True)
+            ).filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
             results.extend(self.build_solution_results(solutions, allowed_categories))
 
         # جستجوی Maps
         if ('maps' in filter_options or 'all' in filter_options) and plan.access_to_maps:
+            # در دسته‌های با دسترسی کامل
+            full_access_maps = Map.objects.filter(
+                category__in=full_access_ids
+            ).filter(
+                Q(title__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            results.extend(self.build_map_results(full_access_maps))
+
+            # در دسته‌های معمولی
             maps = Map.objects.filter(
                 category__in=allowed_categories
             ).filter(
                 Q(title__icontains=query) |
                 Q(tags__name__icontains=query)
             ).distinct()
-            
             results.extend(self.build_map_results(maps))
 
         # جستجوی Articles
         if ('articles' in filter_options or 'all' in filter_options):
+            # در دسته‌های با دسترسی کامل
+            full_access_articles = Article.objects.filter(
+                category__in=full_access_ids
+            ).filter(
+                Q(title__icontains=query) |
+                Q(content__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+            results.extend(self.build_article_results(full_access_articles))
+
+            # در دسته‌های معمولی
             articles = Article.objects.filter(
                 category__in=allowed_categories
             ).filter(
@@ -175,12 +233,11 @@ class SearchAPIView(APIView):
                 Q(content__icontains=query) |
                 Q(tags__name__icontains=query)
             ).distinct()
-            
             results.extend(self.build_article_results(articles))
 
         return results
 
-    # توابع ساخت نتایج
+    # توابع ساخت نتایج (بدون تغییر)
     def build_issue_results(self, issues):
         return [{
             'id': issue.id,
