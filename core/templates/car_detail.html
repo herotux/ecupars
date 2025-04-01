@@ -251,7 +251,7 @@
             formData.append('txt_files', textInputs[i]);
         }
 
-        fetch(`/import-maps/{{ cat.id }}/`, {
+        fetch(`/import-maps/{{ cat.id }}`, {
             method: 'POST',
             body: formData,
             headers: {
