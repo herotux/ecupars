@@ -178,7 +178,7 @@ class SearchAPIView(APIView):
                 Q(issues__isnull=True)),
                 Q(title__icontains=query) | Q(description__icontains=query) | Q(tags__name__icontains=query)
             ).distinct()
-            results.extend(self.build_solution_results(solutions))
+            results.extend(self.build_solution_results(solutions, allowed_categories))
 
 
         # Search in Maps
