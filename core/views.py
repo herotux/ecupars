@@ -2762,11 +2762,21 @@ class HasDiagnosticAccess(BasePermission):
         try:
             step = DiagnosticStep.objects.select_related(
                 'solution',
-                'issue__category'  # این رابطه مستقیم از DiagnosticStep به Issue است
+                'issue__category'  # رابطه مستقیم DiagnosticStep به Issue
             ).prefetch_related(
-                'solution__issues__category'  # برای رابطه ManyToMany
+                'solution__issues__category'  # رابطه ManyToMany بین Solution و Issue
             ).get(id=step_id)
-            category = step.solution.issue.category if step.solution and step.solution.issue else None
+            
+            # روش صحیح دسترسی به category:
+            # 1. اول از رابطه مستقیم DiagnosticStep به Issue استفاده می‌کنیم
+            if step.issue:
+                category = step.issue.category
+            else:
+                # 2. اگر issue مستقیم وجود نداشت، از اولین issue مربوط به solution استفاده می‌کنیم
+                if step.solution and step.solution.issues.exists():
+                    category = step.solution.issues.first().category
+                else:
+                    category = None
             
             return self.check_access(user, category)
             
