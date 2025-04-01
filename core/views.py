@@ -67,10 +67,175 @@ import requests
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.core.paginator import Paginator
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 
 
+
+
+
+#استثناهای سفارشی
+class NoCategoryAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به این دسته‌بندی دسترسی ندارید."
+    default_code = "no_category_access"
+
+class NoIssueAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به این خطا دسترسی ندارید."
+    default_code = "no_issue_access"
+
+class NoDiagnosticAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما به مراحل عیب‌یابی دسترسی ندارید."
+    default_code = "no_diagnostic_access"
+
+class NoDeviceAccessException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "شما با این دستگاه دسترسی ندارید."
+    default_code = "no_device_access"
+
+
+
+# پرمیشن سفارشی
+
+class BaseAccessPermission(BasePermission):
+    """پرمیشن پایه برای بررسی اشتراک و احراز هویت"""
+    exception_class = PermissionDenied
+    message = "دسترسی غیرمجاز"
+
+    def check_subscription(self, user):
+        if not user.is_authenticated:
+            raise self.exception_class("برای دسترسی باید وارد شوید")
+            
+        if not hasattr(user, 'subscription'):
+            raise self.exception_class("طرح اشتراکی فعال ندارید")
+            
+        if not user.subscription.is_active():
+            raise self.exception_class("اشتراک شما غیرفعال است")
+            
+        return user.subscription.plan
+
+    def check_category_access(self, plan, category_id=None):
+        """بررسی دسترسی به دسته‌بندی"""
+        if not category_id:
+            return True
+            
+        # دسترسی کامل به دسته خاص
+        if plan.full_access_categories.filter(id=category_id).exists():
+            return True
+            
+        # دسته‌های محدود شده
+        if plan.restricted_categories.filter(id=category_id).exists():
+            raise self.exception_class("دسترسی به این دسته محدود شده است")
+            
+        # اگر طرح به همه دسته‌ها دسترسی ندارد
+        if not plan.access_to_all_categories:
+            raise self.exception_class()
+            
+        return True
+
+
+
+
+class HasCategoryAccess(BaseAccessPermission):
+    """دسترسی به دسته‌بندی‌ها"""
+    def has_permission(self, request, view):
+        plan = self.check_subscription(request.user)
+        category_id = view.kwargs.get('cat_id')
+        return self.check_category_access(plan, category_id)
+
+
+class HasMapAccess(BaseAccessPermission):
+    """دسترسی به نقشه‌ها"""
+    def has_permission(self, request, view):
+        plan = self.check_subscription(request.user)
+        category_id = view.kwargs.get('cat_id')
+        
+        # بررسی دسترسی به دسته
+        self.check_category_access(plan, category_id)
+        
+        # بررسی دسترسی به نقشه‌ها
+        if not plan.access_to_maps:
+            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
+                raise self.exception_class("دسترسی به نقشه‌ها مجاز نیست")
+                
+        return True
+
+
+class HasIssueAccess(BaseAccessPermission):
+    """دسترسی به خطاها"""
+    def has_permission(self, request, view):
+        plan = self.check_subscription(request.user)
+        issue_id = view.kwargs.get('issue_id')
+        issue = get_object_or_404(Issue.objects.select_related('category'), id=issue_id)
+        
+        return self.check_category_access(plan, issue.category.id if issue.category else None)
+
+
+class HasDiagnosticAccess(BaseAccessPermission):
+    """دسترسی به مراحل عیب‌یابی"""
+    def has_permission(self, request, view):
+        plan = self.check_subscription(request.user)
+        step_id = view.kwargs.get('step_id')
+        
+        if not step_id:
+            return self.check_category_access(plan, view.kwargs.get('cat_id') or request.data.get('category'))
+            
+        try:
+            step = DiagnosticStep.objects.select_related('issue__category').get(id=step_id)
+            category_id = step.issue.category.id if step.issue and step.issue.category else None
+            
+            # بررسی دسترسی به عیب‌یابی
+            if not plan.access_to_diagnostic_steps:
+                # اگر دسترسی عمومی به عیب‌یابی نداریم، اما دسته در full_access_categories باشد، اجازه می‌دهیم
+                if category_id and plan.full_access_categories.filter(id=category_id).exists():
+                    return True
+                raise self.exception_class("دسترسی به مراحل عیب‌یابی محدود شده است")
+                
+            return self.check_category_access(plan, category_id)
+            
+        except DiagnosticStep.DoesNotExist:
+            raise self.exception_class("مرحله عیب‌یابی یافت نشد")
+
+
+class HasCategoryContentAccess(BaseAccessPermission):
+    """دسترسی به محتوای دسته‌بندی"""
+    def has_permission(self, request, view):
+        plan = self.check_subscription(request.user)
+        category_id = view.kwargs.get('cat_id')
+        
+        # بررسی دسترسی پایه
+        self.check_category_access(plan, category_id)
+        
+        # بررسی دسترسی به نقشه‌ها
+        if request.query_params.get('include_maps', '').lower() == 'true' and not plan.access_to_maps:
+            raise self.exception_class("دسترسی به نقشه‌های این دسته مجاز نیست")
+
+        # بررسی دسترسی به خطاها
+        if request.query_params.get('include_issues', '').lower() == 'true' and not plan.access_to_issues:
+            raise self.exception_class("دسترسی به خطاهای این دسته مجاز نیست")
+
+        return True
+
+
+class HasDeviceAccess(BaseAccessPermission):
+    """دسترسی بر اساس دستگاه"""
+    exception_class = NoDeviceAccessException
+    
+    def has_permission(self, request, view):
+        device_id = request.headers.get('X-Device-ID', '').strip()
+        if not device_id:
+            raise self.exception_class()
+
+        user = request.user
+        self.check_subscription(user)
+
+        if user.hardware_id != device_id:
+            raise self.exception_class()
+
+        return True
 
 
 
@@ -917,16 +1082,15 @@ def step_detail(request, step_id):
 
 
 
-@login_required
-@has_diagnostic_access
-def user_step_detail(request, step_id):
-    step = get_object_or_404(DiagnosticStep, id=step_id)
+class UserStepDetailView(LoginRequiredMixin, View):
+    permission_classes = [HasDiagnosticAccess]
     
-    question = step.question # سوال مرتبط با خطا (در صورت وجود)
-    if question:
-        options = Option.objects.filter(question_id=question.id)
-        return render(request, 'user_step_detail.html', {'step': step, 'question': question, 'options': options})
-    else:
+    def get(self, request, step_id):
+        step = get_object_or_404(DiagnosticStep, id=step_id)
+        question = step.question
+        if question:
+            options = Option.objects.filter(question_id=question.id)
+            return render(request, 'user_step_detail.html', {'step': step, 'question': question, 'options': options})
         return render(request, 'user_step_detail.html', {'step': step})
 
 
@@ -2633,242 +2797,6 @@ def verify_otp_view(request):
         return Response({"login_status": "failed", "error": "Session not found."}, status=400)
 
 
-
-#استثناهای سفارشی
-class NoCategoryAccessException(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "شما به این دسته‌بندی دسترسی ندارید."
-    default_code = "no_category_access"
-
-class NoIssueAccessException(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "شما به این خطا دسترسی ندارید."
-    default_code = "no_issue_access"
-
-class NoDiagnosticAccessException(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "شما به مراحل عیب‌یابی دسترسی ندارید."
-    default_code = "no_diagnostic_access"
-
-class NoDeviceAccessException(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "شما با این دستگاه دسترسی ندارید."
-    default_code = "no_device_access"
-
-
-
-# پرمیشن سفارشی
-
-class HasCategoryAccess(BasePermission):
-    """پرمیشن پایه برای دسترسی به دسته‌بندی‌ها"""
-    def has_permission(self, request, view):
-        category_id = view.kwargs.get('cat_id')
-        user = request.user
-        
-        if not user.is_authenticated:
-            raise NoCategoryAccessException()
-            
-        if not hasattr(user, 'subscription') or not user.subscription.is_active():
-            raise NoCategoryAccessException("اشتراک فعال وجود ندارد")
-
-        plan = user.subscription.plan
-        
-        # اگر دسته در full_access_categories باشد، اجازه دسترسی کامل
-        if category_id and plan.full_access_categories.filter(id=category_id).exists():
-            return True
-            
-        # بررسی دسته‌های محدود شده
-        if category_id and plan.restricted_categories.filter(id=category_id).exists():
-            raise NoCategoryAccessException("این دسته محدود شده است")
-            
-        # اگر دسترسی به همه دسته‌ها فعال نیست و دسته در full_access نیست، ممنوع
-        if not plan.access_to_all_categories:
-            raise NoCategoryAccessException()
-            
-        return True
-
-
-
-
-
-class HasMapAccess(BasePermission):
-    """دسترسی به نقشه‌ها"""
-    def has_permission(self, request, view):
-        # استفاده از پرمیشن پایه
-        if not HasCategoryAccess().has_permission(request, view):
-            return False
-            
-        plan = request.user.subscription.plan
-        
-        # بررسی دسترسی به نقشه‌ها
-        if not plan.access_to_maps:
-            # اگر در دسته‌های ویژه هست، اجازه دسترسی بده
-            category_id = view.kwargs.get('cat_id')
-            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
-                raise PermissionDenied("دسترسی به نقشه‌ها مجاز نیست")
-                
-        return True
-
-
-
-
-class HasIssueAccess(BasePermission):
-    def has_permission(self, request, view):
-        issue_id = view.kwargs.get('issue_id')
-        issue = get_object_or_404(Issue.objects.select_related('category'), id=issue_id)
-        
-        user = request.user
-        if not user.is_authenticated:
-            raise NoIssueAccessException()
-            
-        if not hasattr(user, 'subscription') or not user.subscription.is_active():
-            raise NoIssueAccessException()
-
-        plan = user.subscription.plan
-        
-        # بررسی دسته‌های محدود شده
-        if issue.category and plan.restricted_categories.filter(id=issue.category.id).exists():
-            raise NoIssueAccessException()
-            
-        # بررسی دسته‌های با دسترسی کامل
-        if issue.category and plan.full_access_categories.filter(id=issue.category.id).exists():
-            return True
-            
-        # بررسی دسترسی عمومی
-        if not plan.access_to_all_categories:
-            raise NoIssueAccessException()
-            
-        return True
-
-
-
-
-class HasDiagnosticAccess(BasePermission):
-    """دسترسی به مراحل عیب‌یابی"""
-    def has_permission(self, request, view):
-        step_id = view.kwargs.get('step_id')
-        user = request.user
-        
-        if not user.is_authenticated:
-            raise NoDiagnosticAccessException()
-            
-        if not hasattr(user, 'subscription') or not user.subscription.is_active():
-            raise NoDiagnosticAccessException()
-
-        # اگر مرحله وجود ندارد (مثلاً در ایجاد مرحله جدید)، بررسی دسترسی به دسته
-        if not step_id:
-            return self.check_category_access(request, view)
-            
-        try:
-            step = DiagnosticStep.objects.select_related(
-                'solution',
-                'issue__category'  # رابطه مستقیم DiagnosticStep به Issue
-            ).prefetch_related(
-                'solution__issues__category'  # رابطه ManyToMany بین Solution و Issue
-            ).get(id=step_id)
-            
-            # روش صحیح دسترسی به category:
-            # 1. اول از رابطه مستقیم DiagnosticStep به Issue استفاده می‌کنیم
-            if step.issue:
-                category = step.issue.category
-            else:
-                # 2. اگر issue مستقیم وجود نداشت، از اولین issue مربوط به solution استفاده می‌کنیم
-                if step.solution and step.solution.issues.exists():
-                    category = step.solution.issues.first().category
-                else:
-                    category = None
-            
-            return self.check_access(user, category)
-            
-        except DiagnosticStep.DoesNotExist:
-            raise NoDiagnosticAccessException("مرحله عیب‌یابی یافت نشد")
-
-    def check_access(self, user, category):
-        plan = user.subscription.plan
-        
-        # اگر دسته در full_access_categories باشد، اجازه دسترسی
-        if category and plan.full_access_categories.filter(id=category.id).exists():
-            return True
-            
-        # بررسی دسترسی عمومی به مراحل عیب‌یابی
-        if not plan.access_to_diagnostic_steps:
-            raise NoDiagnosticAccessException()
-            
-        # بررسی دسته‌های محدود شده
-        if category and plan.restricted_categories.filter(id=category.id).exists():
-            raise NoDiagnosticAccessException()
-            
-        return True
-
-    def check_category_access(self, request, view):
-        """بررسی دسترسی بر اساس دسته‌بندی"""
-        cat_id = view.kwargs.get('cat_id') or request.data.get('category')
-        if not cat_id:
-            return True
-            
-        user = request.user
-        plan = user.subscription.plan
-        
-        # اگر دسته در full_access_categories باشد، اجازه دسترسی
-        if plan.full_access_categories.filter(id=cat_id).exists():
-            return True
-            
-        # بررسی دسترسی عمومی به مراحل عیب‌یابی
-        if not plan.access_to_diagnostic_steps:
-            raise NoDiagnosticAccessException()
-            
-        # بررسی دسته‌های محدود شده
-        if plan.restricted_categories.filter(id=cat_id).exists():
-            raise NoDiagnosticAccessException()
-            
-        return True
-    
-
-
-
-
-class HasCategoryContentAccess(BasePermission):
-    def has_permission(self, request, view):
-        category_id = view.kwargs.get('cat_id')
-        user = request.user
-        plan = user.subscription.plan
-        
-        # اگر دسته در full_access_categories باشد، اجازه دسترسی به همه چیز
-        if category_id and plan.full_access_categories.filter(id=category_id).exists():
-            return True
-            
-        # بررسی دسترسی به نقشه‌ها
-        if 'include_maps' in request.query_params and request.query_params['include_maps'].lower() == 'true':
-            if not plan.access_to_maps:
-                raise PermissionDenied("دسترسی به نقشه‌های این دسته مجاز نیست")
-
-        # بررسی دسترسی به خطاها
-        if 'include_issues' in request.query_params and request.query_params['include_issues'].lower() == 'true':
-            if not plan.access_to_issues:
-                raise PermissionDenied("دسترسی به خطاهای این دسته مجاز نیست")
-
-        return True
-
-
-
-
-
-class HasDeviceAccess(BasePermission):
-    def has_permission(self, request, view):
-
-        device_id = request.headers.get('X-Device-ID', '').strip()
-        if not device_id:
-            raise NoDeviceAccessException()
-
-        user = request.user
-        if not user.is_authenticated:
-            raise NoDeviceAccessException()
-
-        # تطابق دقیق شناسه دستگاه
-        if user.hardware_id != device_id:
-            raise NoDeviceAccessException()
-
-        return True
 
 
 
