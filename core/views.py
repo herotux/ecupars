@@ -2675,15 +2675,15 @@ class HasCategoryAccess(BasePermission):
 
         plan = user.subscription.plan
         
+        # اگر دسته در full_access_categories باشد، اجازه دسترسی کامل
+        if category_id and plan.full_access_categories.filter(id=category_id).exists():
+            return True
+            
         # بررسی دسته‌های محدود شده
         if category_id and plan.restricted_categories.filter(id=category_id).exists():
             raise NoCategoryAccessException("این دسته محدود شده است")
             
-        # بررسی دسته‌های با دسترسی کامل
-        if category_id and plan.full_access_categories.filter(id=category_id).exists():
-            return True
-            
-        # بررسی دسترسی عمومی
+        # اگر دسترسی به همه دسته‌ها فعال نیست و دسته در full_access نیست، ممنوع
         if not plan.access_to_all_categories:
             raise NoCategoryAccessException()
             
@@ -2748,16 +2748,66 @@ class HasIssueAccess(BasePermission):
 class HasDiagnosticAccess(BasePermission):
     """دسترسی به مراحل عیب‌یابی"""
     def has_permission(self, request, view):
-        if not HasCategoryAccess().has_permission(request, view):
-            return False
-            
-        plan = request.user.subscription.plan
+        step_id = view.kwargs.get('step_id')
+        user = request.user
         
+        if not user.is_authenticated:
+            raise NoDiagnosticAccessException()
+            
+        if not hasattr(user, 'subscription') or not user.subscription.is_active():
+            raise NoDiagnosticAccessException()
+
+        # اگر مرحله وجود ندارد (مثلاً در ایجاد مرحله جدید)، بررسی دسترسی به دسته
+        if not step_id:
+            return self.check_category_access(request, view)
+            
+        try:
+            step = DiagnosticStep.objects.select_related('solution__issue__category').get(id=step_id)
+            category = step.solution.issue.category if step.solution and step.solution.issue else None
+            
+            return self.check_access(user, category)
+            
+        except DiagnosticStep.DoesNotExist:
+            raise NoDiagnosticAccessException("مرحله عیب‌یابی یافت نشد")
+
+    def check_access(self, user, category):
+        plan = user.subscription.plan
+        
+        # اگر دسته در full_access_categories باشد، اجازه دسترسی
+        if category and plan.full_access_categories.filter(id=category.id).exists():
+            return True
+            
+        # بررسی دسترسی عمومی به مراحل عیب‌یابی
         if not plan.access_to_diagnostic_steps:
-            category_id = view.kwargs.get('cat_id')
-            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
-                raise PermissionDenied("دسترسی به عیب‌یابی مجاز نیست")
-                
+            raise NoDiagnosticAccessException()
+            
+        # بررسی دسته‌های محدود شده
+        if category and plan.restricted_categories.filter(id=category.id).exists():
+            raise NoDiagnosticAccessException()
+            
+        return True
+
+    def check_category_access(self, request, view):
+        """بررسی دسترسی بر اساس دسته‌بندی"""
+        cat_id = view.kwargs.get('cat_id') or request.data.get('category')
+        if not cat_id:
+            return True
+            
+        user = request.user
+        plan = user.subscription.plan
+        
+        # اگر دسته در full_access_categories باشد، اجازه دسترسی
+        if plan.full_access_categories.filter(id=cat_id).exists():
+            return True
+            
+        # بررسی دسترسی عمومی به مراحل عیب‌یابی
+        if not plan.access_to_diagnostic_steps:
+            raise NoDiagnosticAccessException()
+            
+        # بررسی دسته‌های محدود شده
+        if plan.restricted_categories.filter(id=cat_id).exists():
+            raise NoDiagnosticAccessException()
+            
         return True
     
 
@@ -2770,17 +2820,19 @@ class HasCategoryContentAccess(BasePermission):
         user = request.user
         plan = user.subscription.plan
         
+        # اگر دسته در full_access_categories باشد، اجازه دسترسی به همه چیز
+        if category_id and plan.full_access_categories.filter(id=category_id).exists():
+            return True
+            
         # بررسی دسترسی به نقشه‌ها
         if 'include_maps' in request.query_params and request.query_params['include_maps'].lower() == 'true':
             if not plan.access_to_maps:
-                if not plan.full_access_categories.filter(id=category_id).exists():
-                    raise PermissionDenied("دسترسی به نقشه‌های این دسته مجاز نیست")
+                raise PermissionDenied("دسترسی به نقشه‌های این دسته مجاز نیست")
 
         # بررسی دسترسی به خطاها
         if 'include_issues' in request.query_params and request.query_params['include_issues'].lower() == 'true':
-            if not plan.access_to_issues:  # نیاز به اضافه کردن این فیلد به مدل
-                if not plan.full_access_categories.filter(id=category_id).exists():
-                    raise PermissionDenied("دسترسی به خطاهای این دسته مجاز نیست")
+            if not plan.access_to_issues:
+                raise PermissionDenied("دسترسی به خطاهای این دسته مجاز نیست")
 
         return True
 
@@ -2835,7 +2887,7 @@ class UserCarDetail(APIView):
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
 
-        # گرفتن پارامترهای URL با اعمال پیش‌فرض‌های امن
+        # گرفتن پارامترهای URL
         include_issues = self.check_content_access(request, 'issues')
         include_maps = self.check_content_access(request, 'maps')
         include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
@@ -2843,6 +2895,9 @@ class UserCarDetail(APIView):
 
         try:
             category = IssueCategory.objects.get(id=cat_id)
+            plan = request.user.subscription.plan
+            is_full_access = plan.full_access_categories.filter(id=cat_id).exists()
+
             response_data = {
                 "status": "success",
                 "category": IssueCategorySerializer(category).data,
@@ -2861,13 +2916,15 @@ class UserCarDetail(APIView):
                     many=True
                 ).data
 
-            if include_issues and self.has_issue_access(request.user, cat_id):
+            # اگر دسته full_access باشد یا دسترسی به خطاها فعال باشد
+            if include_issues and (is_full_access or plan.access_to_issues):
                 response_data["issues"] = IssueSerializer(
                     Issue.objects.filter(category=cat_id),
                     many=True
                 ).data
 
-            if include_maps and self.has_map_access(request.user, cat_id):
+            # اگر دسته full_access باشد یا دسترسی به نقشه‌ها فعال باشد
+            if include_maps and (is_full_access or plan.access_to_maps):
                 response_data["maps"] = MapSerializer(
                     Map.objects.filter(category=cat_id),
                     many=True
@@ -2886,18 +2943,6 @@ class UserCarDetail(APIView):
         """بررسی وجود پارامتر و تبدیل به مقدار boolean"""
         param = request.query_params.get(f'include_{content_type}', 'false')
         return param.lower() == 'true'
-
-    def has_issue_access(self, user, category_id):
-        """بررسی دسترسی به خطاها"""
-        plan = user.subscription.plan
-        return (plan.access_to_issues or 
-                plan.full_access_categories.filter(id=category_id).exists())
-
-    def has_map_access(self, user, category_id):
-        """بررسی دسترسی به نقشه‌ها"""
-        plan = user.subscription.plan
-        return (plan.access_to_maps or 
-                plan.full_access_categories.filter(id=category_id).exists())
 
 
 
