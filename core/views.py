@@ -43,7 +43,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import AND, OR, BasePermission
 from django.db import IntegrityError
 from zarinpal.api import ZarinPalPayment
 from django.core.exceptions import PermissionDenied
@@ -2562,82 +2562,102 @@ class NoDeviceAccessException(APIException):
 # پرمیشن سفارشی
 
 class HasCategoryAccess(BasePermission):
+    """پرمیشن پایه برای دسترسی به دسته‌بندی‌ها"""
     def has_permission(self, request, view):
         category_id = view.kwargs.get('cat_id')
-        if not category_id:
-            raise PermissionDenied("دسته‌بندی مشخص نشده است")
-
         user = request.user
+        
         if not user.is_authenticated:
-            raise PermissionDenied("نیاز به ورود به سیستم")
-
+            raise NoCategoryAccessException()
+            
         if not hasattr(user, 'subscription') or not user.subscription.is_active():
-            raise PermissionDenied("اشتراک فعال وجود ندارد")
+            raise NoCategoryAccessException("اشتراک فعال وجود ندارد")
 
         plan = user.subscription.plan
-
-        # 1. بررسی دسته‌های محدود شده
-        if plan.restricted_categories.filter(id=category_id).exists():
-            raise PermissionDenied("این دسته برای طرح شما محدود شده است")
-
-        # 2. بررسی دسترسی عمومی
-        if plan.access_to_all_categories:
+        
+        # بررسی دسته‌های محدود شده
+        if category_id and plan.restricted_categories.filter(id=category_id).exists():
+            raise NoCategoryAccessException("این دسته محدود شده است")
+            
+        # بررسی دسته‌های با دسترسی کامل
+        if category_id and plan.full_access_categories.filter(id=category_id).exists():
             return True
+            
+        # بررسی دسترسی عمومی
+        if not plan.access_to_all_categories:
+            raise NoCategoryAccessException()
+            
+        return True
 
-        raise PermissionDenied("دسترسی به این دسته مجاز نیست")
+
+
+
+
+class HasMapAccess(BasePermission):
+    """دسترسی به نقشه‌ها"""
+    def has_permission(self, request, view):
+        # استفاده از پرمیشن پایه
+        if not HasCategoryAccess().has_permission(request, view):
+            return False
+            
+        plan = request.user.subscription.plan
+        
+        # بررسی دسترسی به نقشه‌ها
+        if not plan.access_to_maps:
+            # اگر در دسته‌های ویژه هست، اجازه دسترسی بده
+            category_id = view.kwargs.get('cat_id')
+            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
+                raise PermissionDenied("دسترسی به نقشه‌ها مجاز نیست")
+                
+        return True
+
 
 
 
 class HasIssueAccess(BasePermission):
     def has_permission(self, request, view):
         issue_id = view.kwargs.get('issue_id')
-        issue = get_object_or_404(Issue, id=issue_id)
-
-        # دریافت صحیح شناسه دسته‌بندی
-        category_id = issue.category.id if issue.category else None
-        if not category_id:
-            raise NoIssueAccessException("Issue فاقد دسته‌بندی معتبر است.")
-
+        issue = get_object_or_404(Issue.objects.select_related('category'), id=issue_id)
+        
         user = request.user
         if not user.is_authenticated:
             raise NoIssueAccessException()
+            
+        if not hasattr(user, 'subscription') or not user.subscription.is_active():
+            raise NoIssueAccessException()
 
-        subscription = getattr(user, 'subscription', None)
+        plan = user.subscription.plan
         
-        # بررسی فعال بودن اشتراک
-        if not subscription or not subscription.is_active():
+        # بررسی دسته‌های محدود شده
+        if issue.category and plan.restricted_categories.filter(id=issue.category.id).exists():
             raise NoIssueAccessException()
-
-        # دسترسی به همه دسته‌بندی‌ها
-        if subscription.plan.access_to_all_categories:
+            
+        # بررسی دسته‌های با دسترسی کامل
+        if issue.category and plan.full_access_categories.filter(id=issue.category.id).exists():
             return True
-
-        # بررسی دسترسی از طریق active_categories کاربر
-        allowed_category_ids = subscription.active_categories.values_list('id', flat=True)
-        if category_id not in allowed_category_ids:
+            
+        # بررسی دسترسی عمومی
+        if not plan.access_to_all_categories:
             raise NoIssueAccessException()
-
+            
         return True
 
 
 
 
 class HasDiagnosticAccess(BasePermission):
+    """دسترسی به مراحل عیب‌یابی"""
     def has_permission(self, request, view):
-        user = request.user
-        if not user.is_authenticated or not hasattr(user, 'subscription'):
-            raise NoDiagnosticAccessException()
-
-        subscription = user.subscription
+        if not HasCategoryAccess().has_permission(request, view):
+            return False
+            
+        plan = request.user.subscription.plan
         
-        # بررسی فعال بودن اشتراک
-        if not subscription.is_active():
-            raise NoDiagnosticAccessException("اشتراک شما منقضی شده است.")
-
-        # بررسی دسترسی به قابلیت عیب‌یابی
-        if not subscription.plan.access_to_diagnostic_steps:
-            raise NoDiagnosticAccessException()
-
+        if not plan.access_to_diagnostic_steps:
+            category_id = view.kwargs.get('cat_id')
+            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
+                raise PermissionDenied("دسترسی به عیب‌یابی مجاز نیست")
+                
         return True
     
 
