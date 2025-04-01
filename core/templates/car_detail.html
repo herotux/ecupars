@@ -239,7 +239,7 @@
         
         // دریافت صحیح category_id
         const category_id = {{ car.id }}; // اطمینان از رندر صحیح
-
+        console.log('Category ID:', category_id);
         if (imageInputs.length === 0 || textInputs.length === 0) {
             alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
             return;
@@ -251,8 +251,8 @@
         }
 
         for (let i = 0; i < imageInputs.length; i++) {
-            formData.append('images', imageInputs[i]); // تغییر به جمع
-            formData.append('texts', textInputs[i]);   // تغییر به جمع
+            formData.append('images', imageInputs[i]); 
+            formData.append('texts', textInputs[i]);   
         }
 
         fetch(`/import-maps/${category_id}/`, { // اضافه کردن slash انتهایی

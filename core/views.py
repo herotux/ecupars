@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from PIL import Image
+import imghdr
 from .models import Payment, Advertisement, UserActivity, MapCategory, Map, CustomUser, IssueCategory, Issue, Solution, Subscription, Bookmark, DiagnosticStep, Question, Tag, Option
 from .forms import SearchForm, MapCategoryForm, MapForm, UserForm, IssueCategoryForm, IssueCatForm, CustomUserCreationForm,issue_SolutionForm, IssueForm, SolutionForm, SubscriptionForm, QuestionForm, OptionForm, DiagnosticStepForm
 from .serializer import AdvertisementSerializer, MapSerializer, IssueCategorySerializer, IssueSerializer, CategorySerializer
@@ -1810,65 +1812,163 @@ def import_issues(request, car_id):
     return JsonResponse({'status': 'error', 'message': 'No file uploaded.'})
 
 
+def validate_image_file(file):
+    try:
+        # بررسی نوع فایل تصویر
+        file.seek(0)
+        image_type = imghdr.what(file)
+        if not image_type:
+            return False
+            
+        # بررسی محتوای تصویر
+        file.seek(0)
+        try:
+            img = Image.open(file)
+            img.verify()
+            file.seek(0)
+            return True
+        except:
+            return False
+    except:
+        return False
+
+
+def extract_tags_from_text(text_content):
+    # حذف کاراکترهای خاص و تقسیم به خطوط
+    lines = [line.strip() for line in text_content.split('\n') if line.strip()]
+    
+    # تقسیم هر خط به کلمات/عبارات (با جداکننده کاما یا فاصله)
+    tags = []
+    for line in lines:
+        # تقسیم با کاما یا فاصله
+        parts = [part.strip() for part in line.replace(',', ' ').split() if part.strip()]
+        tags.extend(parts)
+    
+    # حذف تکراری‌ها و محدود کردن طول
+    unique_tags = set()
+    for tag in tags:
+        if len(tag) <= 100:  # محدودیت طول تگ
+            unique_tags.add(tag)
+    
+    return list(unique_tags)
+
+
+
+
+
 
 
 @user_passes_test(is_admin)
 @login_required
-@csrf_exempt  # Consider CSRF tokens for security in production
+@csrf_exempt
 def import_maps(request, category_id):
-    if request.method == 'POST':
-        image_files = request.FILES.getlist('image_files')  # Get list of uploaded images
-        txt_files = request.FILES.getlist('txt_files')      # Get list of associated TXT files
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
 
-        if len(image_files) != len(txt_files):
-            return JsonResponse({'status': 'error', 'message': 'Each image must have a corresponding TXT file.'})
+    try:
+        category = IssueCategory.objects.get(id=category_id)
+    except IssueCategory.DoesNotExist:
+        return JsonResponse(
+            {'status': 'error', 'message': f'دسته‌بندی با شناسه {category_id} یافت نشد'},
+            status=404
+        )
 
-        try:
-            # Check if the category exists
-            category = IssueCategory.objects.get(id=category_id)
-            responses = []
+    images = request.FILES.getlist('images')
+    texts = request.FILES.getlist('texts')
 
-            for idx, txt_file in enumerate(txt_files):
-                image_file = image_files[idx]
+    # اعتبارسنجی اولیه
+    if not images or not texts:
+        return JsonResponse(
+            {'status': 'error', 'message': 'لطفاً هم فایل تصویر و هم فایل متنی را ارسال کنید'},
+            status=400
+        )
 
-                # Process the TXT file to extract a single tag
+    if len(images) != len(texts):
+        return JsonResponse(
+            {'status': 'error', 'message': 'تعداد فایل‌های تصویر و متن باید برابر باشد'},
+            status=400
+        )
+
+    results = []
+    success_count = 0
+
+    try:
+        with transaction.atomic():
+            for img_file, txt_file in zip(images, texts):
                 try:
-                    raw_content = txt_file.read().decode('utf-8-sig')  # Decode and handle BOM
-                    cleaned_content = raw_content.replace('\u201c', '').replace('\u201d', '').strip()
-                except UnicodeDecodeError:
-                    return JsonResponse({'status': 'error', 'message': f'Error decoding file: {txt_file.name}'})
+                    # اعتبارسنجی فایل تصویر
+                    if not validate_image_file(img_file):
+                        raise ValueError("فایل تصویر معتبر نیست")
+                    
+                    # خواندن و اعتبارسنجی فایل متنی
+                    try:
+                        txt_content = txt_file.read().decode('utf-8-sig').strip()
+                        txt_file.seek(0)
+                    except UnicodeDecodeError:
+                        raise ValueError("فایل متن باید با encoding UTF-8 باشد")
 
-                if cleaned_content:
-                    # Create or get a single Tag instance for the entire file content
-                    tag, created = Tag.objects.get_or_create(name=cleaned_content)
+                    # ایجاد عنوان از نام فایل (بدون پسوند)
+                    title = os.path.splitext(img_file.name)[0]
+                    if not title:
+                        title = "نقشه بدون عنوان"
 
-                    # Extract title without file extension
-                    file_name, _ = os.path.splitext(image_file.name)
+                    # استخراج تگ‌ها از متن
+                    tags_to_add = []
+                    if txt_content:
+                        tag_names = extract_tags_from_text(txt_content)
+                        for tag_name in tag_names:
+                            tag, _ = Tag.objects.get_or_create(name=tag_name)
+                            tags_to_add.append(tag)
 
-                    # Create the Map object
-                    map_instance = Map.objects.create(title=file_name, image=image_file, category=category)
-                    map_instance.tags.add(tag)  # Associate the tag with the map
+                    # ایجاد نقشه
+                    map_obj = Map.objects.create(
+                        title=title,
+                        category=category,
+                        image=img_file,
+                        created_by=request.user,
+                        updated_by=request.user
+                    )
 
-                    responses.append({
-                        'title': map_instance.title,
+                    # افزودن تگ‌ها
+                    if tags_to_add:
+                        map_obj.tags.add(*tags_to_add)
+
+                    success_count += 1
+                    results.append({
+                        'file': img_file.name,
                         'status': 'success',
-                        'message': f'Map uploaded successfully with tag: {tag.name}.'
+                        'map_id': map_obj.id,
+                        'tags_added': len(tags_to_add)
                     })
-                else:
-                    responses.append({
-                        'title': image_file.name,
+
+                except Exception as e:
+                    logger.error(f"Error processing {img_file.name}: {str(e)}", exc_info=True)
+                    results.append({
+                        'file': img_file.name,
                         'status': 'error',
-                        'message': f'TXT file {txt_file.name} is empty or invalid.'
+                        'message': str(e)
                     })
+                    continue  # ادامه پردازش بقیه فایل‌ها با وجود خطا
 
-            return JsonResponse({'status': 'success', 'message': responses})
+    except Exception as e:
+        logger.error(f"Transaction error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطای سیستمی: {str(e)}',
+            'results': results
+        }, status=500)
 
-        except IssueCategory.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': f'Category ID {category_id} does not exist.'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({
+        'status': 'partial_success' if 0 < success_count < len(images) else 'success' if success_count == len(images) else 'error',
+        'success_count': success_count,
+        'error_count': len(images) - success_count,
+        'results': results
+    }, status=200)
 
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+
+
 
 
 
