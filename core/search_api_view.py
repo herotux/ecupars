@@ -60,7 +60,7 @@ class DiagnosticPagination(PageNumberPagination):
     
 class SearchAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasSearchPermission]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
