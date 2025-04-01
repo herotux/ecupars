@@ -31,17 +31,18 @@ class HasSearchPermission(BasePermission):
                 return False
                 
             plan = subscription.plan
-            
-            # بررسی دسترسی بر اساس فیلترهای درخواستی
             filter_options = request.GET.getlist('filter_option', ['all'])
             
+            # کاربران همیشه می‌توانند در دسته‌های با دسترسی کامل جستجو کنند
+            if any(plan.full_access_categories.all()):
+                return True
+                
+            # بررسی دسترسی عمومی
+            if 'issues' in filter_options and not plan.access_to_issues:
+                return False
             if 'solutions' in filter_options and not plan.access_to_diagnostic_steps:
                 return False
-                
             if 'maps' in filter_options and not plan.access_to_maps:
-                return False
-                
-            if 'articles' in filter_options :
                 return False
                 
             return True
@@ -171,9 +172,9 @@ class SearchAPIView(APIView):
             ).distinct()
             results.extend(self.build_issue_results(issues))
 
-        # جستجوی Solutions
-        if ('solutions' in filter_options or 'all' in filter_options) and plan.access_to_diagnostic_steps:
-            # در دسته‌های با دسترسی کامل
+        # جستجوی Solutions - نسخه اصلاح شده
+        if 'solutions' in filter_options or 'all' in filter_options:
+            # همیشه در دسته‌های با دسترسی کامل جستجو می‌کنیم
             full_access_solutions = Solution.objects.filter(
                 Q(issues__category__in=full_access_ids) | Q(issues__isnull=True)
             ).filter(
@@ -183,19 +184,20 @@ class SearchAPIView(APIView):
             ).distinct()
             results.extend(self.build_solution_results(full_access_solutions, full_access_ids))
 
-            # در دسته‌های معمولی
-            solutions = Solution.objects.filter(
-                Q(issues__category__in=allowed_categories) | Q(issues__isnull=True)
-            ).filter(
-                Q(title__icontains=query) |
-                Q(description__icontains=query) |
-                Q(tags__name__icontains=query)
-            ).distinct()
-            results.extend(self.build_solution_results(solutions, allowed_categories))
+            # در دسته‌های معمولی فقط اگر دسترسی عمومی فعال باشد
+            if plan.access_to_diagnostic_steps:
+                solutions = Solution.objects.filter(
+                    Q(issues__category__in=allowed_categories) | Q(issues__isnull=True)
+                ).filter(
+                    Q(title__icontains=query) |
+                    Q(description__icontains=query) |
+                    Q(tags__name__icontains=query)
+                ).distinct()
+                results.extend(self.build_solution_results(solutions, allowed_categories))
 
-        # جستجوی Maps
-        if ('maps' in filter_options or 'all' in filter_options) and plan.access_to_maps:
-            # در دسته‌های با دسترسی کامل
+        # جستجوی Maps - نسخه اصلاح شده
+        if 'maps' in filter_options or 'all' in filter_options:
+            # همیشه در دسته‌های با دسترسی کامل جستجو می‌کنیم
             full_access_maps = Map.objects.filter(
                 category__in=full_access_ids
             ).filter(
@@ -204,38 +206,15 @@ class SearchAPIView(APIView):
             ).distinct()
             results.extend(self.build_map_results(full_access_maps))
 
-            # در دسته‌های معمولی
-            maps = Map.objects.filter(
-                category__in=allowed_categories
-            ).filter(
-                Q(title__icontains=query) |
-                Q(tags__name__icontains=query)
-            ).distinct()
-            results.extend(self.build_map_results(maps))
-
-        # جستجوی Articles
-        if ('articles' in filter_options or 'all' in filter_options):
-            # در دسته‌های با دسترسی کامل
-            full_access_articles = Article.objects.filter(
-                category__in=full_access_ids
-            ).filter(
-                Q(title__icontains=query) |
-                Q(content__icontains=query) |
-                Q(tags__name__icontains=query)
-            ).distinct()
-            results.extend(self.build_article_results(full_access_articles))
-
-            # در دسته‌های معمولی
-            articles = Article.objects.filter(
-                category__in=allowed_categories
-            ).filter(
-                Q(title__icontains=query) |
-                Q(content__icontains=query) |
-                Q(tags__name__icontains=query)
-            ).distinct()
-            results.extend(self.build_article_results(articles))
-
-        return results
+            # در دسته‌های معمولی فقط اگر دسترسی عمومی فعال باشد
+            if plan.access_to_maps:
+                maps = Map.objects.filter(
+                    category__in=allowed_categories
+                ).filter(
+                    Q(title__icontains=query) |
+                    Q(tags__name__icontains=query)
+                ).distinct()
+                results.extend(self.build_map_results(maps))
 
     # توابع ساخت نتایج (بدون تغییر)
     def build_issue_results(self, issues):
@@ -248,24 +227,40 @@ class SearchAPIView(APIView):
             }
         } for issue in issues]
 
-    def build_solution_results(self, solutions, allowed_categories):
+    def build_solution_results(self, solutions, full_access_ids, allowed_categories):
         results = []
+        allowed_category_ids = set(allowed_categories.values_list('id', flat=True)) | set(full_access_ids)
+        
         for solution in solutions:
             diagnostic_step = DiagnosticStep.objects.filter(
                 solution_id=solution.id
             ).first()
             
-            for issue in solution.issues.filter(category__in=allowed_categories):
+            # اگر راهکار به هیچ Issue مرتبط نیست
+            if not solution.issues.exists():
                 results.append({
                     'id': solution.id,
                     'type': 'solution',
                     'data': {
                         'step_id': diagnostic_step.id if diagnostic_step else None,
                         'solution': solution,
-                        'issue': issue,
-                        'full_category_name': issue.category.get_full_category_name()
+                        'issue': None,
+                        'full_category_name': None
                     }
                 })
+            else:
+                # فقط Issues مربوط به دسته‌بندی‌های مجاز
+                for issue in solution.issues.filter(category__id__in=allowed_category_ids):
+                    results.append({
+                        'id': solution.id,
+                        'type': 'solution',
+                        'data': {
+                            'step_id': diagnostic_step.id if diagnostic_step else None,
+                            'solution': solution,
+                            'issue': issue,
+                            'full_category_name': issue.category.get_full_category_name()
+                        }
+                    })
         return results
 
     def build_map_results(self, maps):
