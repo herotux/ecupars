@@ -1837,11 +1837,11 @@ def extract_tags_from_text(text_content):
     # حذف کاراکترهای خاص و تقسیم به خطوط
     lines = [line.strip() for line in text_content.split('\n') if line.strip()]
     
-    # تقسیم هر خط به کلمات/عبارات (با جداکننده کاما یا فاصله)
+    # تقسیم هر خط به کلمات/عبارات (با جداکننده کاما  )
     tags = []
     for line in lines:
         # تقسیم با کاما یا فاصله
-        parts = [part.strip() for part in line.replace(',', ' ').split() if part.strip()]
+        parts = [part.strip() for part in line.replace(',').split() if part.strip()]
         tags.extend(parts)
     
     # حذف تکراری‌ها و محدود کردن طول
@@ -1900,7 +1900,7 @@ def import_maps(request, category_id):
                     if not validate_image_file(img_file):
                         raise ValueError("فایل تصویر معتبر نیست")
                     
-                    # خواندن و اعتبارسنجی فایل متنی
+                    # خواندن کل محتوای فایل متنی به عنوان یک تگ واحد
                     try:
                         txt_content = txt_file.read().decode('utf-8-sig').strip()
                         txt_file.seek(0)
@@ -1912,13 +1912,11 @@ def import_maps(request, category_id):
                     if not title:
                         title = "نقشه بدون عنوان"
 
-                    # استخراج تگ‌ها از متن
+                    # ایجاد یک تگ از کل محتوای متن (اگر محتوا وجود دارد)
                     tags_to_add = []
                     if txt_content:
-                        tag_names = extract_tags_from_text(txt_content)
-                        for tag_name in tag_names:
-                            tag, _ = Tag.objects.get_or_create(name=tag_name)
-                            tags_to_add.append(tag)
+                        tag, _ = Tag.objects.get_or_create(name=txt_content)
+                        tags_to_add.append(tag)
 
                     # ایجاد نقشه
                     map_obj = Map.objects.create(
@@ -1929,7 +1927,7 @@ def import_maps(request, category_id):
                         updated_by=request.user
                     )
 
-                    # افزودن تگ‌ها
+                    # افزودن تگ
                     if tags_to_add:
                         map_obj.tags.add(*tags_to_add)
 
@@ -1938,7 +1936,7 @@ def import_maps(request, category_id):
                         'file': img_file.name,
                         'status': 'success',
                         'map_id': map_obj.id,
-                        'tags_added': len(tags_to_add)
+                        'tag_added': txt_content
                     })
 
                 except Exception as e:
