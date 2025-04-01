@@ -3829,13 +3829,6 @@ class UserProfileAPIView(APIView):
                         'description': subscription.plan.description,
                         'price': str(subscription.plan.price),  # تبدیل به رشته برای جلوگیری از خطاهای سریال‌سازی
                     },
-                    'active_categories': [
-                        {
-                            'id': category.id,
-                            'name': category.name
-                        }
-                        for category in subscription.active_categories.all()
-                    ],
                     'start_date': subscription.start_date,
                     'end_date': subscription.end_date,
                     'is_active': subscription.is_active(),
