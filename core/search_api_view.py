@@ -193,7 +193,7 @@ class SearchAPIView(APIView):
         if 'articles' in filter_options or 'all' in filter_options:
             articles = Article.objects.filter(
                 (Q(category__in=full_access_ids) | Q(category__in=allowed_categories)),
-                search_query
+                Q(title__icontains=query) | Q(content__icontains=query)
             ).distinct()
             results.extend(self.build_article_results(articles))
 
@@ -253,21 +253,44 @@ class SearchAPIView(APIView):
         } for map in maps]
 
     def build_article_results(self, articles):
-        return [{
-            'id': article.id,
-            'type': 'article',
-            'data': {
-                'article': {
+        results = []
+        for article in articles:
+            # اگر article یک دیکشنری است (مثلاً از annotate استفاده شده)
+            if isinstance(article, dict):
+                article_data = {
+                    'id': article.get('id'),
+                    'type': 'article',
+                    'data': {
+                        'article': {
+                            'id': article.get('id'),
+                            'title': article.get('title'),
+                            'content': article.get('content'),
+                            'author': article.get('author__username') if article.get('author') else None,
+                            'category_id': article.get('category_id'),
+                            'category_name': article.get('category__name') if article.get('category') else None
+                        },
+                        'full_category_name': article.get('category__name')  # یا هر فیلد دیگری که نام کامل دسته‌بندی را دارد
+                    }
+                }
+            else:
+                # اگر article یک مدل است
+                article_data = {
                     'id': article.id,
-                    'title': article.title,
-                    'content': article.content,
-                    'author': article.author.username,
-                    'category_id': article.category.id,
-                    'category_name': article.category.name
-                },
-                'full_category_name': article.category.get_full_category_name()
-            }
-        } for article in articles]
+                    'type': 'article',
+                    'data': {
+                        'article': {
+                            'id': article.id,
+                            'title': article.title,
+                            'content': article.content,
+                            'author': article.author.username if article.author else None,
+                            'category_id': article.category.id if article.category else None,
+                            'category_name': article.category.name if article.category else None
+                        },
+                        'full_category_name': article.category.get_full_category_name() if article.category else None
+                    }
+                }
+            results.append(article_data)
+        return results
     
 
 
