@@ -320,7 +320,7 @@ class UserActivity(models.Model):
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="نام")
     description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
-    access_to_all_categories = models.BooleanField(default=False, verbose_name="دسترسی به همه مراحل")
+    access_to_all_categories = models.BooleanField(default=False, verbose_name="دسترسی به همه دسته ها")
     access_to_diagnostic_steps = models.BooleanField(default=False, verbose_name="دسترسی به مراحل عیب یابی")
     access_to_maps = models.BooleanField(
         default=False,
