@@ -158,7 +158,7 @@ class SearchAPIView(APIView):
     def perform_search(self, query, filter_options, plan, allowed_categories):
         """Perform search across different models based on filter options"""
         results = []
-        search_query = Q(title__icontains=query) | Q(description__icontains=query)
+        search_query = Q(title__icontains=query)
         full_access_ids = set(plan.full_access_categories.values_list('id', flat=True))
 
         # Search in Issues
@@ -166,7 +166,7 @@ class SearchAPIView(APIView):
             if plan.access_to_issues or full_access_ids:
                 issues = Issue.objects.filter(
                     (Q(category__in=full_access_ids) | Q(category__in=allowed_categories)),
-                    search_query
+                    Q(title__icontains=query) | Q(description__icontains=query)
                 ).distinct()
                 results.extend(self.build_issue_results(issues))
 
@@ -174,11 +174,12 @@ class SearchAPIView(APIView):
         if ('solutions' in filter_options or 'all' in filter_options) and plan.access_to_diagnostic_steps:
             solutions = Solution.objects.filter(
                 (Q(issues__category__in=full_access_ids) | 
-                 Q(issues__category__in=allowed_categories) |
-                 Q(issues__isnull=True)),
-                search_query
+                Q(issues__category__in=allowed_categories) |
+                Q(issues__isnull=True)),
+                Q(title__icontains=query) | Q(description__icontains=query)
             ).distinct()
             results.extend(self.build_solution_results(solutions))
+
 
         # Search in Maps
         if ('maps' in filter_options or 'all' in filter_options) and plan.access_to_maps:
