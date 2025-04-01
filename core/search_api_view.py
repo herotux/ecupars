@@ -349,7 +349,7 @@ class UnifiedSearchAPIView(APIView):
                      Q(description__icontains=query) |
                      Q(tags__name__icontains=query))
                 )
-            results.extend(self.serialize_solutions(solutions))
+            results.extend(self.build_solution_results(solutions, allowed_categories))
 
         # جستجو در Maps
         if 'maps' in filter_options or 'all' in filter_options:
