@@ -318,15 +318,19 @@ class UserActivity(models.Model):
         return f"Activity for {self.user.username} - Login: {self.login_time}, Logout: {self.logout_time}"
 
 class SubscriptionPlan(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True, null=True)
-    access_to_all_categories = models.BooleanField(default=False)
-    access_to_diagnostic_steps = models.BooleanField(default=False)
+    name = models.CharField(max_length=50, unique=True, verbose_name="نام")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
+    access_to_all_categories = models.BooleanField(default=False, verbose_name="دسترسی به همه مراحل")
+    access_to_diagnostic_steps = models.BooleanField(default=False, verbose_name="دسترسی به مراحل عیب یابی")
     access_to_maps = models.BooleanField(
         default=False,
         verbose_name="دسترسی به نقشه‌ها"
     )
-    restricted_categories = models.ManyToManyField('IssueCategory', blank=True)
+    access_to_issues = models.BooleanField(
+        default=True,
+        verbose_name="دسترسی به خطاها"
+    )
+    restricted_categories = models.ManyToManyField('IssueCategory', blank=True, verbose_name="دسته های منع شده")
      # فیلد جدید برای دسته‌های با دسترسی ویژه
     full_access_categories = models.ManyToManyField(
         'IssueCategory',
@@ -334,7 +338,7 @@ class SubscriptionPlan(models.Model):
         related_name='plans_with_full_access',
         verbose_name="دسته‌های با دسترسی کامل"
     )
-    price = models.IntegerField(default=0)
+    price = models.IntegerField(default=0, verbose_name="بها")
 
     def __str__(self):
         return self.name

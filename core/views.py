@@ -2664,6 +2664,30 @@ class HasDiagnosticAccess(BasePermission):
 
 
 
+class HasCategoryContentAccess(BasePermission):
+    def has_permission(self, request, view):
+        category_id = view.kwargs.get('cat_id')
+        user = request.user
+        plan = user.subscription.plan
+        
+        # بررسی دسترسی به نقشه‌ها
+        if 'include_maps' in request.query_params and request.query_params['include_maps'].lower() == 'true':
+            if not plan.access_to_maps:
+                if not plan.full_access_categories.filter(id=category_id).exists():
+                    raise PermissionDenied("دسترسی به نقشه‌های این دسته مجاز نیست")
+
+        # بررسی دسترسی به خطاها
+        if 'include_issues' in request.query_params and request.query_params['include_issues'].lower() == 'true':
+            if not plan.access_to_issues:  # نیاز به اضافه کردن این فیلد به مدل
+                if not plan.full_access_categories.filter(id=category_id).exists():
+                    raise PermissionDenied("دسترسی به خطاهای این دسته مجاز نیست")
+
+        return True
+
+
+
+
+
 class HasDeviceAccess(BasePermission):
     def has_permission(self, request, view):
 
@@ -2706,69 +2730,74 @@ class HomeAPIView(APIView):
 
 class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, HasCategoryAccess]
+    permission_classes = [IsAuthenticated, HasCategoryAccess, HasCategoryContentAccess]
 
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
 
-        # گرفتن پارامترهای URL
-        include_issues = request.query_params.get('include_issues', 'true').lower() == 'true'
+        # گرفتن پارامترهای URL با اعمال پیش‌فرض‌های امن
+        include_issues = self.check_content_access(request, 'issues')
+        include_maps = self.check_content_access(request, 'maps')
+        include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
         include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
-        include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'  # پارامتر جدید
-        include_maps = request.query_params.get('include_maps', 'true').lower() == 'true'  # پارامتر جدید
 
         try:
-            # پیدا کردن دسته‌بندی اصلی
             category = IssueCategory.objects.get(id=cat_id)
-            category_serializer = IssueCategorySerializer(category)
-
             response_data = {
                 "status": "success",
-                "category": category_serializer.data,
+                "category": IssueCategorySerializer(category).data,
             }
 
-            # افزودن زیردسته‌ها اگر درخواست شده باشد
+            # افزودن محتوا بر اساس دسترسی‌ها
             if include_related_categories:
-                subcategories = IssueCategory.objects.filter(parent_category=category)
-                subcategories_serializer = IssueCategorySerializer(subcategories, many=True)
-                response_data["related_categories"] = subcategories_serializer.data
+                response_data["related_categories"] = IssueCategorySerializer(
+                    IssueCategory.objects.filter(parent_category=category), 
+                    many=True
+                ).data
 
-            # افزودن خطاها اگر درخواست شده باشد
-            if include_issues:
-                issues = Issue.objects.filter(category=cat_id)
-                issues_serializer = IssueSerializer(issues, many=True)
-                response_data["issues"] = issues_serializer.data
-
-            # افزودن مقالات اگر درخواست شده باشد
             if include_articles:
-                articles = Article.objects.filter(category=cat_id)
-                articles_serializer = ArticleSerializer(articles, many=True)
-                response_data["articles"] = articles_serializer.data
+                response_data["articles"] = ArticleSerializer(
+                    Article.objects.filter(category=cat_id),
+                    many=True
+                ).data
 
-            # افزودن نقشه‌ها اگر درخواست شده باشد
-            if include_maps:
-                maps = Map.objects.filter(category=cat_id)
-                maps_serializer = MapSerializer(maps, many=True)
-                response_data["maps"] = maps_serializer.data
+            if include_issues and self.has_issue_access(request.user, cat_id):
+                response_data["issues"] = IssueSerializer(
+                    Issue.objects.filter(category=cat_id),
+                    many=True
+                ).data
 
-            logger.debug(f"Category {cat_id} returned with filters: include_issues={include_issues}, include_related_categories={include_related_categories}, include_articles={include_articles}, include_maps={include_maps}")
+            if include_maps and self.has_map_access(request.user, cat_id):
+                response_data["maps"] = MapSerializer(
+                    Map.objects.filter(category=cat_id),
+                    many=True
+                ).data
 
-            response = Response(response_data)
-            response['Content-Type'] = 'application/json; charset=utf-8'
-            return response
+            return Response(response_data)
 
         except IssueCategory.DoesNotExist:
             logger.warning(f"Category with ID {cat_id} not found.")
             return Response({'status': 'error', 'message': 'Category not found.'}, status=404)
-
-        except ValueError as ve:
-            logger.error(f"ValueError occurred for category ID {cat_id}: {ve}")
-            return Response({'status': 'error', 'message': 'Invalid input provided.'}, status=400)
-
         except Exception as e:
-            logger.error(f"Unexpected error for category ID {cat_id}: {e}")
-            return Response({'status': 'error', 'message': 'An unexpected error occurred.'}, status=500)
+            logger.error(f"Unexpected error: {e}")
+            return Response({'status': 'error', 'message': 'Server error'}, status=500)
 
+    def check_content_access(self, request, content_type):
+        """بررسی وجود پارامتر و تبدیل به مقدار boolean"""
+        param = request.query_params.get(f'include_{content_type}', 'false')
+        return param.lower() == 'true'
+
+    def has_issue_access(self, user, category_id):
+        """بررسی دسترسی به خطاها"""
+        plan = user.subscription.plan
+        return (plan.access_to_issues or 
+                plan.full_access_categories.filter(id=category_id).exists())
+
+    def has_map_access(self, user, category_id):
+        """بررسی دسترسی به نقشه‌ها"""
+        plan = user.subscription.plan
+        return (plan.access_to_maps or 
+                plan.full_access_categories.filter(id=category_id).exists())
 
 
 
