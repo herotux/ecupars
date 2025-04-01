@@ -204,7 +204,12 @@ class SearchAPIView(APIView):
             'id': issue.id,
             'type': 'issue',
             'data': {
-                'issue': issue,
+                'issue': {
+                    'id': issue.id,
+                    'title': issue.title,
+                    'description': issue.description,
+                    'category_id': issue.category.id
+                },
                 'full_category_name': issue.category.get_full_category_name()
             }
         } for issue in issues]
@@ -216,14 +221,17 @@ class SearchAPIView(APIView):
                 solution_id=solution.id
             ).first()
             
-            # Handle solutions without issues
             if not solution.issues.exists():
                 results.append({
                     'id': solution.id,
                     'type': 'solution',
                     'data': {
                         'step_id': diagnostic_step.id if diagnostic_step else None,
-                        'solution': solution,
+                        'solution': {
+                            'id': solution.id,
+                            'title': solution.title,
+                            'description': solution.description
+                        },
                         'issue': None,
                         'full_category_name': None
                     }
@@ -235,8 +243,15 @@ class SearchAPIView(APIView):
                         'type': 'solution',
                         'data': {
                             'step_id': diagnostic_step.id if diagnostic_step else None,
-                            'solution': solution,
-                            'issue': issue,
+                            'solution': {
+                                'id': solution.id,
+                                'title': solution.title,
+                                'description': solution.description
+                            },
+                            'issue': {
+                                'id': issue.id,
+                                'title': issue.title
+                            },
                             'full_category_name': issue.category.get_full_category_name()
                         }
                     })
@@ -247,7 +262,10 @@ class SearchAPIView(APIView):
             'id': map.id,
             'type': 'map',
             'data': {
-                'map': map,
+                'map': {
+                    'id': map.id,
+                    'title': map.title
+                },
                 'full_category_name': map.category.get_full_category_name()
             }
         } for map in maps]
@@ -255,8 +273,18 @@ class SearchAPIView(APIView):
     def build_article_results(self, articles):
         results = []
         for article in articles:
-            # اگر article یک دیکشنری است (مثلاً از annotate استفاده شده)
-            if isinstance(article, dict):
+            # اگر article یک مدل Article است
+            if isinstance(article, Article):
+                article_data = {
+                    'id': article.id,
+                    'type': 'article',
+                    'data': {
+                        'article': ArticleSerializer(article).data,
+                        'full_category_name': article.category.get_full_category_name() if article.category else None
+                    }
+                }
+            # اگر article یک دیکشنری است (مثلاً از values() استفاده شده)
+            elif isinstance(article, dict):
                 article_data = {
                     'id': article.get('id'),
                     'type': 'article',
@@ -265,28 +293,17 @@ class SearchAPIView(APIView):
                             'id': article.get('id'),
                             'title': article.get('title'),
                             'content': article.get('content'),
-                            'author': article.get('author__username') if article.get('author') else None,
-                            'category_id': article.get('category_id'),
-                            'category_name': article.get('category__name') if article.get('category') else None
+                            'author_name': article.get('author__first_name', '') + ' ' + article.get('author__last_name', ''),
+                            'category': {
+                                'id': article.get('category_id'),
+                                'name': article.get('category__name')
+                            },
+                            'tags': [],
+                            'question': None,
+                            'created_at': article.get('created_at'),
+                            'updated_at': article.get('updated_at')
                         },
                         'full_category_name': article.get('category__name')  # یا هر فیلد دیگری که نام کامل دسته‌بندی را دارد
-                    }
-                }
-            else:
-                # اگر article یک مدل است
-                article_data = {
-                    'id': article.id,
-                    'type': 'article',
-                    'data': {
-                        'article': {
-                            'id': article.id,
-                            'title': article.title,
-                            'content': article.content,
-                            'author': article.author.username if article.author else None,
-                            'category_id': article.category.id if article.category else None,
-                            'category_name': article.category.name if article.category else None
-                        },
-                        'full_category_name': article.category.get_full_category_name() if article.category else None
                     }
                 }
             results.append(article_data)
