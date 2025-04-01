@@ -54,39 +54,55 @@ async function refreshToken() {
     return data.access;
 }
 
-// نمایش و مدیریت نتایج
-function displayResults(results, containerId, formatResult) {
-    const container = document.getElementById(containerId) || createResultsContainer(containerId);
+function displayResults(results) {
+    const container = document.getElementById('search-results');
     container.innerHTML = '';
-
-    if (!results || results.length === 0) {
-        container.innerHTML = '<div class="no-results">نتیجه‌ای یافت نشد</div>';
-        return;
+    
+    const groupedResults = groupResultsByType(results);
+    
+    for (const [type, items] of Object.entries(groupedResults)) {
+        const section = document.createElement('div');
+        section.className = 'results-section';
+        section.innerHTML = `
+            <h3 class="section-title">${getTypeTitle(type)}</h3>
+            <div class="items-container" id="${type}-items"></div>
+        `;
+        
+        container.appendChild(section);
+        
+        items.forEach(item => {
+            document.getElementById(`${type}-items`).appendChild(
+                createResultItem(item)
+            );
+        });
     }
+}
 
-    const resultsList = document.createElement('ul');
-    resultsList.className = 'search-results-list';
-
-    results.forEach(result => {
-        const listItem = document.createElement('li');
-        listItem.className = 'search-result-item';
-        
-        // استفاده از تابع formatSearchResult که لینک‌ها را ایجاد می‌کند
-        listItem.innerHTML = formatSearchResult(result);
-        
-        // اضافه کردن رویداد کلیک برای مدیریت بهتر
-        const link = listItem.querySelector('.result-link');
-        if (link) {
-            link.addEventListener('click', (e) => {
-                // می‌توانید اینجا رویدادهای اضافه مثل analytics را ثبت کنید
-                console.log('User clicked on:', result.type, 'with id:', result.id);
-            });
+function groupResultsByType(results) {
+    return results.reduce((groups, item) => {
+        if (!groups[item.type]) {
+            groups[item.type] = [];
         }
-        
-        resultsList.appendChild(listItem);
-    });
+        groups[item.type].push(item);
+        return groups;
+    }, {});
+}
 
-    container.appendChild(resultsList);
+function getTypeTitle(type) {
+    const titles = {
+        'issue': 'خطاها',
+        'solution': 'راهکارها',
+        'map': 'نقشه‌ها',
+        'article': 'مقالات'
+    };
+    return titles[type] || type;
+}
+
+function createResultItem(result) {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.innerHTML = formatSearchResult(result); // از تابع موجود شما
+    return item;
 }
 
 function createResultsContainer(id) {
@@ -278,27 +294,71 @@ function formatSearchResult(result) {
 }
 
 
-async function performSearch(query, options = {}) {
-    try {
-        if (!query || query.length < 2) return;
+let activeSearchQuery = null;
 
-        const params = new URLSearchParams();
-        params.append('query', query);
+async function performSearch(query, options = {}) {
+    // ذخیره آخرین کوئری جستجو
+    activeSearchQuery = query;
+    
+    try {
+        if (!query || query.length < 2) {
+            clearResults();
+            return;
+        }
+
+        showLoader();
         
+        const params = new URLSearchParams();
+        params.append('query', query.trim());
+        
+        // اضافه کردن پارامترهای فیلتر
         if (options.filterOption) params.append('filter_option', options.filterOption);
         if (options.categoryId) params.append('category_id', options.categoryId);
         if (options.subcategoryId) params.append('subcategory_id', options.subcategoryId);
 
-        const response = await fetchWithAuth(`https://django-noxeas.chbk.app/api/v1/search/?${params.toString()}`);
+        const response = await fetchWithAuth(`/api/v1/search/?${params.toString()}`);
+        
+        // بررسی اگر این آخرین درخواست جستجو نباشد
+        if (query !== activeSearchQuery) return;
+        
         const data = await response.json();
-
-        displayResults(data.results, 'search-results', formatSearchResult);
-
+        
+        if (data.results && data.results.length > 0) {
+            displayResults(data.results);
+        } else {
+            showNoResults();
+        }
     } catch (error) {
-        console.error('خطا در جستجو:', error);
-        const container = document.getElementById('search-results') || createResultsContainer('search-results');
-        container.innerHTML = `<div class="error">${error.message}</div>`;
+        if (query === activeSearchQuery) {
+            showError(error);
+        }
+    } finally {
+        if (query === activeSearchQuery) {
+            hideLoader();
+        }
     }
+}
+
+// توابع کمکی
+function clearResults() {
+    document.getElementById('search-results').innerHTML = '';
+}
+
+function showLoader() {
+    document.getElementById('search-results').innerHTML = '<div class="loader">در حال جستجو...</div>';
+}
+
+function hideLoader() {
+    const loader = document.querySelector('.loader');
+    if (loader) loader.remove();
+}
+
+function showNoResults() {
+    document.getElementById('search-results').innerHTML = '<div class="no-results">نتیجه‌ای یافت نشد</div>';
+}
+
+function showError(error) {
+    document.getElementById('search-results').innerHTML = `<div class="error">خطا: ${error.message}</div>`;
 }
 
 // مدیریت رویدادهای جستجو

@@ -109,3 +109,66 @@
 .result-type.solution { background-color: #2ecc71; }
 .result-type.map { background-color: #3498db; }
 .result-type.article { background-color: #9b59b6; }
+
+
+
+/* استایل‌های پایه */
+.search-results-container {
+    margin-top: 20px;
+}
+
+.results-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+.items-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.result-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* استایل‌های نوع نتیجه */
+.result-type {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+}
+
+/* رنگ‌بندی انواع نتایج */
+.result-type.issue { background: #ffebee; color: #c62828; }
+.result-type.solution { background: #e8f5e9; color: #2e7d32; }
+.result-type.map { background: #e3f2fd; color: #1565c0; }
+.result-type.article { background: #f3e5f5; color: #6a1b9a; }
+
+/* وضعیت‌های مختلف */
+.loader, .no-results, .error {
+    padding: 20px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.error {
+    color: #d32f2f;
+}
