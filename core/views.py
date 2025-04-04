@@ -205,19 +205,7 @@ class HasCategoryContentAccess(BaseAccessPermission):
     def has_permission(self, request, view):
         plan = self.check_subscription(request.user)
         category_id = view.kwargs.get('cat_id')
-        
-        # بررسی دسترسی پایه
-        self.check_category_access(plan, category_id)
-        
-        # بررسی دسترسی به نقشه‌ها
-        if request.query_params.get('include_maps', '').lower() == 'true' and not plan.access_to_maps:
-            raise self.exception_class("دسترسی به نقشه‌های این دسته مجاز نیست")
-
-        # بررسی دسترسی به خطاها
-        if request.query_params.get('include_issues', '').lower() == 'true' and not plan.access_to_issues:
-            raise self.exception_class("دسترسی به خطاهای این دسته مجاز نیست")
-
-        return True
+        return self.check_category_access(plan, category_id)  # فقط بررسی دسترسی به دسته‌بندی
 
 
 class HasDeviceAccess(BaseAccessPermission):
@@ -2828,12 +2816,6 @@ class UserCarDetail(APIView):
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
 
-        # گرفتن پارامترهای URL
-        include_issues = self.check_content_access(request, 'issues')
-        include_maps = self.check_content_access(request, 'maps')
-        include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
-        include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
-
         try:
             category = IssueCategory.objects.get(id=cat_id)
             plan = request.user.subscription.plan
@@ -2843,6 +2825,12 @@ class UserCarDetail(APIView):
                 "status": "success",
                 "category": IssueCategorySerializer(category).data,
             }
+
+            # پارامترهای URL
+            include_issues = request.query_params.get('include_issues', 'false').lower() == 'true'
+            include_maps = request.query_params.get('include_maps', 'false').lower() == 'true'
+            include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
+            include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
 
             # افزودن محتوا بر اساس دسترسی‌ها
             if include_related_categories:
@@ -2857,14 +2845,14 @@ class UserCarDetail(APIView):
                     many=True
                 ).data
 
-            # اگر دسته full_access باشد یا دسترسی به خطاها فعال باشد
+            # اگر دسترسی به خطاها وجود دارد و پارامتر include_issues=true است
             if include_issues and (is_full_access or plan.access_to_issues):
                 response_data["issues"] = IssueSerializer(
                     Issue.objects.filter(category=cat_id),
                     many=True
                 ).data
 
-            # اگر دسته full_access باشد یا دسترسی به نقشه‌ها فعال باشد
+            # اگر دسترسی به نقشه‌ها وجود دارد و پارامتر include_maps=true است
             if include_maps and (is_full_access or plan.access_to_maps):
                 response_data["maps"] = MapSerializer(
                     Map.objects.filter(category=cat_id),
@@ -2879,11 +2867,6 @@ class UserCarDetail(APIView):
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             return Response({'status': 'error', 'message': 'Server error'}, status=500)
-
-    def check_content_access(self, request, content_type):
-        """بررسی وجود پارامتر و تبدیل به مقدار boolean"""
-        param = request.query_params.get(f'include_{content_type}', 'false')
-        return param.lower() == 'true'
 
 
 
