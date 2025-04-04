@@ -4,71 +4,72 @@
 {% block title %} جستجو {% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'search/search.css' %}">
-<link rel="stylesheet" href="{% static 'search/bootstrap/bootstrap.min.css' %}">    
+<link rel="stylesheet" href="{% static 'search/bootstrap/bootstrap.min.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 {% endblock %}
-    
+
 {% block content %}
-    <section class="container">
+<section class="container">
 
-        <div class="search-box">
-            <a href="" data-bs-toggle="modal" data-bs-target="#mymodal"><i
-                    class="fa fa-filter text-white icon-filter"></i></a>
-            <input class="form-control mt-3 bg-black text-white" type="text" placeholder="جستجو . . . .">
-        </div>
+    <div class="search-box">
+        <a href="" data-bs-toggle="modal" data-bs-target="#mymodal"><i
+                class="fa fa-filter text-white icon-filter"></i></a>
+        <input class="form-control mt-3 bg-black text-white" type="text" placeholder="جستجو . . . .">
+        <button class="btn btn-success">جستجو</button>
+    </div>
 
-        <div>
-            <ul class="nav  justify-content-around h4 mt-5 rounded nav-pills nav-justified ">
-                <li class="nav-item">
-                    <a href="" class="nav-link  rounded active">همه</a>
-                </li>
-                <li class="nav-item">
-                    <a href="" class="nav-link  ">خطا ها</a>
-                </li>
-                <li class="nav-item">
-                    <a href="" class="nav-link  ">راهکار ها</a>
-                </li>
-                <li class="nav-item">
-                    <a href="" class="nav-link ">نقشه ها</a>
-                </li>
-                <li class="nav-item">
-                    <a href="" class="nav-link  ">مقالات</a>
-                </li>
-            </ul>
-        </div>
+    <div>
+        <ul class="nav  justify-content-around h4 mt-5 rounded nav-pills nav-justified ">
+            <li class="nav-item">
+                <a href="" class="nav-link" onclick="filterResults('همه')">همه</a>
+            </li>
+            <li class="nav-item">
+                <a href="" class="nav-link" onclick="filterResults('خطا ها')">خطا ها</a>
+            </li>
+            <li class="nav-item">
+                <a href="" class="nav-link" onclick="filterResults('راهکار ها')">راهکار ها</a>
+            </li>
+            <li class="nav-item">
+                <a href="" class="nav-link" onclick="filterResults('نقشه ها')">نقشه ها</a>
+            </li>
+            <li class="nav-item">
+                <a href="" class="nav-link" onclick="filterResults('مقالات')">مقالات</a>
+            </li>
+        </ul>
+    </div>
 
-        <!-- مودال -->
-        <div class="modal fade modal" id="mymodal" data-bs-backdrop="static">
-            <div class="modal-dialog modal-dialog-scrollable  " style="border-radius: 30px;">
-                <div class="modal-content ">
-                    <div class="modal-header">
-                        <h5>دسته بندی ها</h5>
-                        <button style="border-radius: 5px;" class="close" type="button" data-bs-dismiss="modal">
-                            <span>&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- دسته بندی ها -->
-                        <ul id="categories-list">
+    <!-- مودال -->
+    <div class="modal fade modal" id="mymodal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable  " style="border-radius: 30px;">
+            <div class="modal-content ">
+                <div class="modal-header">
+                    <h5>دسته بندی ها</h5>
+                    <button style="border-radius: 5px;" class="close" type="button" data-bs-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- دسته بندی ها -->
+                    <ul id="categories-list">
 
-                        </ul>
-                    </div>
+                    </ul>
                 </div>
             </div>
+        </div>
 
 
 
 
 
-    </section>
+</section>
 
-    {% endblock %}
+{% endblock %}
 
 {% block extra_js %}
-    <script src="{% static 'search/search.js' %}"></script>
-    <script src="{% static 'search/bootstrap/jquery-3.7.1.slim.min.js' %}"></script>
-    <script src="{% static 'search/bootstrap/bootstrap.bundle.min.js' %}"></script>
-{% endblock %}  
+<script src="{% static 'search/search.js' %}"></script>
+<script src="{% static 'search/bootstrap/jquery-3.7.1.slim.min.js' %}"></script>
+<script src="{% static 'search/bootstrap/bootstrap.bundle.min.js' %}"></script>
+{% endblock %}
 
 </body>
 

@@ -57,9 +57,9 @@ async function refreshToken() {
 function displayResults(results) {
     const container = document.getElementById('search-results');
     container.innerHTML = '';
-    
+
     const groupedResults = groupResultsByType(results);
-    
+
     for (const [type, items] of Object.entries(groupedResults)) {
         const section = document.createElement('div');
         section.className = 'results-section';
@@ -67,9 +67,9 @@ function displayResults(results) {
             <h3 class="section-title">${getTypeTitle(type)}</h3>
             <div class="items-container" id="${type}-items"></div>
         `;
-        
+
         container.appendChild(section);
-        
+
         items.forEach(item => {
             document.getElementById(`${type}-items`).appendChild(
                 createResultItem(item)
@@ -147,11 +147,11 @@ function createCategoryItem(category) {
     if (category.subcategories?.length > 0) {
         const submenu = document.createElement('ul');
         submenu.className = 'nav';
-        
+
         category.subcategories.forEach(subcategory => {
             submenu.appendChild(createCategoryItem(subcategory));
         });
-        
+
         item.appendChild(submenu);
     }
 
@@ -169,17 +169,17 @@ async function loadCategories() {
         // افزودن گزینه جستجوی آزاد
         const searchItem = document.createElement('li');
         searchItem.className = 'nav-item';
-        
+
         const searchCheckbox = document.createElement('input');
         searchCheckbox.type = 'checkbox';
         searchCheckbox.id = 'search-checkbox';
         searchItem.appendChild(searchCheckbox);
-        
+
         const searchLabel = document.createElement('label');
         searchLabel.textContent = 'جستجوی آزاد';
         searchLabel.htmlFor = 'search-checkbox';
         searchItem.appendChild(searchLabel);
-        
+
         categoriesList.appendChild(searchItem);
 
         // افزودن دسته‌بندی‌ها
@@ -211,7 +211,7 @@ function setupCategoryEvents() {
                 const li = e.target.tagName === 'LABEL' ? e.target.parentElement : e.target;
                 const submenu = li.querySelector('ul');
                 const icon = li.querySelector('i');
-                
+
                 if (submenu) {
                     if (submenu.style.display === 'block') {
                         submenu.style.display = 'none';
@@ -234,7 +234,7 @@ let searchTimeout;
 
 function formatSearchResult(result) {
     let link, title, content;
-    
+
     switch (result.type) {
         case 'issue':
             link = `/user_issue/${result.data.issue.id}/`;
@@ -248,7 +248,7 @@ function formatSearchResult(result) {
                     <div class="category">${result.data.full_category_name || ''}</div>
                 </a>
             `;
-            
+
         case 'solution':
             // توجه: step_id باید از داده‌های راهکار استخراج شود
             const stepId = result.data.step_id || 'unknown';
@@ -263,7 +263,7 @@ function formatSearchResult(result) {
                     <div class="category">${result.data.full_category_name || ''}</div>
                 </a>
             `;
-            
+
         case 'map':
             link = `/user_map/${result.data.map.id}/`;
             title = result.data.map.title;
@@ -274,7 +274,7 @@ function formatSearchResult(result) {
                     <div class="category">${result.data.full_category_name || ''}</div>
                 </a>
             `;
-            
+
         case 'article':
             link = `/user_article/${result.data.article.id}/`;
             title = result.data.article.title;
@@ -287,7 +287,7 @@ function formatSearchResult(result) {
                     <div class="category">${result.data.full_category_name || ''}</div>
                 </a>
             `;
-            
+
         default:
             return `<div class="result-link">نوع نتیجه نامشخص</div>`;
     }
@@ -299,7 +299,7 @@ let activeSearchQuery = null;
 async function performSearch(query, options = {}) {
     // ذخیره آخرین کوئری جستجو
     activeSearchQuery = query;
-    
+
     try {
         if (!query || query.length < 2) {
             clearResults();
@@ -307,22 +307,22 @@ async function performSearch(query, options = {}) {
         }
 
         showLoader();
-        
+
         const params = new URLSearchParams();
         params.append('query', query.trim());
-        
+
         // اضافه کردن پارامترهای فیلتر
         if (options.filterOption) params.append('filter_option', options.filterOption);
         if (options.categoryId) params.append('category_id', options.categoryId);
         if (options.subcategoryId) params.append('subcategory_id', options.subcategoryId);
 
         const response = await fetchWithAuth(`/api/v1/search/?${params.toString()}`);
-        
+
         // بررسی اگر این آخرین درخواست جستجو نباشد
         if (query !== activeSearchQuery) return;
-        
+
         const data = await response.json();
-        
+
         if (data.results && data.results.length > 0) {
             displayResults(data.results);
         } else {
@@ -361,8 +361,11 @@ function showError(error) {
     document.getElementById('search-results').innerHTML = `<div class="error">خطا: ${error.message}</div>`;
 }
 
+
+const searchButton = document.querySelector('.btn.btn-success');
+
 // مدیریت رویدادهای جستجو
-searchInput.addEventListener('input', () => {
+searchButton.addEventListener('click', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         const query = searchInput.value.trim();
@@ -380,23 +383,58 @@ async function searchIssues(query) {
 }
 
 async function searchAdvanced(query, categoryId, subcategoryId) {
-    await performSearch(query, { 
+    await performSearch(query, {
         filterOption: 'solutions,issues',
         categoryId,
         subcategoryId
     });
 }
 
+
 // مقداردهی اولیه
 // =============
 
 window.addEventListener('DOMContentLoaded', () => {
     loadCategories();
-    
+
     // بررسی وضعیت احراز هویت
     if (!localStorage.getItem('access_token')) {
         console.warn('کاربر وارد نشده است');
         // میتوانید کاربر را به صفحه لاگین هدایت کنید
         // window.location.href = '/login';
     }
+});
+
+
+
+let searchResults = [];
+
+function filterResults(type) {
+    if (type === 'همه') {
+        displayResults(searchResults);
+    } else {
+        const filteredResults = searchResults.filter(result => result.type === type);
+        displayResults(filteredResults);
+    }
+}
+
+function displayResults(results) {
+    const resultsList = document.getElementById('results-list');
+    resultsList.innerHTML = '';
+    results.forEach(result => {
+        const resultElement = document.createElement('li');
+        resultElement.textContent = result.title;
+        resultsList.appendChild(resultElement);
+    });
+}
+
+// اضافه کردن رویداد به دکمه‌ها
+document.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            const type = link.textContent.trim();
+            filterResults(type);
+        });
+    });
 });
