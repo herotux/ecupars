@@ -396,60 +396,67 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
     });
 }
 
-// همه
-const allbtn = document.getElementById('all-btn')
 
-// خطا ها
-const errors = document.getElementById('issue-items')
-const errorbtn = document.getElementById('errors-btn')
 
-// مقالات
-const article = document.getElementById('article-items')
-const articlebtn = document.getElementById('article-btn')
 
-// راهکار ها
-const section = document.getElementById('section-title')
-const sectionbtn = document.getElementById('section-btn')
 
-// مپ ها
-const maps = document.getElementById('maps')
-const mapsbtn = document.getElementById('maps-btn')
 
-allbtn.addEventListener('click', () => {
-    errors.style.display = 'block'
-    article.style.display = 'block'
-    section.style.display = 'block'
-    maps.style.display = 'block'
-})
+window.addEventListener('DOMContentLoaded', () => {
+    // همه
+    const allbtn = document.getElementById('all-btn')
 
-errorbtn.addEventListener('click', () => {
-    errors.style.display = 'block'
-    article.style.display = 'none'
-    section.style.display = 'none'
-    maps.style.display = 'none'
-})
+    // خطا ها
+    const errors = document.getElementById('issue-items')
+    const errorbtn = document.getElementById('errors-btn')
 
-articlebtn.addEventListener('click', () => {
-    errors.style.display = 'none'
-    article.style.display = 'block'
-    section.style.display = 'none'
-    maps.style.display = 'none'
-})
+    // مقالات
+    const article = document.getElementById('article-items')
+    const articlebtn = document.getElementById('article-btn')
 
-sectionbtn.addEventListener('click', () => {
-    errors.style.display = 'none'
-    article.style.display = 'none'
-    section.style.display = 'block'
-    maps.style.display = 'none'
-})
+    // راهکار ها
+    const section = document.getElementById('section-title')
+    const sectionbtn = document.getElementById('section-btn')
 
-mapsbtn.addEventListener('click', () => {
-    errors.style.display = 'none'
-    article.style.display = 'none'
-    section.style.display = 'none'
-    maps.style.display = 'block'
-})
+    // مپ ها
+    const maps = document.getElementById('maps')
+    const mapsbtn = document.getElementById('maps-btn')
 
+
+    allbtn.addEventListener('click', () => {
+        errors.style.display = 'block'
+        article.style.display = 'block'
+        section.style.display = 'block'
+        maps.style.display = 'block'
+    })
+
+    errorbtn.addEventListener('click', () => {
+        errors.style.display = 'block'
+        article.style.display = 'none'
+        section.style.display = 'none'
+        maps.style.display = 'none'
+    })
+
+    articlebtn.addEventListener('click', () => {
+        errors.style.display = 'none'
+        article.style.display = 'block'
+        section.style.display = 'none'
+        maps.style.display = 'none'
+    })
+
+    sectionbtn.addEventListener('click', () => {
+        errors.style.display = 'none'
+        article.style.display = 'none'
+        section.style.display = 'block'
+        maps.style.display = 'none'
+    })
+
+    mapsbtn.addEventListener('click', () => {
+        errors.style.display = 'none'
+        article.style.display = 'none'
+        section.style.display = 'none'
+        maps.style.display = 'block'
+    })
+});
 
 
 // مقداردهی اولیه
