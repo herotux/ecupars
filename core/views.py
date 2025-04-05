@@ -2813,51 +2813,73 @@ class UserCarDetail(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, HasCategoryAccess, HasCategoryContentAccess]
 
+    def check_full_access_hierarchy(self, plan, category):
+        """
+        Check if user has full access to this category and all its parent categories
+        up to the root level.
+        """
+        current = category
+        while current:
+            if not plan.full_access_categories.filter(id=current.id).exists():
+                return False
+            current = current.parent_category
+        return True
+
     def get(self, request, cat_id):
         logger.info(f"User {request.user} accessed car details for ID {cat_id}.")
 
         try:
             category = IssueCategory.objects.get(id=cat_id)
             plan = request.user.subscription.plan
-            is_full_access = plan.full_access_categories.filter(id=cat_id).exists()
+            
+            # Check full access through the entire category hierarchy
+            is_full_access = self.check_full_access_hierarchy(plan, category)
 
             response_data = {
                 "status": "success",
                 "category": IssueCategorySerializer(category).data,
+                "has_full_access": is_full_access,  # Add this for client-side info
             }
 
-            # پارامترهای URL
+            # Get URL parameters
             include_issues = request.query_params.get('include_issues', 'false').lower() == 'true'
             include_maps = request.query_params.get('include_maps', 'false').lower() == 'true'
             include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
             include_related_categories = request.query_params.get('include_related_categories', 'true').lower() == 'true'
 
-            # افزودن محتوا بر اساس دسترسی‌ها
+            # Add related categories if requested
             if include_related_categories:
                 response_data["related_categories"] = IssueCategorySerializer(
                     IssueCategory.objects.filter(parent_category=category), 
                     many=True
                 ).data
 
+            # Always include articles if requested (basic access)
             if include_articles:
                 response_data["articles"] = ArticleSerializer(
                     Article.objects.filter(category=cat_id),
                     many=True
                 ).data
 
-            # اگر دسترسی به خطاها وجود دارد و پارامتر include_issues=true است
-            if include_issues and (is_full_access or plan.access_to_issues):
-                response_data["issues"] = IssueSerializer(
-                    Issue.objects.filter(category=cat_id),
-                    many=True
-                ).data
+            # Add issues if requested and has access
+            if include_issues:
+                if is_full_access or plan.access_to_issues:
+                    response_data["issues"] = IssueSerializer(
+                        Issue.objects.filter(category=cat_id),
+                        many=True
+                    ).data
+                else:
+                    response_data["issues_access_denied"] = True
 
-            # اگر دسترسی به نقشه‌ها وجود دارد و پارامتر include_maps=true است
-            if include_maps and (is_full_access or plan.access_to_maps):
-                response_data["maps"] = MapSerializer(
-                    Map.objects.filter(category=cat_id),
-                    many=True
-                ).data
+            # Add maps if requested and has access
+            if include_maps:
+                if is_full_access or plan.access_to_maps:
+                    response_data["maps"] = MapSerializer(
+                        Map.objects.filter(category=cat_id),
+                        many=True
+                    ).data
+                else:
+                    response_data["maps_access_denied"] = True
 
             return Response(response_data)
 
