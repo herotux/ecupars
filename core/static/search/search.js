@@ -113,6 +113,7 @@ function createResultsContainer(id) {
     return container;
 }
 
+
 // دسته‌بندی‌ها
 // ==========
 
@@ -204,27 +205,6 @@ async function loadCategories() {
     }
 }
 
-// function setupCategoryEvents() {
-//     document.querySelectorAll('#categories-list .nav-item').forEach(item => {
-//         item.addEventListener('click', (e) => {
-//             if (e.target.tagName === 'LI' || e.target.tagName === 'LABEL') {
-//                 const li = e.target.tagName === 'LABEL' ? e.target.parentElement : e.target;
-//                 const submenu = li.querySelector('ul');
-//                 const icon = li.querySelector('i');
-
-//                 if (submenu) {
-//                     if (submenu.style.display === 'block') {
-//                         submenu.style.display = 'none';
-//                         if (icon) icon.className = 'fas fa-chevron-left';
-//                     } else {
-//                         submenu.style.display = 'block';
-//                         if (icon) icon.className = 'fas fa-chevron-down';
-//                     }
-//                 }
-//             }
-//         });
-//     });
-// }
 
 const categoriesListItems = document.querySelectorAll('#categories-list');
 
@@ -416,7 +396,59 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
     });
 }
 
+// همه
+const allbtn = document.getElementById('all-btn')
 
+// خطا ها
+const errors = document.getElementById('issue-items')
+const errorbtn = document.getElementById('errors-btn')
+
+// مقالات
+const article = document.getElementById('article-items')
+const articlebtn = document.getElementById('article-btn')
+
+// راهکار ها
+const section = document.getElementById('section-title')
+const sectionbtn = document.getElementById('section-btn')
+
+// مپ ها
+const maps = document.getElementById('maps')
+const mapsbtn = document.getElementById('maps-btn')
+
+allbtn.addEventListener('click', () => {
+    errors.style.display = 'block'
+    article.style.display = 'block'
+    section.style.display = 'block'
+    maps.style.display = 'block'
+})
+
+errorbtn.addEventListener('click', () => {
+    errors.style.display = 'block'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+})
+
+articlebtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'block'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+})
+
+sectionbtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'block'
+    maps.style.display = 'none'
+})
+
+mapsbtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'block'
+})
 
 
 
