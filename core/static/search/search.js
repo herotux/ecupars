@@ -392,21 +392,6 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
 }
 
 
-// مقداردهی اولیه
-// =============
-
-window.addEventListener('DOMContentLoaded', () => {
-    loadCategories();
-
-    // بررسی وضعیت احراز هویت
-    if (!localStorage.getItem('access_token')) {
-        console.warn('کاربر وارد نشده است');
-        // میتوانید کاربر را به صفحه لاگین هدایت کنید
-        // window.location.href = '/login';
-    }
-});
-
-
 
 let searchResults = [];
 
@@ -439,3 +424,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+
+// مقداردهی اولیه
+// =============
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
+
+    // بررسی وضعیت احراز هویت
+    if (!localStorage.getItem('access_token')) {
+        console.warn('کاربر وارد نشده است');
+        // میتوانید کاربر را به صفحه لاگین هدایت کنید
+        // window.location.href = '/login';
+    }
+});
+
