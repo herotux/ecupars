@@ -204,27 +204,51 @@ async function loadCategories() {
     }
 }
 
-function setupCategoryEvents() {
-    document.querySelectorAll('#categories-list .nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            if (e.target.tagName === 'LI' || e.target.tagName === 'LABEL') {
-                const li = e.target.tagName === 'LABEL' ? e.target.parentElement : e.target;
-                const submenu = li.querySelector('ul');
-                const icon = li.querySelector('i');
+// function setupCategoryEvents() {
+//     document.querySelectorAll('#categories-list .nav-item').forEach(item => {
+//         item.addEventListener('click', (e) => {
+//             if (e.target.tagName === 'LI' || e.target.tagName === 'LABEL') {
+//                 const li = e.target.tagName === 'LABEL' ? e.target.parentElement : e.target;
+//                 const submenu = li.querySelector('ul');
+//                 const icon = li.querySelector('i');
 
+//                 if (submenu) {
+//                     if (submenu.style.display === 'block') {
+//                         submenu.style.display = 'none';
+//                         if (icon) icon.className = 'fas fa-chevron-left';
+//                     } else {
+//                         submenu.style.display = 'block';
+//                         if (icon) icon.className = 'fas fa-chevron-down';
+//                     }
+//                 }
+//             }
+//         });
+//     });
+// }
+
+const categoriesListItems = document.querySelectorAll('#categories-list');
+
+function setupCategoryEvents() {
+    categoriesListItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI') {
+                const submenu = e.target.querySelector('ul');
                 if (submenu) {
                     if (submenu.style.display === 'block') {
                         submenu.style.display = 'none';
-                        if (icon) icon.className = 'fas fa-chevron-left';
+                        e.target.querySelector('i').className = 'fas fa-chevron-left';
                     } else {
                         submenu.style.display = 'block';
-                        if (icon) icon.className = 'fas fa-chevron-down';
+                        e.target.querySelector('i').className = 'fas fa-chevron-down';
                     }
                 }
             }
         });
     });
 }
+
+
+
 
 // جستجو
 // =====
@@ -293,6 +317,7 @@ function formatSearchResult(result) {
     }
 }
 
+
 let activeSearchQuery = null;
 
 async function performSearch(query, options = {}) {
@@ -349,6 +374,7 @@ searchButton.addEventListener('click', () => {
     }, 500);
 });
 
+
 // توابع کمکی
 function clearResults() {
     document.getElementById('search-results').innerHTML = '';
@@ -389,6 +415,8 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
         subcategoryId
     });
 }
+
+
 
 
 
