@@ -2536,7 +2536,8 @@ def subscribe(request, plan_id):
 
         # ارسال درخواست پرداخت با توجه به حالت sandbox
         payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=sandbox)
-        result = payment_handler.request_payment(callback_url, description, mobile=request.user.phone_number, email=request.user.email)
+        result = payment_handler.request_payment(callback_url, description, mobile=request.user.phone_number, email=request.user.email if request.user.email else None)
+
         print(result)
         if result.get('success') and result['data']:
             # ذخیره Authority برای تأیید پرداخت
@@ -3318,13 +3319,13 @@ class PaymentRequestAPIView(APIView):
             payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
             
 
-            payment_kwargs = {}
-            if user_phone and user_phone.strip():
-                payment_kwargs['mobile'] = user_phone.strip()
-            if user_email and user_email.strip():  
-                payment_kwargs['email'] = user_email.strip()
                 
-            result = payment_handler.request_payment(callback_url, description, **payment_kwargs)
+            result = payment_handler.request_payment(
+                callback_url, 
+                description,
+                email=user_email.strip() if user_email else None,
+                mobile=user_phone.strip() if user_phone else None
+            )
             
             if result.get('success') and result['data']:
                 authority = result['data'].get('authority')
