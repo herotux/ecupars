@@ -339,16 +339,6 @@ async function performSearch(query, options = {}) {
     }
 }
 
-const searchButton = document.querySelector('.btn.btn-success');
-
-// مدیریت رویدادهای جستجو
-searchButton.addEventListener('click', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        const query = searchInput.value.trim();
-        performSearch(query);
-    }, 500);
-});
 
 // توابع کمکی
 function clearResults() {
@@ -392,37 +382,49 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
 }
 
 
-// let searchResults = [];
+const searchButton = document.querySelector('.btn.btn-success');
 
-// function filterResults(type) {
-//     if (type === 'همه') {
-//         displayResults(searchResults);
-//     } else {
-//         const filteredResults = searchResults.filter(result => result.type === type);
-//         displayResults(filteredResults);
-//     }
-// }
+// مدیریت رویدادهای جستجو
+searchButton.addEventListener('click', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = searchInput.value.trim();
+        performSearch(query);
+    }, 500);
+});
 
-// function displayResults(results) {
-//     const resultsList = document.getElementById('results-list');
-//     resultsList.innerHTML = '';
-//     results.forEach(result => {
-//         const resultElement = document.createElement('li');
-//         resultElement.textContent = result.title;
-//         resultsList.appendChild(resultElement);
-//     });
-// }
 
-// // اضافه کردن رویداد به دکمه‌ها
-// document.addEventListener('DOMContentLoaded', () => {
-//     const navLinks = document.querySelectorAll('.nav-link');
-//     navLinks.forEach(link => {
-//         link.addEventListener('click', () => {
-//             const type = link.textContent.trim();
-//             filterResults(type);
-//         });
-//     });
-// });
+let searchResults = [];
+
+function filterResults(type) {
+    if (type === 'همه') {
+        displayResults(searchResults);
+    } else {
+        const filteredResults = searchResults.filter(result => result.type === type);
+        displayResults(filteredResults);
+    }
+}
+
+function displayResults(results) {
+    const resultsList = document.getElementById('results-list');
+    resultsList.innerHTML = '';
+    results.forEach(result => {
+        const resultElement = document.createElement('li');
+        resultElement.textContent = result.title;
+        resultsList.appendChild(resultElement);
+    });
+}
+
+// اضافه کردن رویداد به دکمه‌ها
+document.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            const type = link.textContent.trim();
+            filterResults(type);
+        });
+    });
+});
 
 
 // مقداردهی اولیه
