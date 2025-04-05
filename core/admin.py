@@ -64,48 +64,27 @@ class BaseAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('id', 'username', 'role', 'get_jalali_date_joined', 'first_name', 'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
+    list_display = ('id', 'username', 'role', 'date_joined', 'first_name', 
+                   'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
+    
     search_fields = ('username', 'first_name', 'last_name', 'phone_number')
     
-    # اضافه کردن فیلتر تاریخ شمسی به فیلترهای موجود
     list_filter = (
-        'role', 
-        'is_staff', 
-        'is_superuser', 
+        'role',
+        'is_staff',
+        'is_superuser',
         'is_active',
         ('date_joined', JDateFieldListFilter),  # فیلتر تاریخ شمسی
     )
-    
-    # تابع برای نمایش تاریخ شمسی در لیست
-    def get_jalali_date_joined(self, obj):
-        return obj.date_joined.strftime('%Y/%m/%d %H:%M') if obj.date_joined else '-'
-    get_jalali_date_joined.short_description = 'تاریخ پیوستن'
-    get_jalali_date_joined.admin_order_field = 'date_joined'
-    
-    # نمایش تاریخ شمسی در صفحه ویرایش
-    readonly_fields = ('jalali_date_joined',)
-    
-    def jalali_date_joined(self, obj):
-        return obj.date_joined.strftime('%Y/%m/%d %H:%M') if obj.date_joined else '-'
-    jalali_date_joined.short_description = 'تاریخ پیوستن (شمسی)'
-    
-    # تنظیم fieldsets با حفظ ساختار قبلی
+
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('اطلاعات شخصی', {'fields': ('first_name', 'last_name', 'email', 'national_id', 'phone_number')}),
         ('اطلاعات اضافی', {'fields': ('role', 'car_brand', 'city', 'job')}),
         ('دسترسی‌ها', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('تاریخ‌های مهم', {'fields': ('last_login', 'jalali_date_joined')}),  # تغییر به فیلد شمسی
+        ('تاریخ‌های مهم', {'fields': ('last_login', 'date_joined')}),
     )
-    
-    # تنظیم ویجت تقویم شمسی برای فیلدهای تاریخ
-    formfield_overrides = {
-        models.DateTimeField: {
-            'widget': jadmin.AdminJalaliDateTimeWidget
-        },
-    }
-    
-    # حفظ تنظیمات add_fieldsets بدون تغییر
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
