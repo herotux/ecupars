@@ -385,7 +385,7 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
 const searchButton = document.querySelector('.btn.btn-success');
 
 // مدیریت رویدادهای جستجو
-searchButton.addEventListener('click', () => {
+searchInput.addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         const query = searchInput.value.trim();
