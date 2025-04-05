@@ -339,6 +339,17 @@ async function performSearch(query, options = {}) {
     }
 }
 
+const searchButton = document.querySelector('.btn.btn-success');
+
+// مدیریت رویدادهای جستجو
+searchButton.addEventListener('click', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = searchInput.value.trim();
+        performSearch(query);
+    }, 500);
+});
+
 
 // توابع کمکی
 function clearResults() {
@@ -380,19 +391,6 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
         subcategoryId
     });
 }
-
-
-const searchButton = document.querySelector('.btn.btn-success');
-
-// مدیریت رویدادهای جستجو
-searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        const query = searchInput.value.trim();
-        performSearch(query);
-    }, 500);
-});
-
 
 
 
