@@ -456,6 +456,11 @@ window.addEventListener('DOMContentLoaded', () => {
         section.style.display = 'none'
         maps.style.display = 'block'
     })
+
+    console.log(errors)
+    console.log(article)
+    console.log(section)
+    console.log(maps)
 });
 
 
