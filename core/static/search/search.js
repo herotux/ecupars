@@ -434,6 +434,7 @@ window.addEventListener('DOMContentLoaded', () => {
         article.style.display = 'none'
         section.style.display = 'none'
         maps.style.display = 'none'
+        console.log(errors)
     })
 
     articlebtn.addEventListener('click', () => {
@@ -441,6 +442,7 @@ window.addEventListener('DOMContentLoaded', () => {
         article.style.display = 'block'
         section.style.display = 'none'
         maps.style.display = 'none'
+        console.log(article)
     })
 
     sectionbtn.addEventListener('click', () => {
@@ -448,6 +450,7 @@ window.addEventListener('DOMContentLoaded', () => {
         article.style.display = 'none'
         section.style.display = 'block'
         maps.style.display = 'none'
+        console.log(section)
     })
 
     mapsbtn.addEventListener('click', () => {
@@ -455,12 +458,8 @@ window.addEventListener('DOMContentLoaded', () => {
         article.style.display = 'none'
         section.style.display = 'none'
         maps.style.display = 'block'
+        console.log(maps)
     })
-
-    console.log(errors)
-    console.log(article)
-    console.log(section)
-    console.log(maps)
 });
 
 
