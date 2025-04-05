@@ -373,6 +373,7 @@ searchButton.addEventListener('click', () => {
     }, 500);
 });
 
+
 // جستجوهای تخصصی
 async function searchMaps(query) {
     await performSearch(query, { filterOption: 'maps' });
