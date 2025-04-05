@@ -392,37 +392,37 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
 }
 
 
-let searchResults = [];
+// let searchResults = [];
 
-function filterResults(type) {
-    if (type === 'همه') {
-        displayResults(searchResults);
-    } else {
-        const filteredResults = searchResults.filter(result => result.type === type);
-        displayResults(filteredResults);
-    }
-}
+// function filterResults(type) {
+//     if (type === 'همه') {
+//         displayResults(searchResults);
+//     } else {
+//         const filteredResults = searchResults.filter(result => result.type === type);
+//         displayResults(filteredResults);
+//     }
+// }
 
-function displayResults(results) {
-    const resultsList = document.getElementById('results-list');
-    resultsList.innerHTML = '';
-    results.forEach(result => {
-        const resultElement = document.createElement('li');
-        resultElement.textContent = result.title;
-        resultsList.appendChild(resultElement);
-    });
-}
+// function displayResults(results) {
+//     const resultsList = document.getElementById('results-list');
+//     resultsList.innerHTML = '';
+//     results.forEach(result => {
+//         const resultElement = document.createElement('li');
+//         resultElement.textContent = result.title;
+//         resultsList.appendChild(resultElement);
+//     });
+// }
 
-// اضافه کردن رویداد به دکمه‌ها
-document.addEventListener('DOMContentLoaded', () => {
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            const type = link.textContent.trim();
-            filterResults(type);
-        });
-    });
-});
+// // اضافه کردن رویداد به دکمه‌ها
+// document.addEventListener('DOMContentLoaded', () => {
+//     const navLinks = document.querySelectorAll('.nav-link');
+//     navLinks.forEach(link => {
+//         link.addEventListener('click', () => {
+//             const type = link.textContent.trim();
+//             filterResults(type);
+//         });
+//     });
+// });
 
 
 // مقداردهی اولیه
