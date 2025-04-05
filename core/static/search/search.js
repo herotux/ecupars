@@ -350,7 +350,6 @@ searchButton.addEventListener('click', () => {
     }, 500);
 });
 
-
 // توابع کمکی
 function clearResults() {
     document.getElementById('search-results').innerHTML = '';
