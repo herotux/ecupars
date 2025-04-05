@@ -2,10 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin
-from django_jalali.admin.filters import JDateFieldListFilter
-from django.db import models
-# You need to import this for adding jalali calendar widget
-import django_jalali.admin as jadmin
+
 
 
 
@@ -74,7 +71,7 @@ class CustomUserAdmin(UserAdmin):
         'is_staff',
         'is_superuser',
         'is_active',
-        ('date_joined', JDateFieldListFilter),  # فیلتر تاریخ شمسی
+        ('date_joined'),  # فیلتر تاریخ شمسی
     )
 
     fieldsets = (
