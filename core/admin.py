@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin
-from django_jalali.admin import ModelAdminJalaliMixin
+from django_jalali.admin import JalaliAdminMixin
 from django_jalali.admin.filters import JDateFieldListFilter
 
 
@@ -64,23 +64,24 @@ class BaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(CustomUser)
-class CustomUserAdmin(ModelAdminJalaliMixin, UserAdmin):
-    # تغییر list_display برای نمایش تاریخ شمسی
+class CustomUserAdmin(JalaliAdminMixin, UserAdmin):  # استفاده از JalaliAdminMixin به جای ModelAdminJalaliMixin
     list_display = ('id', 'username', 'role', 'get_jalali_date_joined', 'first_name', 'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
     
-    # اضافه کردن فیلتر تاریخ شمسی
-    list_filter = ('role', 'is_staff', 'is_superuser', 'is_active', ('date_joined', JDateFieldListFilter))
-    
-    # تابع برای نمایش تاریخ شمسی
     def get_jalali_date_joined(self, obj):
         return obj.date_joined.strftime('%Y/%m/%d %H:%M') if obj.date_joined else None
     get_jalali_date_joined.short_description = 'تاریخ پیوستن'
     get_jalali_date_joined.admin_order_field = 'date_joined'
     
-    # نمایش تاریخ شمسی در صفحه ویرایش
+    list_filter = (
+        'role', 
+        'is_staff', 
+        'is_superuser', 
+        'is_active',
+        ('date_joined', JDateFieldListFilter),  # فیلتر تاریخ شمسی
+    )
+    
     readonly_fields = ('get_jalali_date_joined',)
     
-    # تنظیم fieldsets با تاریخ شمسی
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('اطلاعات شخصی', {'fields': ('first_name', 'last_name', 'email', 'national_id', 'phone_number')}),
