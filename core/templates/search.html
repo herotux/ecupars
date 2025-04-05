@@ -15,28 +15,32 @@
         <a href="" data-bs-toggle="modal" data-bs-target="#mymodal"><i
                 class="fa fa-filter text-white icon-filter"></i></a>
         <input class="form-control mt-3 bg-black text-white" type="text" placeholder="جستجو . . . .">
-        <button class="btn btn-success">جستجو</button>
     </div>
+
+    <button class="btn btn-success w-50">جستجو</button>
 
     <div>
         <ul class="nav  justify-content-around h4 mt-5 rounded nav-pills nav-justified ">
             <li class="nav-item">
-                <a href="" class="nav-link" onclick="filterResults('همه')">همه</a>
+                <a class="nav-link active rounded" onclick="filterResults('همه')">همه</a>
             </li>
             <li class="nav-item">
-                <a href="" class="nav-link" onclick="filterResults('خطا ها')">خطا ها</a>
+                <a class="nav-link" onclick="filterResults('خطا ها')">خطا ها</a>
             </li>
             <li class="nav-item">
-                <a href="" class="nav-link" onclick="filterResults('راهکار ها')">راهکار ها</a>
+                <a class="nav-link" onclick="filterResults('راهکار ها')">راهکار ها</a>
             </li>
             <li class="nav-item">
-                <a href="" class="nav-link" onclick="filterResults('نقشه ها')">نقشه ها</a>
+                <a class="nav-link" onclick="filterResults('نقشه ها')">نقشه ها</a>
             </li>
             <li class="nav-item">
-                <a href="" class="nav-link" onclick="filterResults('مقالات')">مقالات</a>
+                <a class="nav-link" onclick="filterResults('مقالات')">مقالات</a>
             </li>
         </ul>
     </div>
+
+
+    <div class="search-results"></div>
 
     <!-- مودال -->
     <div class="modal fade modal" id="mymodal" data-bs-backdrop="static">
