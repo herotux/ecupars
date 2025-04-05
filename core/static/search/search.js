@@ -1,6 +1,25 @@
 // Utility Functions
 // ================
 
+// همه
+const allbtn = document.getElementById('all-btn')
+
+// خطا ها
+const errors = document.getElementById('issue-items')
+const errorbtn = document.getElementById('errors-btn')
+
+// مقالات
+const article = document.getElementById('article-items')
+const articlebtn = document.getElementById('article-btn')
+
+// راهکار ها
+const section = document.getElementById('section-title')
+const sectionbtn = document.getElementById('section-btn')
+
+// مپ ها
+const maps = document.getElementById('maps')
+const mapsbtn = document.getElementById('maps-btn')
+
 // مدیریت توکن‌ها و احراز هویت
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('access_token');
@@ -398,69 +417,44 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
 
 
 
+allbtn.addEventListener('click', () => {
+    errors.style.display = 'block'
+    article.style.display = 'block'
+    section.style.display = 'block'
+    maps.style.display = 'block'
+})
 
+errorbtn.addEventListener('click', () => {
+    errors.style.display = 'block'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+    console.log(errors)
+})
 
+articlebtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'block'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+    console.log(article)
+})
 
-window.addEventListener('DOMContentLoaded', () => {
-    // همه
-    const allbtn = document.getElementById('all-btn')
+sectionbtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'block'
+    maps.style.display = 'none'
+    console.log(section)
+})
 
-    // خطا ها
-    const errors = document.getElementById('issue-items')
-    const errorbtn = document.getElementById('errors-btn')
-
-    // مقالات
-    const article = document.getElementById('article-items')
-    const articlebtn = document.getElementById('article-btn')
-
-    // راهکار ها
-    const section = document.getElementById('section-title')
-    const sectionbtn = document.getElementById('section-btn')
-
-    // مپ ها
-    const maps = document.getElementById('maps')
-    const mapsbtn = document.getElementById('maps-btn')
-
-
-    allbtn.addEventListener('click', () => {
-        errors.style.display = 'block'
-        article.style.display = 'block'
-        section.style.display = 'block'
-        maps.style.display = 'block'
-    })
-
-    errorbtn.addEventListener('click', () => {
-        errors.style.display = 'block'
-        article.style.display = 'none'
-        section.style.display = 'none'
-        maps.style.display = 'none'
-        console.log(errors)
-    })
-
-    articlebtn.addEventListener('click', () => {
-        errors.style.display = 'none'
-        article.style.display = 'block'
-        section.style.display = 'none'
-        maps.style.display = 'none'
-        console.log(article)
-    })
-
-    sectionbtn.addEventListener('click', () => {
-        errors.style.display = 'none'
-        article.style.display = 'none'
-        section.style.display = 'block'
-        maps.style.display = 'none'
-        console.log(section)
-    })
-
-    mapsbtn.addEventListener('click', () => {
-        errors.style.display = 'none'
-        article.style.display = 'none'
-        section.style.display = 'none'
-        maps.style.display = 'block'
-        console.log(maps)
-    })
-});
+mapsbtn.addEventListener('click', () => {
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'block'
+    console.log(maps)
+})
 
 
 // مقداردهی اولیه
