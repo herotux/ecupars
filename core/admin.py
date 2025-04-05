@@ -61,8 +61,8 @@ class BaseAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):  # استفاده از UserAdmin به جای ModelAdmin
-    list_display = ('username', 'email', 'role', 'national_id', 'first_name', 'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'national_id', 'phone_number')
+    list_display = ('id', 'username', 'role', 'date_joined', 'first_name', 'last_name', 'car_brand', 'city', 'job', 'phone_number', 'is_staff')
+    search_fields = ('username', 'username', 'first_name', 'last_name', 'date_joined', 'phone_number')
     list_filter = ('role', 'is_staff', 'is_superuser', 'is_active')
     
     # تنظیمات فیلدها برای صفحه ویرایش کاربر
