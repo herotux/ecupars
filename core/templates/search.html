@@ -22,26 +22,26 @@
     <div>
         <ul class="nav  justify-content-around h4 mt-5 rounded nav-pills nav-justified ">
             <li class="nav-item">
-                <button class="nav-link active rounded" onclick="filterResults('همه')">همه</button>
+                <button class="nav-link active" id="all-btn">همه</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" onclick="filterResults('خطا ها')">خطا ها</button>
+                <button class="nav-link" id="errors-btn">خطا ها</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" onclick="filterResults('راهکار ها')">راهکار ها</button>
+                <button class="nav-link" id="section-btn">راهکار ها</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" onclick="filterResults('نقشه ها')">نقشه ها</button>
+                <button class="nav-link" id="maps-btn">نقشه ها</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" onclick="filterResults('مقالات')">مقالات</button>
+                <button class="nav-link" id="article-btn">مقالات</button>
             </li>
         </ul>
     </div>
 
 
     <div id="search-results"></div>
-    <div id="results-list"></div>
+
 
     <!-- مودال -->
     <div class="modal fade modal" id="mymodal" data-bs-backdrop="static">
