@@ -339,6 +339,17 @@ async function performSearch(query, options = {}) {
     }
 }
 
+const searchButton = document.querySelector('.btn.btn-success');
+
+// مدیریت رویدادهای جستجو
+searchButton.addEventListener('click', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = searchInput.value.trim();
+        performSearch(query);
+    }, 500);
+});
+
 // توابع کمکی
 function clearResults() {
     document.getElementById('search-results').innerHTML = '';
@@ -362,17 +373,6 @@ function showError(error) {
 }
 
 
-const searchButton = document.querySelector('.btn.btn-success');
-
-// مدیریت رویدادهای جستجو
-searchButton.addEventListener('click', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        const query = searchInput.value.trim();
-        performSearch(query);
-    }, 500);
-});
-
 
 // جستجوهای تخصصی
 async function searchMaps(query) {
@@ -390,7 +390,6 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
         subcategoryId
     });
 }
-
 
 
 let searchResults = [];
