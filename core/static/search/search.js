@@ -293,7 +293,6 @@ function formatSearchResult(result) {
     }
 }
 
-
 let activeSearchQuery = null;
 
 async function performSearch(query, options = {}) {
