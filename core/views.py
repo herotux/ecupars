@@ -153,12 +153,27 @@ class HasMapAccess(BaseAccessPermission):
         plan = self.check_subscription(request.user)
         category_id = view.kwargs.get('cat_id')
         
-        # بررسی دسترسی به دسته
-        self.check_category_access(plan, category_id)
+        # اگر cat_id مستقیماً مشخص نیست، سعی می‌کنیم از طریق دیگر پارامترها پیدا کنیم
+        if not category_id:
+            if hasattr(view, 'get_object'):
+                obj = view.get_object()
+                if hasattr(obj, 'category'):
+                    category_id = obj.category.id
+                elif hasattr(obj, 'issue') and obj.issue and obj.issue.category:
+                    category_id = obj.issue.category.id
         
+        # بررسی دسترسی به دسته
+        if not self.check_category_access(plan, category_id):
+            return False
+            
         # بررسی دسترسی به نقشه‌ها
         if not plan.access_to_maps:
-            if not category_id or not plan.full_access_categories.filter(id=category_id).exists():
+            # اگر دسترسی عمومی به نقشه‌ها نداریم، بررسی می‌کنیم که آیا دسته یا هر یک از والدین آن در full_access_categories است
+            if category_id:
+                category = Category.objects.get(id=category_id)
+                if not self.check_full_access_hierarchy(plan, category):
+                    raise self.exception_class("دسترسی به نقشه‌ها مجاز نیست")
+            else:
                 raise self.exception_class("دسترسی به نقشه‌ها مجاز نیست")
                 
         return True
@@ -185,19 +200,28 @@ class HasDiagnosticAccess(BaseAccessPermission):
             
         try:
             step = DiagnosticStep.objects.select_related('issue__category').get(id=step_id)
-            category_id = step.issue.category.id if step.issue and step.issue.category else None
+            category = step.issue.category if step.issue else None
             
             # بررسی دسترسی به عیب‌یابی
             if not plan.access_to_diagnostic_steps:
-                # اگر دسترسی عمومی به عیب‌یابی نداریم، اما دسته در full_access_categories باشد، اجازه می‌دهیم
-                if category_id and plan.full_access_categories.filter(id=category_id).exists():
+                # اگر دسترسی عمومی به عیب‌یابی نداریم، بررسی می‌کنیم که آیا دسته یا هر یک از والدین آن در full_access_categories است
+                if category and self.check_full_access_hierarchy(plan, category):
                     return True
                 raise self.exception_class("دسترسی به مراحل عیب‌یابی محدود شده است")
                 
-            return self.check_category_access(plan, category_id)
+            return self.check_category_access(plan, category.id if category else None)
             
         except DiagnosticStep.DoesNotExist:
             raise self.exception_class("مرحله عیب‌یابی یافت نشد")
+
+    def check_full_access_hierarchy(self, plan, category):
+        """بررسی دسترسی کامل به دسته و تمام والدین آن"""
+        current = category
+        while current:
+            if plan.full_access_categories.filter(id=current.id).exists():
+                return True
+            current = current.parent_category
+        return False
 
 
 class HasCategoryContentAccess(BaseAccessPermission):
