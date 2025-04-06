@@ -172,3 +172,46 @@
 .error {
     color: #d32f2f;
 }
+
+.search-btn {
+    background-color: #4CAF50; /* سبز مشابه دیجی‌کالا */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 30px;
+    font-size: 16px;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: auto; /* عرض خودکار بر اساس محتوا */
+    max-width: 200px; /* حداکثر عرض */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.search-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+
+.search-btn:hover {
+    background-color: #45a049; /* سبز تیره‌تر هنگام هاور */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.search-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+}
+
+/* برای نسخه موبایل */
+@media (max-width: 768px) {
+    .search-btn {
+        padding: 8px 25px;
+        font-size: 14px;
+        max-width: 180px;
+    }
+}
