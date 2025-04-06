@@ -417,9 +417,23 @@ const mapsbtn = document.getElementById('maps-btn')
 
 
 allbtn.addEventListener('click', () => {
+    const sectionTitles = document.querySelectorAll('.section-title');
+
+    // تغییر حالت نمایش عناصر به none
+    sectionTitles.forEach(title => {
+        title.style.display = 'block';
+    });
+
+    allbtn.classList.add('active')
+    errorbtn.classList.remove('active')
+    articlebtn.classList.remove('active')
+    sectionbtn.classList.remove('active')
+    mapsbtn.classList.remove('active')
+
+
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
-    const section = document.getElementById('section-title')
+    const section = document.getElementById('solution-items')
     const maps = document.getElementById('maps')
     errors.style.display = 'block'
     article.style.display = 'block'
@@ -428,30 +442,69 @@ allbtn.addEventListener('click', () => {
 })
 
 errorbtn.addEventListener('click', () => {
+    const sectionTitles = document.querySelectorAll('.section-title');
+
+    // تغییر حالت نمایش عناصر به none
+    sectionTitles.forEach(title => {
+        title.style.display = 'none';
+    });
+
+    allbtn.classList.remove('active')
+    errorbtn.classList.add('active')
+    articlebtn.classList.remove('active')
+    sectionbtn.classList.remove('active')
+    mapsbtn.classList.remove('active')
+
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
-    const section = document.getElementById('section-title')
+    const section = document.getElementById('solution-items')
     const maps = document.getElementById('maps')
     errors.style.display = 'block'
     article.style.display = 'none'
     section.style.display = 'none'
     maps.style.display = 'none'
-    console.log(errors)
 })
 
 articlebtn.addEventListener('click', () => {
+    const sectionTitles = document.querySelectorAll('.section-title');
+
+    // تغییر حالت نمایش عناصر به none
+    sectionTitles.forEach(title => {
+        title.style.display = 'none';
+    });
+
+
+    allbtn.classList.remove('active')
+    errorbtn.classList.remove('active')
+    articlebtn.classList.add('active')
+    sectionbtn.classList.remove('active')
+    mapsbtn.classList.remove('active')
+
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
-    const section = document.getElementById('section-title')
+    const section = document.getElementById('solution-items')
     const maps = document.getElementById('maps')
     errors.style.display = 'none'
     article.style.display = 'block'
     section.style.display = 'none'
     maps.style.display = 'none'
-    console.log(article)
 })
 
 sectionbtn.addEventListener('click', () => {
+    const sectionTitles = document.querySelectorAll('.section-title');
+
+    // تغییر حالت نمایش عناصر به none
+    sectionTitles.forEach(title => {
+        title.style.display = 'none';
+    });
+
+
+    allbtn.classList.remove('active')
+    errorbtn.classList.remove('active')
+    articlebtn.classList.remove('active')
+    sectionbtn.classList.add('active')
+    mapsbtn.classList.remove('active')
+
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
     const section = document.getElementById('section-title')
@@ -460,21 +513,32 @@ sectionbtn.addEventListener('click', () => {
     article.style.display = 'none'
     section.style.display = 'block'
     maps.style.display = 'none'
-    console.log(section)
 })
 
 mapsbtn.addEventListener('click', () => {
+    const sectionTitles = document.querySelectorAll('.section-title');
+
+    // تغییر حالت نمایش عناصر به none
+    sectionTitles.forEach(title => {
+        title.style.display = 'none';
+    });
+
+
+    allbtn.classList.remove('active')
+    errorbtn.classList.remove('active')
+    articlebtn.classList.remove('active')
+    sectionbtn.classList.remove('active')
+    mapsbtn.classList.add('active')
+
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
-    const section = document.getElementById('section-title')
+    const section = document.getElementById('solution-items')
     const maps = document.getElementById('maps')
     errors.style.display = 'none'
     article.style.display = 'none'
     section.style.display = 'none'
     maps.style.display = 'block'
-    console.log(maps)
 })
-
 
 
 
