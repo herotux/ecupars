@@ -469,15 +469,15 @@
 
             // جمع‌آوری آیتم‌های انتخاب شده
             $('[data-section="errors"] .item-checkbox:checked').each(function () {
-                selectedItems.issues.push($(this).val());
+                selectedItems.issues.push(parseInt($(this).val()));
             });
 
             $('[data-section="articles"] .item-checkbox:checked').each(function () {
-                selectedItems.articles.push($(this).val());
+                selectedItems.articles.push(parseInt($(this).val()));
             });
 
             $('[data-section="maps"] .item-checkbox:checked').each(function () {
-                selectedItems.maps.push($(this).val());
+                selectedItems.maps.push(parseInt($(this).val()));
             });
 
             // ارسال درخواست حذف برای هر بخش
