@@ -239,6 +239,7 @@
 
         // دریافت صحیح category_id
         const category_id = {{ car.id }
+    };
     }; // اطمینان از رندر صحیح
     console.log('Category ID:', category_id);
     if (imageInputs.length === 0 || textInputs.length === 0) {
@@ -279,7 +280,7 @@
             console.error('Error:', error);
             alert('خطا در ارتباط با سرور: ' + error.message);
         });
-    }
+
 
     function toggleUploadForm() {
         const form = document.getElementById('uploadForm');
@@ -304,61 +305,6 @@
         }
         return cookieValue;
     }
-</script>
-
-<script>
-    // انتخاب همه چک باکس ها
-    $('.item-checkbox[data-item-type="issues"]').on('change', function () {
-        if ($(this).is(':checked')) {
-            $('.issue-checkbox').prop('checked', true);
-        } else {
-            $('.issue-checkbox').prop('checked', false);
-        }
-    });
-
-    // انتخاب همه چک باکس ها برای مقالات
-    $('.item-checkbox[data-item-type="articles"]').on('change', function () {
-        if ($(this).is(':checked')) {
-            $('.article-checkbox').prop('checked', true);
-        } else {
-            $('.article-checkbox').prop('checked', false);
-        }
-    });
-
-    // انتخاب همه چک باکس ها برای نقشه ها
-    $('.item-checkbox[data-item-type="maps"]').on('change', function () {
-        if ($(this).is(':checked')) {
-            $('.map-checkbox').prop('checked', true);
-        } else {
-            $('.map-checkbox').prop('checked', false);
-        }
-    });
-
-
-    // انتخاب چک باکس‌ها
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-
-    // انتخاب دکمه‌های حذف و تغییر دسته‌بندی
-    const deleteButton = document.getElementById('delete-selected');
-    const updateButton = document.getElementById('update-category');
-
-    // رویداد تغییر چک باکس‌ها
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            // بررسی اینکه آیا حداقل یک چک باکس انتخاب شده است
-            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-
-            // نمایش یا مخفی کردن دکمه‌های حذف و تغییر دسته‌بندی
-            if (anyChecked) {
-                deleteButton.classList.remove('d-none');
-                updateButton.classList.remove('d-none');
-            } else {
-                deleteButton.classList.add('d-none');
-                updateButton.classList.add('d-none');
-            }
-        });
-    });
-
 </script>
 
 <script>
@@ -401,6 +347,8 @@
 
 
 </script>
+
+
 <script>
     // بخش مدیریت انتخاب‌ها
     $(document).ready(function () {
@@ -433,6 +381,89 @@
                 .toggleClass('d-none', !anyChecked);
         }
 
+        // امیر
+
+        // انتخاب همه چک باکس ها
+        $('.item-checkbox[data-item-type="issues"]').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('.issue-checkbox').prop('checked', true);
+            } else {
+                $('.issue-checkbox').prop('checked', false);
+            }
+        });
+
+        // انتخاب همه چک باکس ها برای مقالات
+        $('.item-checkbox[data-item-type="articles"]').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('.article-checkbox').prop('checked', true);
+            } else {
+                $('.article-checkbox').prop('checked', false);
+            }
+        });
+
+        // انتخاب همه چک باکس ها برای نقشه ها
+        $('.item-checkbox[data-item-type="maps"]').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('.map-checkbox').prop('checked', true);
+            } else {
+                $('.map-checkbox').prop('checked', false);
+            }
+        });
+
+
+        // انتخاب چک باکس‌ها
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+        // انتخاب دکمه‌های حذف و تغییر دسته‌بندی برای هر بخش
+        const deleteButtons = document.querySelectorAll('.delete-section button[id="delete-selected"]');
+        const updateButtons = document.querySelectorAll('.delete-section button[id="update-category"]');
+
+        // رویداد تغییر چک باکس‌ها
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                // بررسی اینکه آیا حداقل یک چک باکس انتخاب شده است
+                const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+
+                // نمایش یا مخفی کردن دکمه‌های حذف و تغییر دسته‌بندی برای هر بخش
+                deleteButtons.forEach((deleteButton, index) => {
+                    const section = deleteButton.closest('.delete-section');
+                    const sectionCheckboxes = section.querySelectorAll('input[type="checkbox"]');
+                    const anySectionChecked = Array.from(sectionCheckboxes).some(checkbox => checkbox.checked);
+
+                    if (anySectionChecked) {
+                        deleteButton.classList.remove('d-none');
+                        updateButtons[index].classList.remove('d-none');
+                    } else {
+                        deleteButton.classList.add('d-none');
+                        updateButtons[index].classList.add('d-none');
+                    }
+                });
+            });
+        });
+
+        // مدیریت چک باکس‌های تکی
+        $('.item-checkbox').change(function () {
+            const section = $(this).closest('.delete-section').data('section');
+            const $checkboxes = $(`[data-section="${section}"] .item-checkbox`);
+            const allChecked = $checkboxes.length === $checkboxes.filter(':checked').length;
+
+            $(`[data-section="${section}"] .select-all`)
+                .prop('checked', allChecked);
+
+            toggleActionButtons();
+
+            // اضافه کردن این خط برای تغییر چک باکس همه
+            if (allChecked) {
+                $(`[data-item-type="${section}"]`).prop('checked', true);
+            } else {
+                $(`[data-item-type="${section}"]`).prop('checked', false);
+            }
+        });
+
+
+        // امیر
+
+
         // تابع حذف گروهی
         function deleteSelectedItems() {
             const selectedItems = {
@@ -443,15 +474,15 @@
 
             // جمع‌آوری آیتم‌های انتخاب شده
             $('[data-section="errors"] .item-checkbox:checked').each(function () {
-                selectedItems.issues.push($(this).val());
+                selectedItems.issues.push(parseInt($(this).val()));
             });
 
             $('[data-section="articles"] .item-checkbox:checked').each(function () {
-                selectedItems.articles.push($(this).val());
+                selectedItems.articles.push(parseInt($(this).val()));
             });
 
             $('[data-section="maps"] .item-checkbox:checked').each(function () {
-                selectedItems.maps.push($(this).val());
+                selectedItems.maps.push(parseInt($(this).val()));
             });
 
             // ارسال درخواست حذف برای هر بخش
@@ -560,6 +591,7 @@
         });
     });
 </script>
+
 
 <style>
     #delete-selected-floating {
