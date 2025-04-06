@@ -453,57 +453,58 @@
         });
 
         // نمایش/پنهان کردن دکمه‌های عملیات
-        // تابع حذف گروهی
-        function deleteSelectedItems() {
-            if (confirm('آیا از حذف موارد انتخاب شده اطمینان دارید؟')) {
-                const selectedItems = {
-                    issues: [],
-                    articles: [],
-                    maps: []
-                };
-
-                // جمع‌آوری آیتم‌های انتخاب شده
-                $('[data-section="errors"] .item-checkbox:checked').each(function () {
-                    selectedItems.issues.push($(this).val());
-                });
-
-                $('[data-section="articles"] .item-checkbox:checked').each(function () {
-                    selectedItems.articles.push($(this).val());
-                });
-
-                $('[data-section="maps"] .item-checkbox:checked').each(function () {
-                    selectedItems.maps.push($(this).val());
-                });
-
-                // ارسال درخواست حذف برای هر بخش
-                Object.keys(selectedItems).forEach(section => {
-                    if (selectedItems[section].length > 0) {
-                        $.ajax({
-                            url: '/bulk/delete/',
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({
-                                item_type: section,
-                                item_ids: selectedItems[section]
-                            }),
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            },
-                            success: function (response) {
-                                if (response.status !== 'success') {
-                                    alert('خطا در حذف آیتم‌های بخش ' + section);
-                                } else {
-                                    location.reload();
-                                }
-                            }
-                        });
-                    }
-                });
-            }
+        function toggleActionButtons() {
+            const anyChecked = $('.item-checkbox:checked').length > 0;
+            $('#delete-selected, #delete-selected-floating, #update-category')
+                .toggleClass('d-none', !anyChecked);
         }
 
-        // اتصال رویدادها
-        $('#delete-selected, #delete-selected-floating').click(deleteSelectedItems);
+        // تابع حذف گروهی
+        function deleteSelectedItems() {
+            const selectedItems = {
+                issues: [],
+                articles: [],
+                maps: []
+            };
+
+            // جمع‌آوری آیتم‌های انتخاب شده
+            $('[data-section="errors"] .item-checkbox:checked').each(function () {
+                selectedItems.issues.push($(this).val());
+            });
+
+            $('[data-section="articles"] .item-checkbox:checked').each(function () {
+                selectedItems.articles.push($(this).val());
+            });
+
+            $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                selectedItems.maps.push($(this).val());
+            });
+
+            // ارسال درخواست حذف برای هر بخش
+            Object.keys(selectedItems).forEach(section => {
+                if (selectedItems[section].length > 0) {
+                    $.ajax({
+                        url: '/bulk/delete/',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            item_type: section,
+                            item_ids: selectedItems[section]
+                        }),
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            if (response.status !== 'success') {
+                                alert('خطا در حذف آیتم‌های بخش ' + section);
+                            }
+                        }
+                    });
+                }
+            });
+
+            // location.reload();
+        }
 
         // تابع بروزرسانی دسته‌بندی
         function updateCategory() {
