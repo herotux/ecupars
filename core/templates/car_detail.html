@@ -238,7 +238,8 @@
         const textInputs = document.getElementById('textInput').files;
 
         // دریافت صحیح category_id
-        const category_id = {{ car.id }}; // اطمینان از رندر صحیح
+        const category_id = {{ car.id }
+    }; // اطمینان از رندر صحیح
     console.log('Category ID:', category_id);
     if (imageInputs.length === 0 || textInputs.length === 0) {
         alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
@@ -331,6 +332,31 @@
         } else {
             $('.map-checkbox').prop('checked', false);
         }
+    });
+
+
+    // انتخاب چک باکس‌ها
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+    // انتخاب دکمه‌های حذف و تغییر دسته‌بندی
+    const deleteButton = document.getElementById('delete-selected');
+    const updateButton = document.getElementById('update-category');
+
+    // رویداد تغییر چک باکس‌ها
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            // بررسی اینکه آیا حداقل یک چک باکس انتخاب شده است
+            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+
+            // نمایش یا مخفی کردن دکمه‌های حذف و تغییر دسته‌بندی
+            if (anyChecked) {
+                deleteButton.classList.remove('d-none');
+                updateButton.classList.remove('d-none');
+            } else {
+                deleteButton.classList.add('d-none');
+                updateButton.classList.add('d-none');
+            }
+        });
     });
 
 </script>
