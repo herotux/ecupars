@@ -82,7 +82,7 @@
         <ul class="list-group">
             {% for issue in issues %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="issues" value="{{ issue.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="issue" value="{{ issue.id }}" class="issue-checkbox item-checkbox">
                 <a href="{% url 'issue_detail' issue.id %}">{{ issue.title }}</a>
                 <div>
                     <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">
@@ -118,7 +118,7 @@
         <ul class="list-group">
             {% for article in articles %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="article" value="{{ article.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="article" value="{{ article.id }}" class="article-checkbox item-checkbox">
                 <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a>
                 <div>
                     <a href="{% url 'article_update' article.id %}" class="btn btn-warning btn-sm">
@@ -174,7 +174,7 @@
         <ul class="list-group">
             {% for map in maps %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="issues" value="{{ map.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="map" value="{{ map.id }}" class="map-checkbox item-checkbox">
                 <a href="{% url 'map_detail' map.id %}">{{ map.title }}</a>
                 <div>
                     <a href="{% url 'map_update' map.id %}" class="btn btn-warning btn-sm">
@@ -236,32 +236,33 @@
         const formData = new FormData();
         const imageInputs = document.getElementById('imageInput').files;
         const textInputs = document.getElementById('textInput').files;
-        
+
         // دریافت صحیح category_id
-        const category_id = {{ car.id }}; // اطمینان از رندر صحیح
-        console.log('Category ID:', category_id);
-        if (imageInputs.length === 0 || textInputs.length === 0) {
-            alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
-            return;
-        }
+        const category_id = {{ car.id }
+    }; // اطمینان از رندر صحیح
+    console.log('Category ID:', category_id);
+    if (imageInputs.length === 0 || textInputs.length === 0) {
+        alert('لطفاً فایل‌های مورد نظر را انتخاب کنید.');
+        return;
+    }
 
-        if (imageInputs.length !== textInputs.length) {
-            alert('تعداد فایل‌های نقشه باید با تعداد فایل‌های متنی مساوی باشد.');
-            return;
-        }
+    if (imageInputs.length !== textInputs.length) {
+        alert('تعداد فایل‌های نقشه باید با تعداد فایل‌های متنی مساوی باشد.');
+        return;
+    }
 
-        for (let i = 0; i < imageInputs.length; i++) {
-            formData.append('images', imageInputs[i]); 
-            formData.append('texts', textInputs[i]);   
-        }
+    for (let i = 0; i < imageInputs.length; i++) {
+        formData.append('images', imageInputs[i]);
+        formData.append('texts', textInputs[i]);
+    }
 
-        fetch(`/import-maps/${category_id}/`, { // اضافه کردن slash انتهایی
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-        })
+    fetch(`/import-maps/${category_id}/`, { // اضافه کردن slash انتهایی
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    })
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
@@ -306,6 +307,37 @@
 </script>
 
 <script>
+    // انتخاب همه چک باکس ها
+    $('.item-checkbox[data-item-type="issues"]').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('.issue-checkbox').prop('checked', true);
+        } else {
+            $('.issue-checkbox').prop('checked', false);
+        }
+    });
+
+    // انتخاب همه چک باکس ها برای مقالات
+    $('.item-checkbox[data-item-type="articles"]').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('.article-checkbox').prop('checked', true);
+        } else {
+            $('.article-checkbox').prop('checked', false);
+        }
+    });
+
+    // انتخاب همه چک باکس ها برای نقشه ها
+    $('.item-checkbox[data-item-type="maps"]').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('.map-checkbox').prop('checked', true);
+        } else {
+            $('.map-checkbox').prop('checked', false);
+        }
+    });
+
+</script>
+
+<script>
+
 
     $(document).ready(function () {
         $('#import-issues').click(function (e) {
@@ -479,29 +511,29 @@
     });
 
     // مدیریت فرم زیردسته
-$(document).ready(function() {
-    $('#add-subcategory').click(function(e) {
-        e.preventDefault();
-        $('#subcategory-form').toggle();
-    });
+    $(document).ready(function () {
+        $('#add-subcategory').click(function (e) {
+            e.preventDefault();
+            $('#subcategory-form').toggle();
+        });
 
-    $('#new-subcategory-form').submit(function(e) {
-        e.preventDefault();
-        $.ajax({
-            url: "{% url 'issue_category_create' %}",
-            method: "POST",
-            data: $(this).serialize(),
-            success: function(response) {
-                if(response.status === 'success') {
-                    location.reload();
+        $('#new-subcategory-form').submit(function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: "{% url 'issue_category_create' %}",
+                method: "POST",
+                data: $(this).serialize(),
+                success: function (response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    }
+                },
+                error: function (xhr) {
+                    alert('خطا: ' + xhr.responseJSON.error);
                 }
-            },
-            error: function(xhr) {
-                alert('خطا: ' + xhr.responseJSON.error);
-            }
+            });
         });
     });
-});
 </script>
 
 <style>
