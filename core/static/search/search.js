@@ -1,6 +1,8 @@
 // Utility Functions
 // ================
 
+
+
 // مدیریت توکن‌ها و احراز هویت
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('access_token');
@@ -67,65 +69,6 @@ function displayResults(results) {
             <h3 class="section-title">${getTypeTitle(type)}</h3>
             <div class="items-container" id="${type}-items"></div>
         `;
-
-        // همه
-        const allbtn = document.getElementById('all-btn')
-
-        // خطا ها
-        const errors = document.getElementById('issue-items')
-        const errorbtn = document.getElementById('errors-btn')
-
-        // مقالات
-        const article = document.getElementById('article-items')
-        const articlebtn = document.getElementById('article-btn')
-
-        // راهکار ها
-        const section2 = document.getElementById('section-title')
-        const sectionbtn = document.getElementById('section-btn')
-
-        // مپ ها
-        const maps = document.getElementById('maps')
-        const mapsbtn = document.getElementById('maps-btn')
-
-
-        allbtn.addEventListener('click', () => {
-            errors.style.display = 'block'
-            article.style.display = 'block'
-            section.style.display = 'block'
-            maps.style.display = 'block'
-        })
-
-        errorbtn.addEventListener('click', () => {
-            errors.style.display = 'block'
-            article.style.display = 'none'
-            section.style.display = 'none'
-            maps.style.display = 'none'
-            console.log(errors)
-        })
-
-        articlebtn.addEventListener('click', () => {
-            errors.style.display = 'none'
-            article.style.display = 'block'
-            section.style.display = 'none'
-            maps.style.display = 'none'
-            console.log(article)
-        })
-
-        sectionbtn.addEventListener('click', () => {
-            errors.style.display = 'none'
-            article.style.display = 'none'
-            section.style.display = 'block'
-            maps.style.display = 'none'
-            console.log(section)
-        })
-
-        mapsbtn.addEventListener('click', () => {
-            errors.style.display = 'none'
-            article.style.display = 'none'
-            section.style.display = 'none'
-            maps.style.display = 'block'
-            console.log(maps)
-        })
 
         container.appendChild(section);
 
@@ -454,6 +397,84 @@ async function searchAdvanced(query, categoryId, subcategoryId) {
         subcategoryId
     });
 }
+
+
+
+// همه
+const allbtn = document.getElementById('all-btn')
+
+// خطا ها
+const errorbtn = document.getElementById('errors-btn')
+
+// مقالات
+const articlebtn = document.getElementById('article-btn')
+
+// راهکار ها
+const sectionbtn = document.getElementById('section-btn')
+
+// مپ ها
+const mapsbtn = document.getElementById('maps-btn')
+
+
+allbtn.addEventListener('click', () => {
+    const errors = document.getElementById('issue-items')
+    const article = document.getElementById('article-items')
+    const section = document.getElementById('section-title')
+    const maps = document.getElementById('maps')
+    errors.style.display = 'block'
+    article.style.display = 'block'
+    section.style.display = 'block'
+    maps.style.display = 'block'
+})
+
+errorbtn.addEventListener('click', () => {
+    const errors = document.getElementById('issue-items')
+    const article = document.getElementById('article-items')
+    const section = document.getElementById('section-title')
+    const maps = document.getElementById('maps')
+    errors.style.display = 'block'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+    console.log(errors)
+})
+
+articlebtn.addEventListener('click', () => {
+    const errors = document.getElementById('issue-items')
+    const article = document.getElementById('article-items')
+    const section = document.getElementById('section-title')
+    const maps = document.getElementById('maps')
+    errors.style.display = 'none'
+    article.style.display = 'block'
+    section.style.display = 'none'
+    maps.style.display = 'none'
+    console.log(article)
+})
+
+sectionbtn.addEventListener('click', () => {
+    const errors = document.getElementById('issue-items')
+    const article = document.getElementById('article-items')
+    const section = document.getElementById('section-title')
+    const maps = document.getElementById('maps')
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'block'
+    maps.style.display = 'none'
+    console.log(section)
+})
+
+mapsbtn.addEventListener('click', () => {
+    const errors = document.getElementById('issue-items')
+    const article = document.getElementById('article-items')
+    const section = document.getElementById('section-title')
+    const maps = document.getElementById('maps')
+    errors.style.display = 'none'
+    article.style.display = 'none'
+    section.style.display = 'none'
+    maps.style.display = 'block'
+    console.log(maps)
+})
+
 
 
 
