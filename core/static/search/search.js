@@ -507,7 +507,7 @@ sectionbtn.addEventListener('click', () => {
 
     const errors = document.getElementById('issue-items')
     const article = document.getElementById('article-items')
-    const section = document.getElementById('section-title')
+    const section = document.getElementById('solution-items')
     const maps = document.getElementById('maps')
     errors.style.display = 'none'
     article.style.display = 'none'
@@ -539,6 +539,7 @@ mapsbtn.addEventListener('click', () => {
     section.style.display = 'none'
     maps.style.display = 'block'
 })
+
 
 
 
