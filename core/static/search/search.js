@@ -345,7 +345,7 @@ async function performSearch(query, options = {}) {
     }
 }
 
-const searchButton = document.querySelector('.search-btn');
+const searchButton = document.getElementById('search-button');
 
 // مدیریت رویدادهای جستجو
 searchButton.addEventListener('click', () => {
