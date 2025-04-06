@@ -82,7 +82,7 @@
         <ul class="list-group">
             {% for issue in issues %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="issues" value="{{ issue.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="issue" value="{{ issue.id }}" class="issue-checkbox item-checkbox">
                 <a href="{% url 'issue_detail' issue.id %}">{{ issue.title }}</a>
                 <div>
                     <a href="{% url 'issue_update' issue.id %}" class="btn btn-warning btn-sm">
@@ -118,7 +118,7 @@
         <ul class="list-group">
             {% for article in articles %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="article" value="{{ article.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="article" value="{{ article.id }}" class="article-checkbox item-checkbox">
                 <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a>
                 <div>
                     <a href="{% url 'article_update' article.id %}" class="btn btn-warning btn-sm">
@@ -174,7 +174,7 @@
         <ul class="list-group">
             {% for map in maps %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <input type="checkbox" name="issues" value="{{ map.id }}" class="issue-checkbox item-checkbox">
+                <input type="checkbox" name="map" value="{{ map.id }}" class="map-checkbox item-checkbox">
                 <a href="{% url 'map_detail' map.id %}">{{ map.title }}</a>
                 <div>
                     <a href="{% url 'map_update' map.id %}" class="btn btn-warning btn-sm">
@@ -333,7 +333,7 @@
             $('.map-checkbox').prop('checked', false);
         }
     });
-    
+
 </script>
 
 <script>
