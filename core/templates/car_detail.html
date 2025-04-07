@@ -468,49 +468,51 @@
 
         // تابع حذف گروهی
         function deleteSelectedItems() {
-            const selectedItems = {
-                issues: [],
-                articles: [],
-                maps: []
-            };
+            if (confirm('ایا از حذف موارد انتخاب شده اطمینان دارید؟')) {
+                const selectedItems = {
+                    issues: [],
+                    articles: [],
+                    maps: []
+                };
 
-            // جمع‌آوری آیتم‌های انتخاب شده
-            $('[data-section="issues"] .item-checkbox:checked').each(function () {
-                selectedItems.issues.push(parseInt($(this).val()));
-            });
+                // جمع‌آوری آیتم‌های انتخاب شده
+                $('[data-section="issues"] .item-checkbox:checked').each(function () {
+                    selectedItems.issues.push(parseInt($(this).val()));
+                });
 
-            $('[data-section="articles"] .item-checkbox:checked').each(function () {
-                selectedItems.articles.push(parseInt($(this).val()));
-            });
+                $('[data-section="articles"] .item-checkbox:checked').each(function () {
+                    selectedItems.articles.push(parseInt($(this).val()));
+                });
 
-            $('[data-section="maps"] .item-checkbox:checked').each(function () {
-                selectedItems.maps.push(parseInt($(this).val()));
-            });
+                $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                    selectedItems.maps.push(parseInt($(this).val()));
+                });
 
-            // ارسال درخواست حذف برای هر بخش
-            Object.keys(selectedItems).forEach(section => {
-                if (selectedItems[section].length > 0) {
-                    $.ajax({
-                        url: '/bulk/delete/',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({
-                            item_type: section,
-                            item_ids: selectedItems[section]
-                        }),
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        success: function (response) {
-                            if (response.status !== 'success') {
-                                alert('خطا در حذف آیتم‌های بخش ' + section);
+                // ارسال درخواست حذف برای هر بخش
+                Object.keys(selectedItems).forEach(section => {
+                    if (selectedItems[section].length > 0) {
+                        $.ajax({
+                            url: '/bulk/delete/',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                item_type: section,
+                                item_ids: selectedItems[section]
+                            }),
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            success: function (response) {
+                                if (response.status !== 'success') {
+                                    alert('خطا در حذف آیتم‌های بخش ' + section);
+                                }
                             }
-                        }
-                    });
-                }
-            });
+                        });
+                    }
+                });
 
-            // location.reload();
+                location.reload();
+            }
         }
 
         // تابع بروزرسانی دسته‌بندی
