@@ -441,7 +441,7 @@ CHANNEL_LAYERS = {
 # SESSION_COOKIE_AGE = 15 * 60  
 
 
-ZARINPAL_SANDBOX = True  
+ZARINPAL_SANDBOX = False  
 
 LIMOSMS_API_KEY = os.getenv('sms', '')
 
