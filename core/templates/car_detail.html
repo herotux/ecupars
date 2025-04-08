@@ -196,6 +196,11 @@
             data-bs-target="#categoryModal">
             <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
         </button>
+        <!-- دکمه کپی به دسته بندی ها -->
+        <button type="button" id="copy-selected" class="btn btn-danger mb-3 d-none" data-bs-toggle="modal"
+            data-bs-target="#copyModal">
+            <i class="fa fa-trash"></i> کپی به دسته دلخواه
+        </button>
     </form>
     {% endif %}
 
@@ -228,6 +233,33 @@
             </div>
         </div>
     </div>
+
+
+    <!-- مودال کپی نقشه ها -->
+    <div class="modal fade" id="copyModal" tabindex="-1" aria-labelledby="copyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="copyModalLabel">کپی نقشه به دسته دیگر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="new-copy-modal" class="form-label">کپی نقشه جدید:</label>
+                    <select id="new-copy-modal" class="form-select w-75">
+                        {% for category in issue_categoriess %}
+                        <option value="{{ category.id }}">{{ category.get_full_category_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+                    <button type="button" id="confirm-update-category" class="btn btn-primary">تأیید تغییر
+                        کپی نقشه ها</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
