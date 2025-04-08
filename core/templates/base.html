@@ -1,145 +1,156 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{% block title %}پنل مدیریت{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.min.css' %}">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/iCheck/flat/blue.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/morris/morris.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/jvectormap/jquery-jvectormap-1.2.2.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/datepicker/datepicker3.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/daterangepicker/daterangepicker-bs3.css' %}">
-    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}پنل مدیریت{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="stylesheet" href="{% static 'plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css' %}">
-  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'dist/css/bootstrap-rtl.min.css' %}">
-  <link rel="stylesheet" href="{% static 'dist/css/custom-style.css' %}">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <!-- <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script> -->
-  <style>
-    * {
-        box-sizing: border-box;
-    }
-    img {
-        max-width: 100% !important;
-        height: auto !important;
-    }
-
-    video {
-        max-width: 100%;
-        height: auto;
-    }
-
-    .floating-button {
-        position: fixed;
-        bottom: 20px;
-        left: 20px; /* تغییر از right به left */
-        background-color: #007bff; /* رنگ آبی */
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: background-color 0.3s;
-        margin-bottom: 10px;
-    }
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/iCheck/flat/blue.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/morris/morris.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/jvectormap/jquery-jvectormap-1.2.2.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/datepicker/datepicker3.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/daterangepicker/daterangepicker-bs3.css' %}">
 
 
-    #floating-buttons {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;  /* تغییر موقعیت دکمه به سمت چپ */
-        display: flex; 
-        flex-direction: column;  
-    }
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css' %}">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'dist/css/bootstrap-rtl.min.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/custom-style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script> -->
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    .floating-button:hover {
-        background-color: #0056b3; /* رنگ تیرۀ آبی */
-    }
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
 
-    #scroll-to-top {
-        left: 80px; /* فاصله دکمه "برگشت به بالای صفحه" */
-    }
-    video {
+        video {
             max-width: 100%;
             height: auto;
         }
-  </style>
-  {% block extra_css %}{% endblock %}
+
+        .floating-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            /* تغییر از right به left */
+            background-color: #007bff;
+            /* رنگ آبی */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+
+        #floating-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            /* تغییر موقعیت دکمه به سمت چپ */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .floating-button:hover {
+            background-color: #0056b3;
+            /* رنگ تیرۀ آبی */
+        }
+
+        #scroll-to-top {
+            left: 80px;
+            /* فاصله دکمه "برگشت به بالای صفحه" */
+        }
+
+        video {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
 </head>
+
 <body class="hold-transition sidebar-mini">
-<div class="wrapper">
-  {% block navbar %}
-  <nav class="main-header navbar navbar-expand bg-white navbar-light border-bottom">
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#"><i class="fa fa-bars"></i></a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="{% url 'home' %}" class="nav-link">خانه</a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="{{ request.path }}" class="nav-link"> {{ page_title }} </a>
-      </li>
-    </ul>
-    <ul class="navbar-nav mr-auto">
-      <!-- Other navbar items -->
-      <li class="nav-item">
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button class="nav-link btn btn-link" type="submit">خروج</button>
-        </form>
-    </li>
+    <div class="wrapper">
+        {% block navbar %}
+        <nav class="main-header navbar navbar-expand bg-white navbar-light border-bottom">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#"><i class="fa fa-bars"></i></a>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a href="{% url 'home' %}" class="nav-link">خانه</a>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a href="{{ request.path }}" class="nav-link"> {{ page_title }} </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav mr-auto">
+                <!-- Other navbar items -->
+                <li class="nav-item">
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="nav-link btn btn-link" type="submit">خروج</button>
+                    </form>
+                </li>
 
-    </ul>
-  </nav>
-  {% endblock %}
+            </ul>
+        </nav>
+        {% endblock %}
 
-  {% block sidebar %}
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="" class="brand-link">
-      <img src="{% static 'dist/img/AdminLTELogo.png' %}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">پنل مدیریت</span>
-    </a>
-    <div class="sidebar" style="direction: ltr">
-      <div style="direction: rtl">
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-          <div class="image">
-            <!-- <img src="https://www.gravatar.com/avatar/52f0fbcbedee04a121cba8dad1174462?s=200&d=mm&r=g" class="img-circle elevation-2" alt="User Image"> -->
-          </div>
-          <div class="info"></div>
-        </div>
-        <nav class="mt-2">
-          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-            {% url 'manage_cars' as manage_cars_url %}
-            {% url 'manage_issue_categories' as manage_issue_categories_url %}
-            {% url 'manage_issues' as manage_issues_url %}
-            {% url 'manage_solutions' as manage_solutions_url %}
-            {% url 'manage_bookmarks' as manage_bookmarks_url %}
-            {% url 'manage_maps' as manage_maps_url %}
-            {% url 'article_list' as article_list_url %}
-            {% url 'manage_users' as manage_users_url %}
-            {% url 'manage_subscriptions' as manage_subscriptions_url %}
-            {% url 'issue_category_create'  as issue_category_create_url %}
-            {% url 'issue_create'  as issue_create_url %}
-            {% url 'solution_create'  as solution_create_url %}
-            {% url 'user_create'  as user_create_url %}
-            {% url 'subscription_create'  as subscription_create_url %}
+        {% block sidebar %}
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <a href="" class="brand-link">
+                <img src="{% static 'dist/img/AdminLTELogo.png' %}" alt="AdminLTE Logo"
+                    class="brand-image img-circle elevation-3" style="opacity: .8">
+                <span class="brand-text font-weight-light">پنل مدیریت</span>
+            </a>
+            <div class="sidebar" style="direction: ltr">
+                <div style="direction: rtl">
+                    <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                        <div class="image">
+                            <!-- <img src="https://www.gravatar.com/avatar/52f0fbcbedee04a121cba8dad1174462?s=200&d=mm&r=g" class="img-circle elevation-2" alt="User Image"> -->
+                        </div>
+                        <div class="info"></div>
+                    </div>
+                    <nav class="mt-2">
+                        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
+                            data-accordion="false">
+                            {% url 'manage_cars' as manage_cars_url %}
+                            {% url 'manage_issue_categories' as manage_issue_categories_url %}
+                            {% url 'manage_issues' as manage_issues_url %}
+                            {% url 'manage_solutions' as manage_solutions_url %}
+                            {% url 'manage_bookmarks' as manage_bookmarks_url %}
+                            {% url 'manage_maps' as manage_maps_url %}
+                            {% url 'article_list' as article_list_url %}
+                            {% url 'manage_users' as manage_users_url %}
+                            {% url 'manage_subscriptions' as manage_subscriptions_url %}
+                            {% url 'issue_category_create' as issue_category_create_url %}
+                            {% url 'issue_create' as issue_create_url %}
+                            {% url 'solution_create' as solution_create_url %}
+                            {% url 'user_create' as user_create_url %}
+                            {% url 'subscription_create' as subscription_create_url %}
 
-            <!-- <li class="nav-item has-treeview {% if request.path == manage_cars_url or request.path == issue_category_create_url %}menu-open{% endif %}">
+                            <!-- <li class="nav-item has-treeview {% if request.path == manage_cars_url or request.path == issue_category_create_url %}menu-open{% endif %}">
                 <a href="#" class="nav-link {% if request.path == manage_cars_url %}active{% endif %}">
                     <i class="nav-icon fa fa-car"></i>
                     <p>
@@ -163,248 +174,277 @@
                 </ul>
             </li> -->
 
-            <li class="nav-item has-treeview {% if request.path == manage_issue_categories_url or request.path == issue_category_create_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_issue_categories_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-tags"></i>
-                    <p>
-                        مدیریت دسته‌ها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_issue_categories' %}" class="nav-link {% if request.path == manage_issue_categories_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست دسته‌ها</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'issue_category_create' %}" class="nav-link {% if request.path == issue_category_create_url %}active{% endif %}">
-                            <i class="fa fa-plus nav-icon"></i>
-                            <p>افزودن دسته</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-            
-
-            <li class="nav-item has-treeview {% if request.path == manage_issues_url or request.path ==  issue_create_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_issues_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-exclamation-triangle"></i>
-                    <p>
-                        مدیریت خطاها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_issues' %}" class="nav-link {% if request.path == manage_issues_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست خطاها</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'issue_create' %}" class="nav-link {% if request.path == issue_create_url %}active{% endif %}">
-                            <i class="fa fa-plus nav-icon"></i>
-                            <p>افزودن خطا</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-
-            <!-- Similar structure for other menu items -->
-            
-            <li class="nav-item has-treeview {% if request.path == manage_solutions_url or request.path == solution_create_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_solutions_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-lightbulb-o"></i>
-                    <p>
-                        مدیریت راهکارها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_solutions' %}" class="nav-link {% if request.path == manage_solutions_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست راهکارها</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'solution_create' %}" class="nav-link {% if request.path == solution_create_url %}active{% endif %}">
-                            <i class="fa fa-plus nav-icon"></i>
-                            <p>افزودن راهکار</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-
-            <li class="nav-item has-treeview {% if request.path == manage_maps_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_maps_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-map"></i>
-                    <p>
-                        مدیریت نقشه‌ها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_maps' %}" class="nav-link {% if request.path == manage_maps_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست نقشه‌ها</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_issue_categories_url or request.path == issue_category_create_url %}menu-open{% endif %}">
+                                <a href="#"
+                                    class="nav-link {% if request.path == manage_issue_categories_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-tags"></i>
+                                    <p>
+                                        مدیریت دسته‌ها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_issue_categories' %}"
+                                            class="nav-link {% if request.path == manage_issue_categories_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست دسته‌ها</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{% url 'issue_category_create' %}"
+                                            class="nav-link {% if request.path == issue_category_create_url %}active{% endif %}">
+                                            <i class="fa fa-plus nav-icon"></i>
+                                            <p>افزودن دسته</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
 
 
-            <li class="nav-item has-treeview {% if request.path == article_list_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == article_list_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-newspaper-o"></i>
-                    <p>
-                        مدیریت مقالات
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'article_list' %}" class="nav-link {% if request.path == article_list_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست مقالات</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_issues_url or request.path ==  issue_create_url %}menu-open{% endif %}">
+                                <a href="#"
+                                    class="nav-link {% if request.path == manage_issues_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-exclamation-triangle"></i>
+                                    <p>
+                                        مدیریت خطاها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_issues' %}"
+                                            class="nav-link {% if request.path == manage_issues_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست خطاها</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{% url 'issue_create' %}"
+                                            class="nav-link {% if request.path == issue_create_url %}active{% endif %}">
+                                            <i class="fa fa-plus nav-icon"></i>
+                                            <p>افزودن خطا</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Similar structure for other menu items -->
+
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_solutions_url or request.path == solution_create_url %}menu-open{% endif %}">
+                                <a href="#"
+                                    class="nav-link {% if request.path == manage_solutions_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-lightbulb-o"></i>
+                                    <p>
+                                        مدیریت راهکارها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_solutions' %}"
+                                            class="nav-link {% if request.path == manage_solutions_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست راهکارها</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{% url 'solution_create' %}"
+                                            class="nav-link {% if request.path == solution_create_url %}active{% endif %}">
+                                            <i class="fa fa-plus nav-icon"></i>
+                                            <p>افزودن راهکار</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_maps_url %}menu-open{% endif %}">
+                                <a href="#" class="nav-link {% if request.path == manage_maps_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-map"></i>
+                                    <p>
+                                        مدیریت نقشه‌ها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_maps' %}"
+                                            class="nav-link {% if request.path == manage_maps_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست نقشه‌ها</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+
+                            <li
+                                class="nav-item has-treeview {% if request.path == article_list_url %}menu-open{% endif %}">
+                                <a href="#" class="nav-link {% if request.path == article_list_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-newspaper-o"></i>
+                                    <p>
+                                        مدیریت مقالات
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'article_list' %}"
+                                            class="nav-link {% if request.path == article_list_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست مقالات</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
 
 
 
-            <li class="nav-item has-treeview {% if request.path == manage_bookmarks_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_bookmarks_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-star"></i>
-                    <p>
-                        مدیریت نشان‌ها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_bookmarks' %}" class="nav-link {% if request.path == manage_bookmarks_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست نشان‌ها</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_bookmarks_url %}menu-open{% endif %}">
+                                <a href="#"
+                                    class="nav-link {% if request.path == manage_bookmarks_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-star"></i>
+                                    <p>
+                                        مدیریت نشان‌ها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_bookmarks' %}"
+                                            class="nav-link {% if request.path == manage_bookmarks_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست نشان‌ها</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
 
-            <li class="nav-item has-treeview {% if request.path == manage_users_url or request.path == user_create_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_users_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-users"></i>
-                    <p>
-                        مدیریت کاربران
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_users' %}" class="nav-link {% if request.path == manage_users_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست کاربران</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'user_create' %}" class="nav-link {% if request.path == user_create_url %}active{% endif %}">
-                            <i class="fa fa-plus nav-icon"></i>
-                            <p>افزودن کاربر</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_users_url or request.path == user_create_url %}menu-open{% endif %}">
+                                <a href="#" class="nav-link {% if request.path == manage_users_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-users"></i>
+                                    <p>
+                                        مدیریت کاربران
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_users' %}"
+                                            class="nav-link {% if request.path == manage_users_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست کاربران</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{% url 'user_create' %}"
+                                            class="nav-link {% if request.path == user_create_url %}active{% endif %}">
+                                            <i class="fa fa-plus nav-icon"></i>
+                                            <p>افزودن کاربر</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
 
-            <li class="nav-item has-treeview {% if request.path == manage_subscriptions_url or request.path == subscription_create_url %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if request.path == manage_subscriptions_url %}active{% endif %}">
-                    <i class="nav-icon fa fa-shopping-cart"></i>
-                    <p>
-                        مدیریت اشتراک‌ها
-                        <i class="right fa fa-angle-left"></i>
-                    </p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'manage_subscriptions' %}" class="nav-link {% if request.path == manage_subscriptions_url %}active{% endif %}">
-                            <i class="fa fa-list nav-icon"></i>
-                            <p>لیست اشتراک‌ها</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'subscription_create' %}" class="nav-link {% if request.path == subscription_create_url %}active{% endif %}">
-                            <i class="fa fa-plus nav-icon"></i>
-                            <p>افزودن اشتراک</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </aside>
-  {% endblock %}
-  
-  {% block header %}
-  {% endblock %}
-  
-  <div class="content-wrapper">
-    <div class="content">
-      <div class="container-fluid">
-        <div class="row">
-          {% block content %}
-          
-          {% endblock %}
-          <div id="floating-buttons">
-            <!-- دکمه برگشت به صفحه قبل -->
-            <a href="javascript:history.back()" id="back-button" class="floating-button" title="برگشت به صفحه قبل">
-                <i class="fa fa-arrow-left"></i>
-            </a>
-        
-            <!-- دکمه برگشت به بالای صفحه -->
-            <a href="#" id="scroll-to-top" class="floating-button" title="برگشت به بالای صفحه">
-                <i class="fa fa-chevron-up"></i>
-            </a>
+                            <li
+                                class="nav-item has-treeview {% if request.path == manage_subscriptions_url or request.path == subscription_create_url %}menu-open{% endif %}">
+                                <a href="#"
+                                    class="nav-link {% if request.path == manage_subscriptions_url %}active{% endif %}">
+                                    <i class="nav-icon fa fa-shopping-cart"></i>
+                                    <p>
+                                        مدیریت اشتراک‌ها
+                                        <i class="right fa fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a href="{% url 'manage_subscriptions' %}"
+                                            class="nav-link {% if request.path == manage_subscriptions_url %}active{% endif %}">
+                                            <i class="fa fa-list nav-icon"></i>
+                                            <p>لیست اشتراک‌ها</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{% url 'subscription_create' %}"
+                                            class="nav-link {% if request.path == subscription_create_url %}active{% endif %}">
+                                            <i class="fa fa-plus nav-icon"></i>
+                                            <p>افزودن اشتراک</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </aside>
+        {% endblock %}
+
+        {% block header %}
+        {% endblock %}
+
+        <div class="content-wrapper">
+            <div class="content">
+                <div class="container-fluid">
+                    <div class="row">
+                        {% block content %}
+
+                        {% endblock %}
+                        <div id="floating-buttons">
+                            <!-- دکمه برگشت به صفحه قبل -->
+                            <a href="javascript:history.back()" id="back-button" class="floating-button"
+                                title="برگشت به صفحه قبل">
+                                <i class="fa fa-arrow-left"></i>
+                            </a>
+
+                            <!-- دکمه برگشت به بالای صفحه -->
+                            <a href="#" id="scroll-to-top" class="floating-button" title="برگشت به بالای صفحه">
+                                <i class="fa fa-chevron-up"></i>
+                            </a>
+                        </div>
+
+
+
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        
-          
-        </div>
-      </div>
+
+        <footer class="main-footer">
+            <strong>&copy; 2018 <a href="#">کپی رایت </a></strong>
+        </footer>
     </div>
-  </div>
 
-  <footer class="main-footer">
-    <strong>&copy; 2018 <a href="#">کپی رایت </a></strong>
-  </footer>
-</div>
-
-<!-- <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script> -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="{% static 'plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-<script src="{% static 'dist/js/adminlte.js' %}"></script>
+    <!-- <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script> -->
+    <script src="{% static 'search/bootstrap/jquery-3.5.1.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- <script src="{% static 'plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script> -->
+    <script src="{% static 'search/bootstrap/bootstrap.bundle.min.js'} %"></script>
+    <script src="{% static 'dist/js/adminlte.js' %}"></script>
 
 
-<script>
-    // این کد برای دکمه "برگشت به بالای صفحه"
-    document.getElementById('scroll-to-top').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-</script>
-
-<script>
-    $(document).ready(function() {
-        $('[data-widget="pushmenu"]').on('click', function() {
-            $('.main-sidebar').toggleClass('sidebar-collapse');
+    <script>
+        // این کد برای دکمه "برگشت به بالای صفحه"
+        document.getElementById('scroll-to-top').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
-    });
-</script>
-{% block extra_js %}{% endblock %}
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            $('[data-widget="pushmenu"]').on('click', function () {
+                $('.main-sidebar').toggleClass('sidebar-collapse');
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
+
 </html>
