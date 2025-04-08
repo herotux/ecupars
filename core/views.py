@@ -2535,7 +2535,7 @@ def subscribe(request, plan_id):
         sandbox = settings.ZARINPAL_SANDBOX  # مقدار sandbox را از تنظیمات می‌گیریم
 
         # ارسال درخواست پرداخت با توجه به حالت sandbox
-        payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=sandbox)
+        payment_handler = ZarinPalPayment(merchant_id, amount, sandbox=False)
         result = payment_handler.request_payment(callback_url, description, mobile=request.user.phone_number, email=request.user.email if request.user.email else None)
 
         print(result)
@@ -2590,7 +2590,7 @@ def verify_payment(request):
         # بررسی وضعیت پرداخت
         merchant_id = settings.ZARINPAL_MERCHANT_ID
         sandbox = settings.ZARINPAL_SANDBOX
-        payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=sandbox)
+        payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=False)
         verification_result = payment_handler.verify_payment(authority)
         
         print(f"verification_result: {verification_result}")  # برای بررسی لاگ
@@ -3316,7 +3316,7 @@ class PaymentRequestAPIView(APIView):
             description = f"اشتراک {plan.name}"
             callback_url = request.build_absolute_uri('/payment/verify/')
             sandbox = settings.ZARINPAL_SANDBOX
-            payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=sandbox)
+            payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=False)
             
 
                 
@@ -3377,7 +3377,7 @@ class PaymentVerificationAPIView(APIView):
             # بررسی وضعیت پرداخت
             merchant_id = settings.ZARINPAL_MERCHANT_ID
             sandbox = settings.ZARINPAL_SANDBOX
-            payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=sandbox)
+            payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=False)
             verification_result = payment_handler.verify_payment(authority)
 
             if verification_result.get('success') and verification_result.get('data', {}).get('code') == 101:
