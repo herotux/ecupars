@@ -3261,44 +3261,41 @@ class PaymentRequestAPIView(APIView):
             user_email = serializer.validated_data.get('user_email') or None
             discount_code = serializer.validated_data.get('discount_code')
 
-
             if user_phone == '':
                 user_phone = None
             if user_email == '':
                 user_email = None
 
-
-            # پیدا کردن پلن انتخابی
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-
-            # محاسبه مبلغ نهایی با اعمال تخفیف
             final_amount = float(plan.price)
             discount_message = None
+            discount_percentage = 0  # مقدار پیش‌فرض برای تخفیف
 
             if discount_code:
                 try:
-                    # بررسی کد تخفیف
+                    # فقط بررسی اعتبار کد تخفیف (بدون افزایش تعداد استفاده)
                     discount = DiscountCode.objects.get(
                         code=discount_code,
-                        user=request.user,  # کاربر احراز هویت شده
+                        user=request.user,
                         expiration_date__gte=timezone.now(),
                     )
-                    # بررسی تعداد استفاده
+                    
                     if discount.max_usage and discount.usage_count >= discount.max_usage:
-                        return Response({'error': 'تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.'}, status=status.HTTP_400_BAD_REQUEST)
+                        return Response(
+                            {'error': 'تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.'}, 
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
 
-                    # اعمال تخفیف
-                    final_amount = final_amount * (1 - discount.discount_percentage / 100)
-                    discount_message = f"تخفیف {discount.discount_percentage}% اعمال شد."
-
-                    # افزایش تعداد استفاده از کد تخفیف
-                    discount.usage_count += 1
-                    discount.save()
+                    discount_percentage = discount.discount_percentage
+                    final_amount = final_amount * (1 - discount_percentage / 100)
+                    discount_message = f"تخفیف {discount_percentage}% اعمال خواهد شد."
 
                 except DiscountCode.DoesNotExist:
-                    return Response({'error': 'کد تخفیف نامعتبر است.'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {'error': 'کد تخفیف نامعتبر است.'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            # اگر قیمت پلن صفر باشد (رایگان)
             if final_amount == 0:
                 user_subscription, created = UserSubscription.objects.get_or_create(
                     user=request.user,
@@ -3309,16 +3306,16 @@ class PaymentRequestAPIView(APIView):
                 user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
                 user_subscription.save()
 
-                return Response({'message': 'اشتراک رایگان شما با موفقیت فعال شد.'}, status=status.HTTP_200_OK)
+                return Response(
+                    {'message': 'اشتراک رایگان شما با موفقیت فعال شد.'}, 
+                    status=status.HTTP_200_OK
+                )
 
-            # اگر قیمت پلن غیر از صفر باشد، درخواست پرداخت زرین‌پال را ارسال می‌کنیم
             merchant_id = settings.ZARINPAL_MERCHANT_ID
             description = f"اشتراک {plan.name}"
             callback_url = request.build_absolute_uri('/payment/verify/')
             sandbox = settings.ZARINPAL_SANDBOX
             payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=False)
-            
-
                 
             result = payment_handler.request_payment(
                 callback_url, 
@@ -3331,17 +3328,16 @@ class PaymentRequestAPIView(APIView):
                 authority = result['data'].get('authority')
                 payment_url = result['data'].get('payment_url')
 
-                # ایجاد رکورد پرداخت
                 payment = Payment.objects.create(
                     user=request.user,
                     plan=plan,
                     authority=authority,
                     amount=final_amount,
                     status='pending',
-                    discount_code=discount_code if discount_code else None
+                    discount_code=discount_code if discount_code else None,
+                    discount_percentage=discount_percentage  # ذخیره درصد تخفیف
                 )
 
-                # ذخیره اطلاعات در سشن
                 request.session['authority'] = authority
                 request.session['plan_id'] = plan_id
                 request.session['payment_id'] = payment.id
@@ -3364,51 +3360,92 @@ class PaymentRequestAPIView(APIView):
 
 
 class PaymentVerificationAPIView(APIView):
-    def get(self, request):  # زرین‌پال از متد GET برای callback استفاده می‌کند
-        authority = request.GET.get('Authority')  # دریافت Authority از URL
+    def get(self, request):
+        authority = request.GET.get('Authority')
+        status = request.GET.get('Status')  # وضعیت از زرین‌پال
+        
+        # بررسی اولیه پارامترها
         if not authority:
-            return render(request, 'payment/payment_failed.html', {'message': "کد Authority ارسال نشده است."})
+            return render(request, 'payment/failed.html', {
+                'message': 'کد مرجع تراکنش (Authority) دریافت نشد'
+            })
 
         try:
-            # پیدا کردن رکورد پرداخت بر اساس Authority
+            # یافتن تراکنش در دیتابیس
             payment = Payment.objects.get(authority=authority)
-            plan = payment.plan
+            
+            # اگر تراکنش قبلاً موفق بوده
+            if payment.status == 'paid':
+                return render(request, 'payment/success.html', {
+                    'message': 'این تراکنش قبلاً با موفقیت پرداخت شده است',
+                    'ref_id': payment.ref_id
+                })
 
-            # بررسی وضعیت پرداخت
-            merchant_id = settings.ZARINPAL_MERCHANT_ID
-            sandbox = settings.ZARINPAL_SANDBOX
-            payment_handler = ZarinPalPayment(merchant_id, plan.price, sandbox=False)
-            verification_result = payment_handler.verify_payment(authority)
+            # اگر وضعیت از زرین‌پال OK نباشد
+            if status != 'OK':
+                payment.status = 'failed'
+                payment.save()
+                return render(request, 'payment/failed.html', {
+                    'message': 'پرداخت توسط کاربر لغو شد یا ناموفق بود'
+                })
 
-            if verification_result.get('success') and verification_result.get('data', {}).get('code') == 101:
-                # پرداخت موفقیت‌آمیز
-                user_subscription, created = UserSubscription.objects.get_or_create(
-                    user=payment.user,
-                    defaults={'plan': plan}
-                )
+            # اعتبارسنجی پرداخت با زرین‌پال
+            zarinpal = ZarinPalPayment(
+                merchant_id=settings.ZARINPAL_MERCHANT_ID,
+                amount=payment.amount,
+                sandbox=settings.ZARINPAL_SANDBOX
+            )
+            verification = zarinpal.verify_payment(authority)
 
-                if created:
-                    user_subscription.start_date = now()
-                user_subscription.end_date = user_subscription.start_date + timedelta(days=365)
-                user_subscription.save()
-
-                # به‌روزرسانی رکورد پرداخت
+            if verification['status'] == 'success':
+                # پرداخت موفق
                 payment.status = 'paid'
-                payment.ref_id = verification_result['data'].get('ref_id')
-                payment.verified_at = now()
+                payment.ref_id = verification['ref_id']
+                payment.verified_at = timezone.now()
                 payment.save()
 
-                return render(request, 'payment/payment_success.html', {
-                    'message': 'پرداخت شما با موفقیت انجام شد و اشتراک فعال گردید.'
+                # فعال‌سازی اشتراک کاربر
+                self.activate_user_subscription(payment.user, payment.plan)
+
+                return render(request, 'payment/success.html', {
+                    'message': 'پرداخت با موفقیت انجام شد',
+                    'ref_id': verification['ref_id'],
+                    'card_number': verification.get('card_pan')
                 })
+
             else:
                 # پرداخت ناموفق
                 payment.status = 'failed'
                 payment.save()
+                return render(request, 'payment/failed.html', {
+                    'message': f'پرداخت ناموفق بود. کد خطا: {verification["code"]}',
+                    'details': verification['message']
+                })
 
-                return render(request, 'payment/payment_failed.html', {'message': 'پرداخت انجام نشد.'})
         except Payment.DoesNotExist:
-            return render(request, 'payment/payment_failed.html', {'message': 'پرداخت پیدا نشد.'})
+            return render(request, 'payment/failed.html', {
+                'message': 'تراکنش یافت نشد',
+                'details': 'لطفاً با پشتیبانی تماس بگیرید'
+            })
+        except Exception as e:
+            logging.error(f"Payment verification error: {str(e)}")
+            return render(request, 'payment/failed.html', {
+                'message': 'خطای سیستمی در پردازش پرداخت',
+                'details': str(e)
+            })
+
+    def activate_user_subscription(self, user, plan):
+        """فعال‌سازی اشتراک کاربر"""
+        subscription, created = UserSubscription.objects.get_or_create(
+            user=user,
+            defaults={'plan': plan, 'start_date': timezone.now()}
+        )
+        
+        if not created:
+            subscription.start_date = timezone.now()
+        
+        subscription.end_date = subscription.start_date + timedelta(days=plan.duration_days)
+        subscription.save()
 
 
 
@@ -3819,27 +3856,89 @@ class UserProfileAPIView(APIView):
 
 
 @csrf_exempt
+@transaction.atomic
 def bulk_copy_maps(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        map_ids = data.get('map_ids', [])
-        target_category_id = data.get('target_category_id')
-
         try:
-            target_category = IssueCategory.objects.get(id=target_category_id)
-            for map_id in map_ids:
-                map_instance = Map.objects.get(id=map_id)
-                # ایجاد یک کپی از نقشه
-                new_map = Map.objects.create(
-                    title=map_instance.title,
-                    category=target_category,
-                    # سایر فیلدها را نیز کپی کنید
-                )
-            return JsonResponse({'status': 'success', 'message': 'نقشه‌ها با موفقیت کپی شدند.'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+            # پارس کردن داده‌های ورودی
+            data = json.loads(request.body)
+            map_ids = data.get('map_ids', [])
+            target_category_id = data.get('target_category_id')
+            user_id = data.get('user_id')  # ID کاربری که عمل کپی را انجام می‌دهد
 
-    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
+            # اعتبارسنجی ورودی‌ها
+            if not map_ids:
+                return JsonResponse({'status': 'error', 'message': 'هیچ نقشه‌ای انتخاب نشده است'}, status=400)
+            
+            if not target_category_id:
+                return JsonResponse({'status': 'error', 'message': 'دسته‌بندی مقصد مشخص نشده است'}, status=400)
+
+            try:
+                target_category = IssueCategory.objects.get(id=target_category_id)
+                user = User.objects.get(id=user_id) if user_id else None
+            except IssueCategory.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'دسته‌بندی مقصد یافت نشد'}, status=404)
+            except User.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'کاربر یافت نشد'}, status=404)
+
+            copied_maps = []
+            errors = []
+
+            for map_id in map_ids:
+                try:
+                    # دریافت نقشه اصلی
+                    original_map = Map.objects.get(id=map_id)
+                    
+                    # ایجاد کپی از نقشه
+                    new_map = Map(
+                        title=f"کپی از {original_map.title[:200]}",  # محدودیت 200 کاراکتر
+                        category=target_category,
+                        created_by=user,
+                        updated_by=user,
+                        # کپی فیلدهای دیگر اگر نیاز باشد
+                    )
+
+                    # کپی کردن تصویر
+                    if original_map.image:
+                        original_name = original_map.image.name
+                        new_name = f"copy_{os.path.basename(original_name)}"
+                        new_map.image.save(new_name, File(original_map.image))
+
+                    new_map.save()
+
+                    # کپی کردن تگ‌ها
+                    new_map.tags.set(original_map.tags.all())
+
+                    copied_maps.append({
+                        'id': new_map.id,
+                        'title': new_map.title
+                    })
+
+                except Map.DoesNotExist:
+                    errors.append(f"نقشه با ID {map_id} یافت نشد")
+                except Exception as e:
+                    errors.append(f"خطا در کپی نقشه {map_id}: {str(e)}")
+
+            if errors:
+                return JsonResponse({
+                    'status': 'partial',
+                    'message': 'برخی نقشه‌ها با خطا مواجه شدند',
+                    'copied_maps': copied_maps,
+                    'errors': errors
+                }, status=207)
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{len(copied_maps)} نقشه با موفقیت کپی شدند',
+                'copied_maps': copied_maps
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'فرمت JSON نامعتبر است'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'متد مجاز: POST'}, status=405)
 
 
 
@@ -4028,3 +4127,8 @@ def complete_password_reset(request):
 @login_required
 def search_webapp(request):
     return render(request, 'search.html')
+
+
+
+
+
