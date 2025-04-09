@@ -449,7 +449,6 @@
         // اضافه کردن این بخش برای چک باکس‌های تکی نقشه‌ها
         $('.map-checkbox').on('change', function () {
             const allChecked = $('.map-checkbox').length === $('.map-checkbox:checked').length;
-            $('.item-checkbox[data-item-type="maps"]').prop('checked', allChecked);
             if (allChecked) {
                 $('#copy-selected').removeClass('d-none');
             } else {
