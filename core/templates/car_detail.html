@@ -446,6 +446,17 @@
             }
         });
 
+        // اضافه کردن این بخش برای چک باکس‌های تکی نقشه‌ها
+        $('.map-checkbox').on('change', function () {
+            const allChecked = $('.map-checkbox').length === $('.map-checkbox:checked').length;
+            $('.item-checkbox[data-item-type="maps"]').prop('checked', allChecked);
+            if (allChecked) {
+                $('#copy-selected').removeClass('d-none');
+            } else {
+                $('#copy-selected').addClass('d-none');
+            }
+        });
+
         // انتخاب چک باکس‌ها
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 
@@ -496,26 +507,6 @@
         });
 
 
-        // انتخاب چک باکس‌ها
-        const mapCheckboxes = document.querySelectorAll('input[type="checkbox"][data-item-type="maps"]');
-
-        // انتخاب دکمه‌های حذف و تغییر دسته‌بندی برای هر بخش
-        const copyButton = document.querySelector('#copy-selected');
-
-        // رویداد تغییر چک باکس‌ها
-        mapCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                // بررسی اینکه آیا حداقل یک چک باکس انتخاب شده است
-                const anyChecked = Array.from(mapCheckboxes).some(checkbox => checkbox.checked);
-
-                // نمایش یا مخفی کردن دکمه‌های حذف و تغییر دسته‌بندی برای هر بخش
-                if (anyChecked) {
-                    copyButton.classList.remove('d-none');
-                } else {
-                    copyButton.classList.add('d-none');
-                }
-            });
-        });
 
 
         // امیر
