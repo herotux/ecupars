@@ -194,7 +194,7 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'access_to_all_categories', 
+    list_display = ('name', 'price', 'duration_days', 'access_to_all_categories', 
                    'access_to_diagnostic_steps', 'access_to_maps', 'access_to_issues')
     search_fields = ('name', 'description')
     list_filter = ('access_to_all_categories', 'access_to_diagnostic_steps',
@@ -204,7 +204,7 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('اطلاعات پایه', {
-            'fields': ('name', 'description', 'price')
+            'fields': ('name', 'description', 'price', 'duration_days')
         }),
         ('تنظیمات دسترسی', {
             'fields': (
