@@ -3254,7 +3254,7 @@ class PaymentRequestAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = PaymentRequestSerializer(data=request.data)
+        serializer = PaymentRequestSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
             paylogger.error(f"Validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
