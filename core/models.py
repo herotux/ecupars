@@ -332,7 +332,6 @@ class SubscriptionPlan(models.Model):
         verbose_name="دسترسی به خطاها"
     )
     restricted_categories = models.ManyToManyField('IssueCategory', blank=True, verbose_name="دسته های منع شده")
-     # فیلد جدید برای دسته‌های با دسترسی ویژه
     full_access_categories = models.ManyToManyField(
         'IssueCategory',
         blank=True,
@@ -340,6 +339,7 @@ class SubscriptionPlan(models.Model):
         verbose_name="دسته‌های با دسترسی کامل"
     )
     price = models.IntegerField(default=0, verbose_name="بها")
+    duration_days = models.PositiveIntegerField(default=30, verbose_name="مدت اعتبار (روز)")  # فیلد جدید
 
     def __str__(self):
         return self.name

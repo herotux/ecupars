@@ -3524,20 +3524,25 @@ class PaymentVerificationAPIView(APIView):
 
     def _activate_subscription(self, user, plan):
         """فعال‌سازی اشتراک کاربر"""
-        subscription, created = UserSubscription.objects.get_or_create(
+        start_date = timezone.now()
+        end_date = start_date + timedelta(days=plan.duration_days)  # استفاده از duration_days
+
+        subscription, created = UserSubscription.objects.update_or_create(
             user=user,
             defaults={
                 'plan': plan,
-                'start_date': timezone.now(),
-                'end_date': timezone.now() + timedelta(days=plan.duration_days)
+                'start_date': start_date,
+                'end_date': end_date,
+                'is_active': True  # اشتراک به صورت پیش‌فرض فعال است
             }
         )
-        
-        if not created:
-            subscription.plan = plan
-            subscription.start_date = timezone.now()
-            subscription.end_date = timezone.now() + timedelta(days=plan.duration_days)
-            subscription.save()
+
+        if created:
+            logger.info(f"New subscription created for user {user.id} with plan {plan.name}")
+        else:
+            logger.info(f"Subscription updated for user {user.id} with plan {plan.name}")
+
+        return subscription
 
     def _increment_discount_usage(self, code):
         """افزایش تعداد استفاده کد تخفیف"""
