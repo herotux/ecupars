@@ -3393,7 +3393,7 @@ class PaymentVerificationAPIView(APIView):
             zarinpal = ZarinPalPayment(
                 merchant_id=settings.ZARINPAL_MERCHANT_ID,
                 amount=payment.amount,
-                sandbox=settings.ZARINPAL_SANDBOX
+                sandbox=False
             )
             verification = zarinpal.verify_payment(authority)
 
