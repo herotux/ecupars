@@ -12,6 +12,7 @@ from django.utils.timezone import now
 from datetime import timedelta
 from asgiref.sync import sync_to_async
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.translation import gettext_lazy as _
 
 
 
@@ -427,24 +428,144 @@ class Message(models.Model):
 
 
 class Payment(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'در انتظار پرداخت'),
-        ('paid', 'پرداخت شده'),
-        ('failed', 'ناموفق'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('در انتظار پرداخت')
+        PAID = 'paid', _('پرداخت شده')
+        FAILED = 'failed', _('ناموفق')
+        REFUNDED = 'refunded', _('مسترد شده')
+        CANCELED = 'canceled', _('لغو شده')
 
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    plan = models.ForeignKey('SubscriptionPlan', on_delete=models.SET_NULL, null=True, blank=True)
-    authority = models.CharField(max_length=255, unique=True)
-    ref_id = models.CharField(max_length=255, blank=True, null=True)
-    amount = models.IntegerField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    discount_code = models.CharField(max_length=50, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    verified_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name=_('کاربر')
+    )
     
+    plan = models.ForeignKey(
+        'SubscriptionPlan',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+        verbose_name=_('پلن اشتراک')
+    )
+    
+    authority = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_('کد مرجع تراکنش'),
+        help_text=_('کد یکتای شناسایی تراکنش در درگاه پرداخت')
+    )
+    
+    ref_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name=_('شماره پیگیری'),
+        help_text=_('شماره پیگیری بانکی تراکنش')
+    )
+    
+    amount = models.PositiveIntegerField(
+        verbose_name=_('مبلغ (ریال)'),
+        validators=[MinValueValidator(1000)],  # Minimum 1000 Rials
+        help_text=_('مبلغ تراکنش به ریال')
+    )
+    
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name=_('وضعیت پرداخت')
+    )
+    
+    discount_code = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_('کد تخفیف')
+    )
+    
+    discount_percentage = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_('درصد تخفیف اعمال شده')
+    )
+    
+    gateway = models.CharField(
+        max_length=50,
+        default='zarinpal',
+        verbose_name=_('درگاه پرداخت')
+    )
+    
+    description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('توضیحات تراکنش')
+    )
+    
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        verbose_name=_('آی‌پی کاربر')
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('تاریخ ایجاد')
+    )
+    
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('تاریخ تایید')
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_('تاریخ بروزرسانی')
+    )
+
+    class Meta:
+        verbose_name = _('پرداخت')
+        verbose_name_plural = _('پرداخت‌ها')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['authority']),
+            models.Index(fields=['ref_id']),
+            models.Index(fields=['status']),
+            models.Index(fields=['user', 'created_at']),
+        ]
+
     def __str__(self):
-        return f"{self.user.username} - {self.amount} - {self.ref_id} - {self.get_status_display()}"
+        return f"{self.user.get_full_name() or self.user.username} - {self.amount:,} ریال - {self.get_status_display()}"
+
+    def save(self, *args, **kwargs):
+        """Override save to add custom logic"""
+        if not self.description and self.plan:
+            self.description = f"خرید اشتراک {self.plan.name}"
+        super().save(*args, **kwargs)
+
+    @property
+    def is_successful(self):
+        return self.status == self.Status.PAID
+
+    @property
+    def final_amount(self):
+        """Calculate final amount after discount"""
+        return self.amount * (100 - self.discount_percentage) / 100
+
+    def mark_as_paid(self, ref_id):
+        """Mark payment as successful"""
+        self.status = self.Status.PAID
+        self.ref_id = ref_id
+        self.verified_at = timezone.now()
+        self.save(update_fields=['status', 'ref_id', 'verified_at'])
+
+    def mark_as_failed(self):
+        """Mark payment as failed"""
+        self.status = self.Status.FAILED
+        self.save(update_fields=['status'])
     
 
 
