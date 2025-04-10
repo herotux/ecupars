@@ -3256,6 +3256,7 @@ class PaymentRequestAPIView(APIView):
     def post(self, request):
         serializer = PaymentRequestSerializer(data=request.data)
         if not serializer.is_valid():
+            paylogger.error(f"Validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -3271,6 +3272,11 @@ class PaymentRequestAPIView(APIView):
             final_amount = base_amount
             discount_percentage = 0
 
+            # بررسی وجود اشتراک فعال
+            existing_subscription = UserSubscription.objects.filter(user=request.user, is_active=True).first()
+            if existing_subscription:
+                raise ValidationError('شما قبلاً یک اشتراک فعال دارید.')
+            
             # اعمال تخفیف اگر وجود داشته باشد
             if discount_code:
                 discount = self._validate_discount_code(discount_code, request.user)
@@ -3324,6 +3330,7 @@ class PaymentRequestAPIView(APIView):
             }, status=status.HTTP_200_OK)
 
         except ValidationError as e:
+            paylogger.error(f"Unexpected error: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Payment request failed: {str(e)}")

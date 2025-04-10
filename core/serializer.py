@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from .models import ChatSession, Message, Advertisement, Map, IssueCategory, Issue, Question, DiagnosticStep, Option, SubscriptionPlan, UserSubscription
-from .models import CustomUser, Tag, Solution, Article
+from .models import CustomUser, Tag, Solution, Article, DiscountCode
+from django.utils import timezone
+
+
+
+
+
+
+
+
 
 class MapSerializer(serializers.ModelSerializer):
     class Meta:
@@ -209,6 +218,25 @@ class PaymentRequestSerializer(serializers.Serializer):
         allow_null=True
     )
     discount_code = serializers.CharField(required=False, allow_null=True)
+
+    def validate_plan_id(self, value):
+        if not SubscriptionPlan.objects.filter(id=value).exists():
+            raise serializers.ValidationError("پلن انتخابی نامعتبر است.")
+        return value
+
+    def validate_discount_code(self, value):
+        if value:
+            user = self.context['request'].user
+            try:
+                discount = DiscountCode.objects.get(code=value, user=user, expiration_date__gte=timezone.now())
+                if discount.max_usage and discount.usage_count >= discount.max_usage:
+                    raise serializers.ValidationError("تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.")
+            except DiscountCode.DoesNotExist:
+                raise serializers.ValidationError("کد تخفیف نامعتبر یا منقضی شده است.")
+        return value
+
+
+
 
 class PaymentVerificationSerializer(serializers.Serializer):
     authority = serializers.CharField(max_length=100)
