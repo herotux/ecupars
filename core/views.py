@@ -3296,7 +3296,7 @@ class PaymentRequestAPIView(APIView):
             payment_result = self._request_payment_gateway(
                 amount=final_amount,
                 description=f"خرید اشتراک {plan.name}",
-                callback_url=request.build_absolute_uri(reverse('payment-verify')),
+                callback_url=request.build_absolute_uri(reverse('payment_verify')),
                 email=user_email,
                 mobile=user_phone,
                 payment=payment
