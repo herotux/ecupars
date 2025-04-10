@@ -600,6 +600,7 @@ class DiscountCode(models.Model):
     max_usage = models.PositiveIntegerField(null=True, blank=True)  # تعداد مجاز استفاده (پیش‌فرض نامحدود)
     usage_count = models.PositiveIntegerField(default=0)  # تعداد استفاده‌شده
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
     
 
 
