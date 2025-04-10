@@ -403,6 +403,11 @@ LOGGING = {
             'level': 'DEBUG', 
             'propagate': False,
         },
+        'payment_gateway': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
     },
 }
 

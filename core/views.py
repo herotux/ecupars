@@ -456,7 +456,7 @@ def has_diagnostic_access(view_func):
 logger = logging.getLogger('core')
 
 
-
+paylogger = logging.getLogger('payment_gateway')
 
 
 
@@ -3489,7 +3489,9 @@ class PaymentVerificationAPIView(APIView):
         )
         
         result = gateway.verify_payment(payment.authority)
-        
+        # لاگ‌گیری از پاسخ دریافتی از زرین‌پال
+        paylogger.debug(f"Response from ZarinPal: {result}")
+
         if result['success']:
             return {
                 'success': True,
