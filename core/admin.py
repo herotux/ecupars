@@ -138,7 +138,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     search_fields = ('user__username',)
 
     def status_display(self, obj):
-        return "فعال" if obj.is_active() else "غیرفعال"
+        return "فعال" if obj.is_currently_active() else "غیرفعال"
     status_display.short_description = 'وضعیت'
 
 
@@ -188,7 +188,7 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     autocomplete_fields = ['user']
 
     def is_active_display(self, obj):
-        return "فعال" if obj.is_active() else "غیرفعال"
+        return "فعال" if obj.is_currently_active() else "غیرفعال"
     is_active_display.short_description = 'وضعیت'
 
 

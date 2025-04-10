@@ -112,7 +112,7 @@ class BaseAccessPermission(BasePermission):
         if not hasattr(user, 'subscription'):
             raise self.exception_class("طرح اشتراکی فعال ندارید")
             
-        if not user.subscription.is_active():
+        if not user.subscription.is_currently_active():
             raise self.exception_class("اشتراک شما غیرفعال است")
             
         return user.subscription.plan
@@ -3969,7 +3969,7 @@ class UserProfileAPIView(APIView):
                     },
                     'start_date': subscription.start_date,
                     'end_date': subscription.end_date,
-                    'is_active': subscription.is_active(),
+                    'is_active': subscription.is_currently_active(),
                 }
                 user_data['subscription'] = subscription_data
             except UserSubscription.DoesNotExist:

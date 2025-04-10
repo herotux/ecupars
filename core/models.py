@@ -355,8 +355,9 @@ class UserSubscription(models.Model):
 
 
 
-    def is_active(self):
-        return self.end_date > now()
+    def is_currently_active(self):
+        """بررسی اینکه آیا اشتراک در حال حاضر فعال است یا خیر"""
+        return self.end_date > timezone.now()
 
     def __str__(self):
         return f"{self.user.username} - {self.plan.name}"
