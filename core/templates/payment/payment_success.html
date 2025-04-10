@@ -1,5 +1,5 @@
 {% extends 'base2.html' %}
-{% block title %} صفحه   {{ article.title }} {% endblock %}
+{% block title %} صفحه {{ article.title }} {% endblock %}
 {% block content %}
 <div class="container mt-5">
     <div class="card">
@@ -8,9 +8,11 @@
         </div>
         <div class="card-body">
             <p>{{ message }}</p>
-            <a href="{% url 'home' %}">بازگشت به صفحه اصلی</a>
+            <!-- دکمه بازگشت به اپلیکیشن -->
+            <a href="myapp://" class="btn btn-primary">
+                بازگشت به اپلیکیشن
+            </a>
         </div>
     </div>
 </div>
-    
 {% endblock %}
