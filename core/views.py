@@ -3489,20 +3489,37 @@ class PaymentVerificationAPIView(APIView):
         )
         
         result = gateway.verify_payment(payment.authority)
+        
         # لاگ‌گیری از پاسخ دریافتی از زرین‌پال
         paylogger.debug(f"Response from ZarinPal: {result}")
 
-        if result['success']:
+        # بررسی وضعیت پاسخ
+        if result.get('success') and result.get('response_data', {}).get('data', {}).get('code') == 100:
+            # استخراج اطلاعات از response_data['data']
+            response_data = result['response_data']['data']
+            ref_id = response_data.get('ref_id')
+            card_pan = response_data.get('card_pan')
+            message = response_data.get('message', 'پرداخت موفقیت‌آمیز بود')
+            
+            if not ref_id:
+                return {
+                    'success': False,
+                    'message': 'فیلد ref_id در پاسخ درگاه یافت نشد'
+                }
+            
             return {
                 'success': True,
-                'ref_id': result['data']['ref_id'],
-                'card_pan': result['data'].get('card_pan'),
-                'message': result['data'].get('message')
+                'ref_id': ref_id,
+                'card_pan': card_pan,
+                'message': message
             }
         
+        # در صورت وجود خطا
+        errors = result.get('response_data', {}).get('errors', [])
+        error_message = ', '.join(errors) if errors else result.get('error', 'خطا در تایید پرداخت')
         return {
             'success': False,
-            'message': result.get('error', 'خطا در تایید پرداخت')
+            'message': error_message
         }
 
     def _activate_subscription(self, user, plan):
