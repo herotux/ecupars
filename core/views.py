@@ -3541,7 +3541,7 @@ class PaymentVerificationAPIView(APIView):
             'card_number': card_number,
             'date': payment.verified_at
         }
-        return render(request, 'payment/success.html', context)
+        return render(request, 'payment/payment_success.html', context)
 
     def _render_payment_failed(self, request, message, details=None):
         """رندر صفحه شکست پرداخت"""
@@ -3549,7 +3549,7 @@ class PaymentVerificationAPIView(APIView):
             'message': message,
             'details': details
         }
-        return render(request, 'payment/failed.html', context)
+        return render(request, 'payment/payment_failed.html', context)
 
 
 
