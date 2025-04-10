@@ -3251,110 +3251,168 @@ class ArticleListAPIView(generics.ListAPIView):
 
 class PaymentRequestAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]        
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = PaymentRequestSerializer(data=request.data)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # استخراج و اعتبارسنجی داده‌ها
             plan_id = serializer.validated_data['plan_id']
-            user_phone = serializer.validated_data.get('user_phone') or None
-            user_email = serializer.validated_data.get('user_email') or None
-            discount_code = serializer.validated_data.get('discount_code')
+            user_phone = serializer.validated_data.get('user_phone', '').strip() or None
+            user_email = serializer.validated_data.get('user_email', '').strip() or None
+            discount_code = serializer.validated_data.get('discount_code', '').strip() or None
 
-            if user_phone == '':
-                user_phone = None
-            if user_email == '':
-                user_email = None
-
+            # دریافت پلن و محاسبه مبلغ نهایی
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-            final_amount = float(plan.price)
-            discount_message = None
-            discount_percentage = 0  # مقدار پیش‌فرض برای تخفیف
+            base_amount = int(plan.price)  # تبدیل به ریال
+            final_amount = base_amount
+            discount_percentage = 0
 
+            # اعمال تخفیف اگر وجود داشته باشد
             if discount_code:
-                try:
-                    # فقط بررسی اعتبار کد تخفیف (بدون افزایش تعداد استفاده)
-                    discount = DiscountCode.objects.get(
-                        code=discount_code,
-                        user=request.user,
-                        expiration_date__gte=timezone.now(),
-                    )
-                    
-                    if discount.max_usage and discount.usage_count >= discount.max_usage:
-                        return Response(
-                            {'error': 'تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.'}, 
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                discount = self._validate_discount_code(discount_code, request.user)
+                discount_percentage = discount.discount_percentage
+                final_amount = int(base_amount * (1 - discount_percentage / 100))
 
-                    discount_percentage = discount.discount_percentage
-                    final_amount = final_amount * (1 - discount_percentage / 100)
-                    discount_message = f"تخفیف {discount_percentage}% اعمال خواهد شد."
+            # پردازش پرداخت رایگان
+            if final_amount <= 0:
+                return self._handle_free_subscription(request.user, plan)
 
-                except DiscountCode.DoesNotExist:
-                    return Response(
-                        {'error': 'کد تخفیف نامعتبر است.'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+            # ایجاد تراکنش در دیتابیس
+            payment = Payment.objects.create(
+                user=request.user,
+                plan=plan,
+                amount=base_amount,
+                discount_code=discount_code,
+                discount_percentage=discount_percentage,
+                ip_address=self._get_client_ip(request),
+                status=Payment.Status.PENDING
+            )
 
-            if final_amount == 0:
-                user_subscription, created = UserSubscription.objects.get_or_create(
-                    user=request.user,
-                    defaults={'plan': plan}
-                )
-                if created:
-                    user_subscription.start_date = timezone.now()
-                user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
-                user_subscription.save()
+            # درخواست به درگاه پرداخت
+            payment_result = self._request_payment_gateway(
+                amount=final_amount,
+                description=f"خرید اشتراک {plan.name}",
+                callback_url=request.build_absolute_uri(reverse('payment-verify')),
+                email=user_email,
+                mobile=user_phone,
+                payment=payment
+            )
 
+            if not payment_result['success']:
+                payment.status = Payment.Status.FAILED
+                payment.save()
                 return Response(
-                    {'message': 'اشتراک رایگان شما با موفقیت فعال شد.'}, 
-                    status=status.HTTP_200_OK
+                    {'error': payment_result['error']},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-            merchant_id = settings.ZARINPAL_MERCHANT_ID
-            description = f"اشتراک {plan.name}"
-            callback_url = request.build_absolute_uri('/payment/verify/')
-            sandbox = settings.ZARINPAL_SANDBOX
-            payment_handler = ZarinPalPayment(merchant_id, final_amount, sandbox=False)
-                
-            result = payment_handler.request_payment(
-                callback_url, 
-                description,
-                email=user_email.strip() if user_email else None,
-                mobile=user_phone.strip() if user_phone else None
+            # بروزرسانی تراکنش با اطلاعات درگاه
+            payment.authority = payment_result['authority']
+            payment.gateway = 'zarinpal'  # یا از تنظیمات بخوانید
+            payment.save()
+
+            return Response({
+                'payment_id': payment.id,
+                'payment_url': payment_result['payment_url'],
+                'amount': final_amount,
+                'discount_percentage': discount_percentage,
+                'gateway': payment.gateway
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Payment request failed: {str(e)}")
+            return Response(
+                {'error': 'خطا در پردازش درخواست پرداخت'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _validate_discount_code(self, code, user):
+        """اعتبارسنجی کد تخفیف"""
+        try:
+            discount = DiscountCode.objects.get(
+                code=code,
+                user=user,
+                expiration_date__gte=timezone.now(),
+                is_active=True
             )
             
-            if result.get('success') and result['data']:
-                authority = result['data'].get('authority')
-                payment_url = result['data'].get('payment_url')
+            if discount.max_usage and discount.usage_count >= discount.max_usage:
+                raise ValidationError('تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.')
+            
+            return discount
+        except DiscountCode.DoesNotExist:
+            raise ValidationError('کد تخفیف نامعتبر یا منقضی شده است.')
 
-                payment = Payment.objects.create(
-                    user=request.user,
-                    plan=plan,
-                    authority=authority,
-                    amount=final_amount,
-                    status='pending',
-                    discount_code=discount_code if discount_code else None,
-                    discount_percentage=discount_percentage  # ذخیره درصد تخفیف
-                )
-
-                request.session['authority'] = authority
-                request.session['plan_id'] = plan_id
-                request.session['payment_id'] = payment.id
-
-                response_data = {
-                    'payment_url': payment_url,
-                    'payment_id': payment.id,
-                    'final_amount': final_amount,
+    def _handle_free_subscription(self, user, plan):
+        """پردازش اشتراک رایگان"""
+        with transaction.atomic():
+            # ایجاد اشتراک
+            subscription, created = UserSubscription.objects.get_or_create(
+                user=user,
+                defaults={
+                    'plan': plan,
+                    'start_date': timezone.now(),
+                    'end_date': timezone.now() + timedelta(days=plan.duration_days)
                 }
-                if discount_message:
-                    response_data['discount_message'] = discount_message
+            )
+            
+            if not created:
+                subscription.start_date = timezone.now()
+                subscription.end_date = timezone.now() + timedelta(days=plan.duration_days)
+                subscription.save()
+            
+            # ثبت تراکنش رایگان
+            Payment.objects.create(
+                user=user,
+                plan=plan,
+                amount=0,
+                status=Payment.Status.PAID,
+                verified_at=timezone.now(),
+                description=f"اشتراک رایگان {plan.name}"
+            )
+            
+            return Response(
+                {'message': 'اشتراک رایگان شما با موفقیت فعال شد.'},
+                status=status.HTTP_200_OK
+            )
 
-                return Response(response_data, status=status.HTTP_200_OK)
-            else:
-                error_message = result.get('response_data', {}).get('data', {}).get('message', 'خطا در اتصال به درگاه پرداخت.')
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def _request_payment_gateway(self, amount, description, callback_url, email, mobile, payment):
+        """ارسال درخواست به درگاه پرداخت"""
+        gateway = ZarinPalPayment(
+            merchant_id=settings.ZARINPAL_MERCHANT_ID,
+            amount=amount,
+            sandbox=settings.ZARINPAL_SANDBOX
+        )
+        
+        result = gateway.request_payment(
+            callback_url=callback_url,
+            description=description,
+            email=email,
+            mobile=mobile
+        )
+        
+        if result['success']:
+            return {
+                'success': True,
+                'authority': result['data']['authority'],
+                'payment_url': result['data']['payment_url']
+            }
+        
+        return {
+            'success': False,
+            'error': result.get('error', 'خطا در ارتباط با درگاه پرداخت')
+        }
+
+    def _get_client_ip(self, request):
+        """دریافت IP کاربر"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
 
 
@@ -3362,90 +3420,136 @@ class PaymentRequestAPIView(APIView):
 class PaymentVerificationAPIView(APIView):
     def get(self, request):
         authority = request.GET.get('Authority')
-        status = request.GET.get('Status')  # وضعیت از زرین‌پال
+        gateway_status = request.GET.get('Status')
         
-        # بررسی اولیه پارامترها
         if not authority:
-            return render(request, 'payment/failed.html', {
-                'message': 'کد مرجع تراکنش (Authority) دریافت نشد'
-            })
+            return self._render_payment_failed('کد مرجع تراکنش وجود ندارد')
 
         try:
-            # یافتن تراکنش در دیتابیس
-            payment = Payment.objects.get(authority=authority)
+            payment = Payment.objects.select_related('user', 'plan').get(authority=authority)
             
-            # اگر تراکنش قبلاً موفق بوده
-            if payment.status == 'paid':
-                return render(request, 'payment/success.html', {
-                    'message': 'این تراکنش قبلاً با موفقیت پرداخت شده است',
-                    'ref_id': payment.ref_id
-                })
-
-            # اگر وضعیت از زرین‌پال OK نباشد
-            if status != 'OK':
-                payment.status = 'failed'
+            # اگر تراکنش قبلاً پرداخت شده
+            if payment.status == Payment.Status.PAID:
+                return self._render_payment_success(
+                    request,
+                    payment,
+                    'این تراکنش قبلاً با موفقیت پرداخت شده است'
+                )
+            
+            # اگر کاربر از پرداخت انصراف داده
+            if gateway_status != 'OK':
+                payment.status = Payment.Status.FAILED
                 payment.save()
-                return render(request, 'payment/failed.html', {
-                    'message': 'پرداخت توسط کاربر لغو شد یا ناموفق بود'
-                })
+                return self._render_payment_failed(request,'پرداخت توسط کاربر لغو شد')
 
-            # اعتبارسنجی پرداخت با زرین‌پال
-            zarinpal = ZarinPalPayment(
-                merchant_id=settings.ZARINPAL_MERCHANT_ID,
-                amount=payment.amount,
-                sandbox=False
-            )
-            verification = zarinpal.verify_payment(authority)
-
-            if verification['status'] == 'success':
-                # پرداخت موفق
-                payment.status = 'paid'
-                payment.ref_id = verification['ref_id']
-                payment.verified_at = timezone.now()
+            # تایید پرداخت با درگاه
+            verification_result = self._verify_payment(payment)
+            
+            if not verification_result['success']:
+                payment.status = Payment.Status.FAILED
                 payment.save()
+                return self._render_payment_failed(
+                    request,
+                    'پرداخت ناموفق بود',
+                    details=verification_result.get('message')
+                )
 
-                # فعال‌سازی اشتراک کاربر
-                self.activate_user_subscription(payment.user, payment.plan)
-
-                return render(request, 'payment/success.html', {
-                    'message': 'پرداخت با موفقیت انجام شد',
-                    'ref_id': verification['ref_id'],
-                    'card_number': verification.get('card_pan')
-                })
-
-            else:
-                # پرداخت ناموفق
-                payment.status = 'failed'
-                payment.save()
-                return render(request, 'payment/failed.html', {
-                    'message': f'پرداخت ناموفق بود. کد خطا: {verification["code"]}',
-                    'details': verification['message']
-                })
+            # پرداخت موفقیت‌آمیز
+            with transaction.atomic():
+                payment.mark_as_paid(verification_result['ref_id'])
+                self._activate_subscription(payment.user, payment.plan)
+                
+                # افزایش تعداد استفاده کد تخفیف
+                if payment.discount_code:
+                    self._increment_discount_usage(payment.discount_code)
+                
+                return self._render_payment_success(
+                    request,
+                    payment,
+                    'پرداخت با موفقیت انجام شد',
+                    card_number=verification_result.get('card_pan')
+                )
 
         except Payment.DoesNotExist:
-            return render(request, 'payment/failed.html', {
-                'message': 'تراکنش یافت نشد',
-                'details': 'لطفاً با پشتیبانی تماس بگیرید'
-            })
+            return self._render_payment_failed(request, 'تراکنش یافت نشد')
         except Exception as e:
-            logging.error(f"Payment verification error: {str(e)}")
-            return render(request, 'payment/failed.html', {
-                'message': 'خطای سیستمی در پردازش پرداخت',
-                'details': str(e)
-            })
+            logger.error(f"Payment verification error: {str(e)}")
+            return self._render_payment_failed(
+                request,
+                'خطا در پردازش تراکنش',
+                details=str(e)
+            )
 
-    def activate_user_subscription(self, user, plan):
+    def _verify_payment(self, payment):
+        """تایید پرداخت با درگاه"""
+        gateway = ZarinPalPayment(
+            merchant_id=settings.ZARINPAL_MERCHANT_ID,
+            amount=payment.final_amount,
+            sandbox=settings.ZARINPAL_SANDBOX
+        )
+        
+        result = gateway.verify_payment(payment.authority)
+        
+        if result['success']:
+            return {
+                'success': True,
+                'ref_id': result['data']['ref_id'],
+                'card_pan': result['data'].get('card_pan'),
+                'message': result['data'].get('message')
+            }
+        
+        return {
+            'success': False,
+            'message': result.get('error', 'خطا در تایید پرداخت')
+        }
+
+    def _activate_subscription(self, user, plan):
         """فعال‌سازی اشتراک کاربر"""
         subscription, created = UserSubscription.objects.get_or_create(
             user=user,
-            defaults={'plan': plan, 'start_date': timezone.now()}
+            defaults={
+                'plan': plan,
+                'start_date': timezone.now(),
+                'end_date': timezone.now() + timedelta(days=plan.duration_days)
+            }
         )
         
         if not created:
+            subscription.plan = plan
             subscription.start_date = timezone.now()
-        
-        subscription.end_date = subscription.start_date + timedelta(days=plan.duration_days)
-        subscription.save()
+            subscription.end_date = timezone.now() + timedelta(days=plan.duration_days)
+            subscription.save()
+
+    def _increment_discount_usage(self, code):
+        """افزایش تعداد استفاده کد تخفیف"""
+        try:
+            with transaction.atomic():
+                discount = DiscountCode.objects.select_for_update().get(code=code)
+                discount.usage_count = F('usage_count') + 1
+                discount.save()
+        except DiscountCode.DoesNotExist:
+            pass
+
+    def _render_payment_success(self, request, payment, message, card_number=None):
+        """رندر صفحه موفقیت پرداخت"""
+        context = {
+            'payment': payment,
+            'message': message,
+            'ref_id': payment.ref_id,
+            'amount': payment.final_amount,
+            'plan': payment.plan,
+            'card_number': card_number,
+            'date': payment.verified_at
+        }
+        return render(request, 'payment/success.html', context)
+
+    def _render_payment_failed(self, request, message, details=None):
+        """رندر صفحه شکست پرداخت"""
+        context = {
+            'message': message,
+            'details': details
+        }
+        return render(request, 'payment/failed.html', context)
 
 
 
