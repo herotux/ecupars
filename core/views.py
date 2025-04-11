@@ -3279,7 +3279,7 @@ class PaymentRequestAPIView(APIView):
             
             # اعمال تخفیف اگر وجود داشته باشد
             if discount_code:
-                discount = self._validate_discount_code(discount_code, request.user)
+                discount = self._validate_discount_code(discount_code)
                 discount_percentage = discount.discount_percentage
                 final_amount = int(base_amount * (1 - discount_percentage / 100))
 
@@ -3339,12 +3339,11 @@ class PaymentRequestAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def _validate_discount_code(self, code, user):
+    def _validate_discount_code(self, code):
         """اعتبارسنجی کد تخفیف"""
         try:
             discount = DiscountCode.objects.get(
                 code=code,
-                user=user,
                 expiration_date__gte=timezone.now(),
                 is_active=True
             )

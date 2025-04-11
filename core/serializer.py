@@ -226,9 +226,8 @@ class PaymentRequestSerializer(serializers.Serializer):
 
     def validate_discount_code(self, value):
         if value:
-            user = self.context['request'].user
             try:
-                discount = DiscountCode.objects.get(code=value, user=user, expiration_date__gte=timezone.now())
+                discount = DiscountCode.objects.get(code=value, expiration_date__gte=timezone.now(), is_active=True)
                 if discount.max_usage and discount.usage_count >= discount.max_usage:
                     raise serializers.ValidationError("تعداد مجاز استفاده از این کد تخفیف به پایان رسیده است.")
             except DiscountCode.DoesNotExist:
