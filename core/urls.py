@@ -135,6 +135,7 @@ urlpatterns = [
     path('check_bookmark/', views.check_bookmark, name='check_bookmark'),
     path('bulk/delete/', views.bulk_delete, name='bulk_delete'),
     path('bulk/update/', views.bulk_update_category, name='bulk_update_category'),
+    path('bulk/copy/maps', views.bulk_copy_maps, name='bulk_copy_maps'),
     path('import-maps/<int:category_id>/', views.import_maps, name='import_maps'),
     path('plans/', views.subscription_plans, name='subscription_plans'),
     path('subscribe/<int:plan_id>/', views.subscribe, name='subscribe'),
