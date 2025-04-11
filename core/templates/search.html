@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="fa">
 {% load static %}
+{% block title %} جستجو {% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'search/search.css' %}">
 <link rel="stylesheet" href="{% static 'search/bootstrap/bootstrap.min.css' %}">
@@ -16,11 +17,7 @@
         <input class="form-control mt-3 bg-black text-white" type="text" placeholder="جستجو . . . .">
     </div>
 
-    <div class="search-container">
-        <button class="search-btn">
-            <i class="fas fa-search" id="search-button"></i> جستجو
-        </button>
-    </div>
+    <button class="btn btn-success w-50">جستجو</button>
 
     <div>
         <ul class="nav  justify-content-around h4 mt-5 rounded nav-pills nav-justified ">
