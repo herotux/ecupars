@@ -3901,7 +3901,7 @@ class DiscountCodeDetailAPIView(APIView):
             
             for discount_code in discount_codes:
                 # پیدا کردن کاربرانی که از این کد تخفیف استفاده کرده‌اند
-                users_with_discount = CustomUser.objects.filter(Q(payment__discount_code=discount_code)).distinct()
+                users_with_discount = CustomUser.objects.filter(Q(payments__discount_code=discount_code)).distinct()
                 
                 user_data = []
                 for user_with_discount in users_with_discount:
