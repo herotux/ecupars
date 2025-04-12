@@ -3900,8 +3900,19 @@ class DiscountCodeDetailAPIView(APIView):
             discount_code_data = []
             
             for discount_code in discount_codes:
+                logger.info(f"Processing discount code: {discount_code.code}")
+                
+                if not discount_code.is_valid():
+                    logger.warning(f"Discount code {discount_code.code} is not valid.")
+                    continue
+                
                 # پیدا کردن کاربرانی که از این کد تخفیف استفاده کرده‌اند
-                users_with_discount = CustomUser.objects.filter(Q(payments__discount_code=discount_code)).distinct()
+                users_with_discount = CustomUser.objects.filter(
+                    payments__discount_code=discount_code.code
+                ).distinct()
+                
+                if not users_with_discount.exists():
+                    logger.warning(f"No users found for discount code: {discount_code.code}")
                 
                 user_data = []
                 for user_with_discount in users_with_discount:
@@ -3936,6 +3947,7 @@ class DiscountCodeDetailAPIView(APIView):
             }, status=status.HTTP_200_OK)
         
         except CustomUser.DoesNotExist:
+            logger.error(f"User with ID {user_id} not found.")
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
