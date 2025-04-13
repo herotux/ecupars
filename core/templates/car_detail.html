@@ -612,49 +612,60 @@
         }
 
 
-        function copyMaps() {
-            const selectedMapIds = [];
-
-            // جمع‌آوری شناسه‌های نقشه‌های انتخاب شده
-            $('[data-section="maps"] .item-checkbox:checked').each(function () {
-                selectedMapIds.push($(this).val());
-            });
-
-            const targetCategoryId = $('#new-copy-modal').val();
-
-            // ارسال درخواست کپی برای نقشه‌ها
-            if (selectedMapIds.length > 0) {
-                $.ajax({
-                    url: '/bulk/copy/maps',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        map_ids: selectedMapIds,
-                        target_category_id: targetCategoryId
-                    }),
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            alert('نقشه‌ها با موفقیت کپی شدند');
-                        } else {
-                            alert('خطا در کپی نقشه‌ها');
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        alert('خطا در کپی نقشه‌ها: ' + error);
-                    }
+        async function bulkCopyMaps() {
+            try {
+                // جمع‌آوری شناسه‌های نقشه‌های انتخاب شده
+                const mapIds = [];
+                $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                    mapIds.push($(this).val());
                 });
-            }
 
-            location.reload();
+                // دریافت شناسه دسته جدید
+                const targetCategoryId = $('#new-copy-modal').val();
+
+                // دریافت شناسه کاربر (اختیاری)
+                const userId = null; // اختیاری
+
+                // آدرس API
+                const url = '/bulk/copy/maps';
+
+                // داده‌های ورودی
+                const data = {
+                    map_ids: mapIds,
+                    target_category_id: targetCategoryId,
+                    user_id: userId
+                };
+
+                // ارسال درخواست POST
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') // اگر CSRF Token نیاز باشد
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                // بررسی وضعیت پاسخ
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'خطایی رخ داد');
+                }
+
+                // دریافت داده‌های موفقیت‌آمیز
+                const result = await response.json();
+                console.log('نقشه‌های کپی‌شده:', result.copied_maps);
+                alert(`عملایت موفق : ${result.message}`);
+            } catch (error) {
+                console.error('خطا:', error.message);
+                alert(`خطا :${error.message}`);
+            }
         }
 
         // اتصال رویدادها
         $('#delete-selected, #delete-selected-floating').click(deleteSelectedItems);
         $('#confirm-update-category').click(updateCategory);
-        $('#confirm-update-map').click(copyMaps);
+        $('#confirm-update-map').click(bulkCopyMaps);
 
     });
 
