@@ -204,10 +204,10 @@
     </form>
     {% endif %}
 
-    <!-- دکمه حذف شناور -->
+    <!-- دکمه حذف شناور
     <button type="button" id="delete-selected-floating" class="btn btn-danger btn-floating d-none">
         <i class="fa fa-trash"></i> حذف انتخاب شده‌ها
-    </button>
+    </button> -->
 
     <!-- Modal تغییر دسته‌بندی -->
     <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
@@ -253,7 +253,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
-                    <button type="button" id="confirm-update-category" class="btn btn-primary">تأیید تغییر
+                    <button type="button" id="confirm-update-map" class="btn btn-primary">تأیید تغییر
                         کپی نقشه ها</button>
                 </div>
             </div>
@@ -455,7 +455,7 @@
                 $('#copy-selected').addClass('d-none');
             }
         });
-        
+
 
         // انتخاب چک باکس‌ها
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -611,9 +611,47 @@
             location.reload();
         }
 
+
+        // تابع کپی نقشه ها
+        function copyMaps() {
+            const selectedMapIds = [];
+
+            // جمع‌آوری شناسه‌های نقشه‌های انتخاب شده
+            $('[data-section="maps"] .item-checkbox:checked').each(function () {
+                selectedMapIds.push($(this).val());
+            });
+
+            const targetCategoryId = $('#new-copy-modal').val();
+
+            // ارسال درخواست کپی برای نقشه‌ها
+            if (selectedMapIds.length > 0) {
+                $.ajax({
+                    url: '/bulk/copy/maps',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        map_ids: selectedMapIds,
+                        target_category_id: targetCategoryId
+                    }),
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        if (response.status !== 'success') {
+                            alert('خطا در کپی نقشه‌ها');
+                        }
+                    }
+                });
+            }
+
+            location.reload();
+        }
+
         // اتصال رویدادها
         $('#delete-selected, #delete-selected-floating').click(deleteSelectedItems);
         $('#confirm-update-category').click(updateCategory);
+        $('#confirm-update-map').click(copyMaps);
+
     });
 
     // مدیریت فرم زیردسته
@@ -640,6 +678,10 @@
             });
         });
     });
+
+
+
+
 </script>
 
 
