@@ -655,10 +655,10 @@
                 // دریافت داده‌های موفقیت‌آمیز
                 const result = await response.json();
                 console.log('نقشه‌های کپی‌شده:', result.copied_maps);
-                alert(عملیات موفق: ${ result.message });
+                alert(`عملایت موفق :${result.message}`);
             } catch (error) {
                 console.error('خطا:', error.message);
-                alert(خطا: ${ error.message });
+                alert(`خطا : ${error.message}`);
             }
         }
 
