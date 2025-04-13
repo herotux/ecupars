@@ -612,7 +612,6 @@
         }
 
 
-        // تابع کپی نقشه ها
         function copyMaps() {
             const selectedMapIds = [];
 
@@ -637,9 +636,14 @@
                         'X-CSRFToken': '{{ csrf_token }}'
                     },
                     success: function (response) {
-                        if (response.status !== 'success') {
+                        if (response.status === 'success') {
+                            alert('نقشه‌ها با موفقیت کپی شدند');
+                        } else {
                             alert('خطا در کپی نقشه‌ها');
                         }
+                    },
+                    error: function (xhr, status, error) {
+                        alert('خطا در کپی نقشه‌ها: ' + error);
                     }
                 });
             }
