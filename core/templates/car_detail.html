@@ -654,11 +654,15 @@
 
                 // دریافت داده‌های موفقیت‌آمیز
                 const result = await response.json();
-                console.log('نقشه‌های کپی‌شده:', result.copied_maps);
-                alert(`عملایت موفق :${result.message}`);
+                if (result.copied_maps.length === 0) {
+                    alert('هیچ نقشه‌ای کپی نشد');
+                } else {
+                    console.log('نقشه‌های کپی‌شده:', result.copied_maps);
+                    alert('عملیات موفق');
+                }
             } catch (error) {
                 console.error('خطا:', error.message);
-                alert(`خطا : ${error.message}`);
+                alert('خطا: ' + error.message);
             }
         }
 
