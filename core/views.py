@@ -2411,56 +2411,135 @@ def check_bookmark(request):
 def bulk_delete(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            item_type = data.get('item_type')
-            item_ids = data.get('item_ids', [])
+            # لاگ دریافت درخواست
+            logger.info("Bulk delete request received.")
+
+            # پارس کردن داده‌های ورودی
+            try:
+                data = json.loads(request.body)
+                item_type = data.get('item_type')
+                item_ids = data.get('item_ids', [])
+
+                # لاگ داده‌های ورودی
+                logger.info(f"Received data: item_type={item_type}, item_ids={item_ids}")
+
+            except json.JSONDecodeError:
+                logger.error("Invalid JSON format in request body.")
+                return JsonResponse({'status': 'error', 'message': 'فرمت JSON نامعتبر است'}, status=400)
+
+            # اعتبارسنجی نوع آیتم
+            if not item_type:
+                logger.error("Item type is missing in the request.")
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم مشخص نشده است'}, status=400)
             
+            if not item_ids:
+                logger.error("No item IDs provided in the request.")
+                return JsonResponse({'status': 'error', 'message': 'هیچ آیتمی انتخاب نشده است'}, status=400)
+
             # انتخاب مدل مناسب بر اساس نوع آیتم
             if item_type == 'issues':
                 model = Issue
+                logger.info("Model selected: Issue")
             elif item_type == 'articles':
                 model = Article
+                logger.info("Model selected: Article")
             elif item_type == 'maps':
                 model = Map
+                logger.info("Model selected: Map")
             else:
-                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'})
+                logger.error(f"Invalid item type: {item_type}")
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'}, status=400)
 
-            model.objects.filter(id__in=item_ids).delete()
-            return JsonResponse({'status': 'success', 'message': 'حذف گروهی با موفقیت انجام شد'})
-        
+            # حذف آیتم‌ها
+            deleted_count, _ = model.objects.filter(id__in=item_ids).delete()
+            logger.info(f"Deleted {deleted_count} items of type {item_type} with IDs: {item_ids}")
+            return JsonResponse({
+                'status': 'success',
+                'message': f'حذف گروهی با موفقیت انجام شد ({deleted_count} آیتم حذف شد)'
+            })
+
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+            logger.error(f"Unexpected error in bulk_delete: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    logger.error("Invalid request method. Only POST is allowed.")
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'}, status=405)
+
+
+
+
     
-    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
 
 @csrf_exempt
 def bulk_update_category(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            item_type = data.get('item_type')
-            item_ids = data.get('item_ids', [])
-            new_category_id = data.get('new_category_id')
+            # لاگ دریافت درخواست
+            logger.info("Bulk update category request received.")
+
+            # پارس کردن داده‌های ورودی
+            try:
+                data = json.loads(request.body)
+                item_type = data.get('item_type')
+                item_ids = data.get('item_ids', [])
+                new_category_id = data.get('new_category_id')
+
+                # لاگ داده‌های ورودی
+                logger.info(f"Received data: item_type={item_type}, item_ids={item_ids}, new_category_id={new_category_id}")
+
+            except json.JSONDecodeError:
+                logger.error("Invalid JSON format in request body.")
+                return JsonResponse({'status': 'error', 'message': 'فرمت JSON نامعتبر است'}, status=400)
+
+            # اعتبارسنجی نوع آیتم
+            if not item_type:
+                logger.error("Item type is missing in the request.")
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم مشخص نشده است'}, status=400)
             
-            new_category = IssueCategory.objects.get(id=new_category_id)
+            if not item_ids:
+                logger.error("No item IDs provided in the request.")
+                return JsonResponse({'status': 'error', 'message': 'هیچ آیتمی انتخاب نشده است'}, status=400)
             
+            if not new_category_id:
+                logger.error("New category ID is missing in the request.")
+                return JsonResponse({'status': 'error', 'message': 'دسته‌بندی جدید مشخص نشده است'}, status=400)
+
+            # بررسی وجود دسته‌بندی جدید
+            try:
+                new_category = IssueCategory.objects.get(id=new_category_id)
+                logger.info(f"New category found: {new_category.name}")
+            except IssueCategory.DoesNotExist:
+                logger.error(f"Category with ID {new_category_id} not found.")
+                return JsonResponse({'status': 'error', 'message': 'دسته‌بندی جدید یافت نشد'}, status=404)
+
             # انتخاب مدل مناسب بر اساس نوع آیتم
             if item_type == 'issues':
                 model = Issue
+                logger.info("Model selected: Issue")
             elif item_type == 'articles':
                 model = Article
+                logger.info("Model selected: Article")
             elif item_type == 'maps':
                 model = Map
+                logger.info("Model selected: Map")
             else:
-                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'})
+                logger.error(f"Invalid item type: {item_type}")
+                return JsonResponse({'status': 'error', 'message': 'نوع آیتم نامعتبر است'}, status=400)
 
-            model.objects.filter(id__in=item_ids).update(category=new_category)
-            return JsonResponse({'status': 'success', 'message': 'بروزرسانی دسته‌بندی با موفقیت انجام شد'})
-        
+            # بروزرسانی دسته‌بندی
+            updated_count = model.objects.filter(id__in=item_ids).update(category=new_category)
+            logger.info(f"Updated category for {updated_count} items of type {item_type} to {new_category.name}")
+            return JsonResponse({
+                'status': 'success',
+                'message': f'بروزرسانی دسته‌بندی با موفقیت انجام شد ({updated_count} آیتم بروزرسانی شد)'
+            })
+
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-    
-    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'})
+            logger.error(f"Unexpected error in bulk_update_category: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    logger.error("Invalid request method. Only POST is allowed.")
+    return JsonResponse({'status': 'error', 'message': 'درخواست نامعتبر'}, status=405)
 
     
 
