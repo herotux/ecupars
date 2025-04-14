@@ -4060,7 +4060,7 @@ def bulk_copy_maps(request):
 
                     # ایجاد کپی از نقشه
                     new_map = Map(
-                        title=f"کپی از {original_map.title[:200]}",  # محدودیت 200 کاراکتر
+                        title= original_map.title,
                         category=target_category,
                         created_by=user,
                         updated_by=user,
