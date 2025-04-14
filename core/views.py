@@ -70,7 +70,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import F
-
+from django.core.files import File
 
 
 
