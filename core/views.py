@@ -4006,25 +4006,47 @@ class UserProfileAPIView(APIView):
 def bulk_copy_maps(request):
     if request.method == 'POST':
         try:
+            # لاگ دریافت درخواست
+            logger.info("Bulk copy maps request received.")
+
             # پارس کردن داده‌های ورودی
-            data = json.loads(request.body)
-            map_ids = data.get('map_ids', [])
-            target_category_id = data.get('target_category_id')
-            user_id = data.get('user_id')  # ID کاربری که عمل کپی را انجام می‌دهد
+            try:
+                data = json.loads(request.body)
+                map_ids = data.get('map_ids', [])
+                target_category_id = data.get('target_category_id')
+                user_id = data.get('user_id')  # ID کاربری که عمل کپی را انجام می‌دهد
+
+                # لاگ داده‌های ورودی
+                logger.info(f"Received data: map_ids={map_ids}, target_category_id={target_category_id}, user_id={user_id}")
+
+            except json.JSONDecodeError:
+                logger.error("Invalid JSON format in request body.")
+                return JsonResponse({'status': 'error', 'message': 'فرمت JSON نامعتبر است'}, status=400)
 
             # اعتبارسنجی ورودی‌ها
             if not map_ids:
+                logger.error("No map IDs provided in the request.")
                 return JsonResponse({'status': 'error', 'message': 'هیچ نقشه‌ای انتخاب نشده است'}, status=400)
             
             if not target_category_id:
+                logger.error("Target category ID is missing in the request.")
                 return JsonResponse({'status': 'error', 'message': 'دسته‌بندی مقصد مشخص نشده است'}, status=400)
 
             try:
                 target_category = IssueCategory.objects.get(id=target_category_id)
-                user = User.objects.get(id=user_id) if user_id else None
+                logger.info(f"Target category found: {target_category.name}")
             except IssueCategory.DoesNotExist:
+                logger.error(f"Target category with ID {target_category_id} not found.")
                 return JsonResponse({'status': 'error', 'message': 'دسته‌بندی مقصد یافت نشد'}, status=404)
+
+            try:
+                user = User.objects.get(id=user_id) if user_id else None
+                if user:
+                    logger.info(f"User found: {user.username}")
+                else:
+                    logger.info("No user provided for the operation.")
             except User.DoesNotExist:
+                logger.error(f"User with ID {user_id} not found.")
                 return JsonResponse({'status': 'error', 'message': 'کاربر یافت نشد'}, status=404)
 
             copied_maps = []
@@ -4034,7 +4056,8 @@ def bulk_copy_maps(request):
                 try:
                     # دریافت نقشه اصلی
                     original_map = Map.objects.get(id=map_id)
-                    
+                    logger.info(f"Original map found: ID={original_map.id}, Title={original_map.title}")
+
                     # ایجاد کپی از نقشه
                     new_map = Map(
                         title=f"کپی از {original_map.title[:200]}",  # محدودیت 200 کاراکتر
@@ -4049,11 +4072,14 @@ def bulk_copy_maps(request):
                         original_name = original_map.image.name
                         new_name = f"copy_{os.path.basename(original_name)}"
                         new_map.image.save(new_name, File(original_map.image))
+                        logger.info(f"Image copied for map ID={new_map.id}: {new_name}")
 
                     new_map.save()
+                    logger.info(f"New map created: ID={new_map.id}, Title={new_map.title}")
 
                     # کپی کردن تگ‌ها
                     new_map.tags.set(original_map.tags.all())
+                    logger.info(f"Tags copied for map ID={new_map.id}")
 
                     copied_maps.append({
                         'id': new_map.id,
@@ -4061,11 +4087,16 @@ def bulk_copy_maps(request):
                     })
 
                 except Map.DoesNotExist:
-                    errors.append(f"نقشه با ID {map_id} یافت نشد")
+                    error_message = f"نقشه با ID {map_id} یافت نشد"
+                    logger.error(error_message)
+                    errors.append(error_message)
                 except Exception as e:
-                    errors.append(f"خطا در کپی نقشه {map_id}: {str(e)}")
+                    error_message = f"خطا در کپی نقشه {map_id}: {str(e)}"
+                    logger.error(error_message)
+                    errors.append(error_message)
 
             if errors:
+                logger.warning(f"Partial success: {len(errors)} errors occurred during map copying.")
                 return JsonResponse({
                     'status': 'partial',
                     'message': 'برخی نقشه‌ها با خطا مواجه شدند',
@@ -4073,17 +4104,18 @@ def bulk_copy_maps(request):
                     'errors': errors
                 }, status=207)
 
+            logger.info(f"Success: {len(copied_maps)} maps copied successfully.")
             return JsonResponse({
                 'status': 'success',
                 'message': f'{len(copied_maps)} نقشه با موفقیت کپی شدند',
                 'copied_maps': copied_maps
             })
 
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'فرمت JSON نامعتبر است'}, status=400)
         except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+    logger.error("Invalid request method. Only POST is allowed.")
     return JsonResponse({'status': 'error', 'message': 'متد مجاز: POST'}, status=405)
 
 
