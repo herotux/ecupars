@@ -570,7 +570,7 @@
             };
 
             // جمع‌آوری آیتم‌های انتخاب شده
-            $('[data-section="errors"] .item-checkbox:checked').each(function () {
+            $('[data-section="issues"] .item-checkbox:checked').each(function () {
                 selectedItems.issues.push($(this).val());
             });
 
@@ -657,8 +657,8 @@
                 if (result.copied_maps.length === 0) {
                     alert('هیچ نقشه‌ای کپی نشد');
                 } else {
-                    console.log('نقشه‌های کپی‌شده:', result.copied_maps);
                     alert('عملیات موفق');
+                    location.reload();
                 }
             } catch (error) {
                 console.error('خطا:', error.message);
