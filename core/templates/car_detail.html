@@ -197,9 +197,9 @@
             <i class="fa fa-edit"></i> تغییر دسته‌بندی انتخاب شده‌ها
         </button>
         <!-- دکمه کپی به دسته بندی ها -->
-        <button type="button" id="copy-selected" class="btn btn-danger mb-3 d-none" data-bs-toggle="modal"
-            data-bs-target="#copyModal">
-            <i class="fa fa-trash"></i> کپی به دسته دلخواه
+        <button type="button" id="copy-selected" class="btn btn-primary mb-3 d-none" data-bs-toggle="modal"
+                data-bs-target="#copyModal">
+            <i class="fa fa-copy"></i> کپی به دسته دلخواه
         </button>
     </form>
     {% endif %}
@@ -266,14 +266,28 @@
 {% block extra_js %}
 
 <script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        function toggleUploadForm() {
+            const form = document.getElementById('uploadForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+        // Attach the function to the global window object for accessibility
+        window.toggleUploadForm = toggleUploadForm;
+    });
+
+
     function uploadMaps() {
         const formData = new FormData();
         const imageInputs = document.getElementById('imageInput').files;
         const textInputs = document.getElementById('textInput').files;
 
         // دریافت صحیح category_id
-        const category_id = {{ car.id }
-    };
+        const category_id = {{ car.id }};
     }; // اطمینان از رندر صحیح
     console.log('Category ID:', category_id);
     if (imageInputs.length === 0 || textInputs.length === 0) {
@@ -316,14 +330,7 @@
         });
 
 
-    function toggleUploadForm() {
-        const form = document.getElementById('uploadForm');
-        if (form.style.display === 'none') {
-            form.style.display = 'block';
-        } else {
-            form.style.display = 'none';
-        }
-    }
+
 
     function getCookie(name) {
         let cookieValue = null;
