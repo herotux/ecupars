@@ -149,6 +149,19 @@
         <i class="fa fa-plus"></i> اضافه کردن نقشه در این دسته
     </a>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Define the toggleUploadForm function
+            window.toggleUploadForm = function () {
+                const form = document.getElementById('uploadForm');
+                if (form.style.display === 'none') {
+                    form.style.display = 'block';
+                } else {
+                    form.style.display = 'none';
+                }
+            };
+        });
+    </script>
 
     <button class="btn btn-info mb-3" onclick="toggleUploadForm()">آپلود دسته‌ای نقشه‌ها</button>
 
@@ -266,19 +279,6 @@
 {% block extra_js %}
 
 <script>
-
-    document.addEventListener('DOMContentLoaded', function () {
-        function toggleUploadForm() {
-            const form = document.getElementById('uploadForm');
-            if (form.style.display === 'none') {
-                form.style.display = 'block';
-            } else {
-                form.style.display = 'none';
-            }
-        }
-        // Attach the function to the global window object for accessibility
-        window.toggleUploadForm = toggleUploadForm;
-    });
 
 
     function uploadMaps() {
