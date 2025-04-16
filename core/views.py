@@ -4283,7 +4283,7 @@ def request_password_reset_otp(request):
     }, timeout=300)  # 5 دقیقه اعتبار
 
     # ارسال پیامک
-    otp_id = 1146  # ID الگوی پیامک ریست پسورد
+    otp_id = 1253  # ID الگوی پیامک ریست پسورد
     replace_tokens = [otp]
     sms_result = send_pattern_sms(otp_id, replace_tokens, phone_number)
     
