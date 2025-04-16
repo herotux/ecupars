@@ -27,7 +27,7 @@ class HasSearchPermission(BasePermission):
             
         try:
             subscription = user.subscription
-            if not subscription.is_active():
+            if not subscription.is_currently_active():
                 return False
                 
             plan = subscription.plan
@@ -86,7 +86,7 @@ class SearchAPIView(APIView):
                 )
                 
             subscription = user.subscription
-            if not subscription.is_active():
+            if not subscription.is_currently_active():
                 return Response(
                     {'error': 'اشتراک غیرفعال است'}, 
                     status=status.HTTP_403_FORBIDDEN
@@ -290,7 +290,7 @@ class UnifiedSearchAPIView(APIView):
         # بررسی دسترسی کاربر
         user = request.user
         subscription = getattr(user, 'subscription', None)
-        if not subscription or not subscription.is_active():
+        if not subscription or not subscription.is_currently_active():
             return Response({'results': []})
 
         # مدیریت دسته‌بندی‌های مجاز
