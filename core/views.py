@@ -1812,16 +1812,67 @@ def load_next_step(request, option_id):
 @login_required
 @csrf_exempt
 def update_option(request, option_id):
-    if request.method == 'POST':
+    try:
+        option = get_object_or_404(Option, id=option_id)
+        
+        # دریافت داده‌ها از فرم
         text = request.POST.get('text')
-        try:
-            option = get_object_or_404(Option, id=option_id)
-            option.text = text
-            option.save()
-            return JsonResponse({'status': 'success'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-
+        question_id = request.POST.get('question_id')
+        next_step_id = request.POST.get('next_step_id')
+        issue_id = request.POST.get('issue_id')
+        article_id = request.POST.get('article_id')
+        
+        # اعتبارسنجی داده‌های ضروری
+        if not text:
+            return JsonResponse({'status': 'error', 'message': 'متن گزینه نمی‌تواند خالی باشد'}, status=400)
+        
+        # به‌روزرسانی فیلدها
+        option.text = text
+        
+        if question_id:
+            question = get_object_or_404(Question, id=question_id)
+            option.question = question
+        
+        if next_step_id:
+            next_step = get_object_or_404(DiagnosticStep, id=next_step_id)
+            option.next_step = next_step
+        else:
+            option.next_step = None
+            
+        if issue_id:
+            issue = get_object_or_404(Issue, id=issue_id)
+            option.issue = issue
+        else:
+            option.issue = None
+            
+        if article_id:
+            article = get_object_or_404(Article, id=article_id)
+            option.article = article
+        else:
+            option.article = None
+        
+        # ذخیره تغییرات و ثبت کاربر ویرایش کننده
+        option.updated_by = request.user
+        option.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'گزینه با موفقیت ویرایش شد',
+            'data': {
+                'id': option.id,
+                'text': option.text,
+                'question_id': option.question.id if option.question else None,
+                'next_step_id': option.next_step.id if option.next_step else None,
+                'issue_id': option.issue.id if option.issue else None,
+                'article_id': option.article.id if option.article else None,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در ویرایش گزینه: {str(e)}'
+        }, status=500)
 
 
 
