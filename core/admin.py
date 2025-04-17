@@ -277,4 +277,79 @@ class UserReferralAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'amount', 'status',  'created_at')
+    list_display = ('id', 'user', 'plan', 'get_final_amount', 'status', 'gateway', 'created_at', 'verified_at')
+    list_filter = ('status', 'gateway', 'created_at', 'verified_at')
+    search_fields = ('user__username', 'user__email', 'authority', 'ref_id', 'description')
+    readonly_fields = ('authority', 'ref_id', 'created_at', 'verified_at', 'updated_at', 'ip_address')
+    list_select_related = ('user', 'plan')
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    actions = ['mark_as_paid', 'mark_as_failed', 'mark_as_refunded', 'mark_as_canceled']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'plan', 'amount', 'final_amount', 'discount_code', 'discount_percentage')
+        }),
+        ('وضعیت پرداخت', {
+            'fields': ('status', 'gateway', 'authority', 'ref_id')
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'verified_at', 'updated_at')
+        }),
+        ('سایر اطلاعات', {
+            'fields': ('ip_address', 'description'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_final_amount(self, obj):
+        return f"{obj.final_amount:,} ریال"
+    get_final_amount.short_description = 'مبلغ نهایی'
+    get_final_amount.admin_order_field = 'amount'
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj:  # editing an existing object
+            return readonly_fields + ('amount', 'discount_code', 'discount_percentage', 'plan')
+        return readonly_fields
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.has_perm('payments.change_payment'):
+            del actions['mark_as_paid']
+            del actions['mark_as_failed']
+            del actions['mark_as_refunded']
+            del actions['mark_as_canceled']
+        return actions
+
+    @admin.action(description='علامت‌گذاری به عنوان پرداخت شده')
+    def mark_as_paid(self, request, queryset):
+        updated = queryset.filter(status=Payment.Status.PENDING).update(
+            status=Payment.Status.PAID,
+            verified_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} پرداخت با موفقیت تأیید شد.')
+
+    @admin.action(description='علامت‌گذاری به عنوان ناموفق')
+    def mark_as_failed(self, request, queryset):
+        updated = queryset.filter(status=Payment.Status.PENDING).update(
+            status=Payment.Status.FAILED
+        )
+        self.message_user(request, f'{updated} پرداخت به عنوان ناموفق علامت‌گذاری شد.')
+
+    @admin.action(description='علامت‌گذاری به عنوان مسترد شده')
+    def mark_as_refunded(self, request, queryset):
+        updated = queryset.exclude(status=Payment.Status.PAID).update(
+            status=Payment.Status.REFUNDED
+        )
+        self.message_user(request, f'{updated} پرداخت به عنوان مسترد شده علامت‌گذاری شد.')
+
+    @admin.action(description='علامت‌گذاری به عنوان لغو شده')
+    def mark_as_canceled(self, request, queryset):
+        updated = queryset.filter(status=Payment.Status.PENDING).update(
+            status=Payment.Status.CANCELED
+        )
+        self.message_user(request, f'{updated} پرداخت به عنوان لغو شده علامت‌گذاری شد.')
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # جلوگیری از حذف پرداخت‌ها در پنل ادمین
