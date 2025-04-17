@@ -263,6 +263,7 @@
             const optionId = $(this).data('id');
             const optionText = $(this).closest('.card').find('a').text();
             $('#optionText').val(optionText);
+            $('#editOptionId').val(optionId)
             $('#optionForm').data('editing-id', optionId).show(); // ذخیره شناسه در فرم
         });
 
@@ -373,7 +374,7 @@
 
         $('#optionForm').on('submit', function (event) {
             event.preventDefault(); // جلوگیری از بارگذاری مجدد صفحه
-            const optionId = $(this).data('editing-id'); // دریافت شناسه ویرایش شده
+            const optionId = $('#editOptionId').val(); // دریافت شناسه ویرایش شده
 
             const optionText = $('#optionText').val();
             const stepId = $('#stepSelect').val(); // شناسه مرحله
@@ -393,7 +394,6 @@
             };
             if (optionId) {
                 // اگر شناسه موجود باشد، یعنی می‌خواهیم ویرایش کنیم
-                data.id = optionId; // شناسه گزینه برای ویرایش
                 $.ajax({
                     url: '/api/update_option/' + optionId + '/',
                     method: 'POST',
