@@ -1465,8 +1465,19 @@ def get_options(request, question_id):
         options_data.append({
             'id': option.id,
             'text': option.text,
-            'next_step': next_step_data,  # Now `next_step` is a dictionary
-            'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/articles/{option.article.id}" if option.article else f"/issue/{option.issue.id}" if option.issue else None, # افزودن option_url
+            'next_step': {
+                'id': option.next_step.id if option.next_step else None,
+                'title': option.next_step.title if option.next_step else None  # اضافه کردن عنوان مرحله
+            },
+            'issue': {
+                'id': option.issue.id if option.issue else None,
+                'title': option.issue.title if option.issue else None  # اضافه کردن عنوان خطا
+            },
+            'article': {
+                'id': option.article.id if option.article else None,
+                'title': option.article.title if option.article else None  # اضافه کردن عنوان مقاله
+            },
+            'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/articles/{option.article.id}" if option.article else f"/issue/{option.issue.id}" if option.issue else None,
             'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else f"/user_articles/{option.article.id}" if option.article else None
         })
         print(options_data)

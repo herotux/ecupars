@@ -244,7 +244,12 @@
                     }
 
                     let optionsHtml = data.options.map(option => `
-                        <div class="card" style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;">
+                        <div class="card" 
+                            style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;" 
+                            data-id="${option.id}" 
+                            data-step-id="${option.next_step ? option.next_step.id : ''}" 
+                            data-issue-id="${option.issue ? option.issue.id : ''}" 
+                            data-article-id="${option.article ? option.article.id : ''}">
                             <a href="${option.option_url}">${option.text}</a>
                             <div style="margin-top: 10px;">
                                 <button class="edit-btn option btn btn-warning" data-id="${option.id}">ویرایش</button>
@@ -273,20 +278,21 @@
 
         // مدیریت رویداد کلیک برای ویرایش گزینه
         $('#optionsContainer').on('click', '.edit-btn.option', function () {
-            const optionId = $(this).data('id');
-            const optionText = $(this).closest('.card').find('a').text();
-            const stepId = $(this).data('step-id'); // شناسه مرحله
-            const nextissueId = $(this).data('next-issue-id'); // شناسه خطا
-            const nextarticleId = $(this).data('next-article-id'); // شناسه مقاله
+            const optionId = $(this).closest('.card').data('id'); // شناسه گزینه
+            const optionText = $(this).closest('.card').find('a').text(); // متن گزینه
+            const stepId = $(this).closest('.card').data('step-id'); // شناسه مرحله
+            const issueId = $(this).closest('.card').data('issue-id'); // شناسه خطا
+            const articleId = $(this).closest('.card').data('article-id'); // شناسه مقاله
 
-            $('#editOptionText').val(optionText);
-            $('#editOptionId').val(optionId);
-            $('#editStepSelect').val(stepId);
-            $('#editIssueSelect').val(nextissueId);
-            $('#editArticleSelect').val(nextarticleId);
+            $('#editOptionText').val(optionText); // متن گزینه
+            $('#editOptionId').val(optionId); // شناسه گزینه
+            $('#editStepSelect').val(stepId); // شناسه مرحله
+            $('#editIssueSelect').val(issueId); // شناسه خطا
+            $('#editArticleSelect').val(articleId); // شناسه مقاله
 
             $('#editOptionForm').show(); // نمایش فرم ویرایش
         });
+
 
         function loadSolutionsToSelect() {
             const issueId = '{{ issue.id }}';
