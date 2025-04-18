@@ -1679,9 +1679,13 @@ def add_option(request):
 
         # اگر شناسه مرحله موجود بود
         if step_id:
-            step = get_object_or_404(DiagnosticStep, id=step_id)
-            option = Option.objects.create(text=text, question=question, next_step=step)
-            return JsonResponse({'status': 'success'})
+            try:
+                step = DiagnosticStep.objects.get(id=step_id)
+                option = Option.objects.create(text=text, question=question, next_step=step)
+                return JsonResponse({'status': 'success'})
+            except DiagnosticStep.DoesNotExist:
+                logger.error("شناسه مرحله معتبر نیست.")
+                return JsonResponse({'status': 'error', 'message': 'شناسه مرحله معتبر نیست.'}, status=400)
         
         if nextarticle_id:
             article = get_object_or_404(Article, id=nextarticle_id)

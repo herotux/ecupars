@@ -473,6 +473,16 @@
                 return;
             }
 
+
+            console.log("Sending data:", {
+                text: optionText,
+                issue_id: issueId,
+                nextissueId: nextissueId,
+                nextarticleId: nextarticleId,
+                question_id: questionId,
+                step_id: stepId
+            });
+
             // ساخت داده‌ها برای ارسال
             const data = {
                 text: optionText,
