@@ -105,10 +105,21 @@
     color: white;
 }
 
-.result-type.issue { background-color: #e74c3c; }
-.result-type.solution { background-color: #2ecc71; }
-.result-type.map { background-color: #3498db; }
-.result-type.article { background-color: #9b59b6; }
+.result-type.issue {
+    background-color: #e74c3c;
+}
+
+.result-type.solution {
+    background-color: #2ecc71;
+}
+
+.result-type.map {
+    background-color: #3498db;
+}
+
+.result-type.article {
+    background-color: #9b59b6;
+}
 
 
 
@@ -127,24 +138,32 @@
     border-bottom: 1px solid #eee;
     padding-bottom: 8px;
     margin-bottom: 15px;
+    margin-top: 20px;
 }
 
 .items-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30px;
 }
 
 .result-item {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
+    width: 100%;
+    margin-bottom: 20px;
     padding: 15px;
     transition: transform 0.2s, box-shadow 0.2s;
+    margin: 20px;
+    -webkit-box-shadow: -4px 5px 36px -5px rgba(0, 0, 0, 0.75);
+    -moz-box-shadow: -4px 5px 36px -5px rgba(0, 0, 0, 0.75);
+    box-shadow: -4px 5px 36px -5px rgba(0, 0, 0, 0.75);
 }
 
 .result-item:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* استایل‌های نوع نتیجه */
@@ -157,13 +176,30 @@
 }
 
 /* رنگ‌بندی انواع نتایج */
-.result-type.issue { background: #ffebee; color: #c62828; }
-.result-type.solution { background: #e8f5e9; color: #2e7d32; }
-.result-type.map { background: #e3f2fd; color: #1565c0; }
-.result-type.article { background: #f3e5f5; color: #6a1b9a; }
+.result-type.issue {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.result-type.solution {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.result-type.map {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.result-type.article {
+    background: #f3e5f5;
+    color: #6a1b9a;
+}
 
 /* وضعیت‌های مختلف */
-.loader, .no-results, .error {
+.loader,
+.no-results,
+.error {
     padding: 20px;
     text-align: center;
     font-size: 1.1rem;
@@ -174,7 +210,8 @@
 }
 
 .search-btn {
-    background-color: #4CAF50; /* سبز مشابه دیجی‌کالا */
+    background-color: #4CAF50;
+    /* سبز مشابه دیجی‌کالا */
     color: white;
     border: none;
     border-radius: 8px;
@@ -183,9 +220,11 @@
     margin-top: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
-    width: auto; /* عرض خودکار بر اساس محتوا */
-    max-width: 200px; /* حداکثر عرض */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    width: auto;
+    /* عرض خودکار بر اساس محتوا */
+    max-width: 200px;
+    /* حداکثر عرض */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .search-container {
@@ -197,14 +236,15 @@
 
 
 .search-btn:hover {
-    background-color: #45a049; /* سبز تیره‌تر هنگام هاور */
+    background-color: #45a049;
+    /* سبز تیره‌تر هنگام هاور */
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .search-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* برای نسخه موبایل */
