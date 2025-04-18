@@ -407,12 +407,21 @@
             const issueId = $('#editIssueSelect').val();
             const articleId = $('#editArticleSelect').val();
 
+
+            console.log("Sending data:", {
+                text: optionText,
+                step_id: stepId,
+                issue_id: issueId,
+                article_id: articleId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            });
+
             $.ajax({
                 url: '/api/update_option/' + optionId + '/',
                 method: 'POST',
                 data: {
                     text: optionText,
-                    step_id: stepId,
+                    next_step_id: stepId,
                     issue_id: issueId,
                     article_id: articleId,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
