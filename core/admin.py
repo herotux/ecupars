@@ -277,9 +277,9 @@ class UserReferralAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'plan', 'get_final_amount', 'status', 'gateway', 'created_at', 'verified_at')
+    list_display = ('id', 'user', 'plan', 'get_final_amount', 'status', 'gateway', 'created_at', 'verified_at', 'get_discount_code')
     list_filter = ('status', 'gateway', 'created_at', 'verified_at')
-    search_fields = ('user__username', 'user__email', 'authority', 'ref_id', 'description')
+    search_fields = ('user__username', 'user__email', 'authority', 'ref_id', 'description', 'discount_code')
     readonly_fields = ('authority', 'ref_id', 'created_at', 'verified_at', 'updated_at', 'ip_address')
     list_select_related = ('user', 'plan')
     list_per_page = 25
@@ -353,3 +353,8 @@ class PaymentAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False  # جلوگیری از حذف پرداخت‌ها در پنل ادمین
+    
+    def get_discount_code(self, obj):
+        return obj.discount_code or "بدون تخفیف"
+    get_discount_code.short_description = 'کد تخفیف'
+    get_discount_code.admin_order_field = 'discount_code'
