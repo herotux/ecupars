@@ -554,7 +554,7 @@ class Payment(models.Model):
     @property
     def final_amount(self):
         """Calculate final amount after discount"""
-        return self.amount * (100 - self.discount_percentage) / 100
+        return int(self.amount * (100 - self.discount_percentage) / 100)
 
     def mark_as_paid(self, ref_id):
         """Mark payment as successful"""
