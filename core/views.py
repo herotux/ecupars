@@ -1454,28 +1454,29 @@ def get_options(request, question_id):
     for option in options:
         next_step = option.next_step
         
-        # Prepare next_step data
+        
         if next_step:
             next_step_data = {
                 'id': next_step.id,
+                'letter': next_step.letter
             }
         else:
-            next_step_data = None  # or any default value that makes sense
+            next_step_data = None  
 
         options_data.append({
             'id': option.id,
             'text': option.text,
             'next_step': {
                 'id': option.next_step.id if option.next_step else None,
-                'title': option.next_step.title if option.next_step else None  # اضافه کردن عنوان مرحله
+                'letter': option.next_step.letter if option.next_step else None  
             },
             'issue': {
                 'id': option.issue.id if option.issue else None,
-                'title': option.issue.title if option.issue else None  # اضافه کردن عنوان خطا
+                'title': option.issue.title if option.issue else None  
             },
             'article': {
                 'id': option.article.id if option.article else None,
-                'title': option.article.title if option.article else None  # اضافه کردن عنوان مقاله
+                'title': option.article.title if option.article else None  
             },
             'option_url': f"/step/{option.next_step.id}" if option.next_step else f"/articles/{option.article.id}" if option.article else f"/issue/{option.issue.id}" if option.issue else None,
             'user_option_url': f"/user_step/{option.next_step.id}" if option.next_step else f"/user_issue/{option.issue.id}" if option.issue else f"/user_articles/{option.article.id}" if option.article else None
