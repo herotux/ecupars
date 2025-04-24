@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c82y616%c4l+#*+n=m*qx3s(^vjxzi^%r!748to=76-$i78ot)'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -103,13 +103,24 @@ WSGI_APPLICATION = 'car_diagnosis.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', ''),  # نام دیتابیس
+        'USER': os.getenv('DB_USER', ''),  # نام کاربری دیتابیس
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),  # رمز عبور دیتابیس
+        'HOST': os.getenv('DB_HOST', ''),  # آدرس سرور دیتابیس
+        'PORT': os.getenv('DB_PORT', ''),  # پورت دیتابیس
     }
 }
-
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # عمر توکن دسترسی
@@ -412,7 +423,7 @@ LOGGING = {
 }
 
 
-ZARINPAL_MERCHANT_ID = '5318de7a-497c-4397-a182-b49a5890e2a3'
+ZARINPAL_MERCHANT_ID = os.getenv('ZARINPAL_MERCHANT_ID', '')
 
 
 CORS_ALLOW_ALL_ORIGINS = True
