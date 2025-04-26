@@ -288,7 +288,7 @@ class PaymentAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (None, {
-            'fields': ('user', 'plan', 'amount', 'final_amount', 'discount_code', 'discount_percentage')
+            'fields': ('user', 'plan', 'amount', 'discount_code', 'discount_percentage')
         }),
         ('وضعیت پرداخت', {
             'fields': ('status', 'gateway', 'authority', 'ref_id')
