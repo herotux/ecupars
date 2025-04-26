@@ -545,7 +545,10 @@ class Payment(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.get_full_name() or self.user.username} - {self.amount:,} ریال - {self.get_status_display()}"
+        user_info = "کاربر حذف شده"
+        if self.user:
+            user_info = self.user.get_full_name() or self.user.username
+        return f"{user_info} - {self.amount:,} ریال - {self.get_status_display()}"
 
     def save(self, *args, **kwargs):
         """Override save to add custom logic"""
