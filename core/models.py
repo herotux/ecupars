@@ -88,6 +88,10 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
     
+    def delete(self, *args, **kwargs):
+        self.payments.all().delete()  
+        self.subscriptions.all().delete()
+        super().delete(*args, **kwargs)
 
 
     
@@ -438,7 +442,9 @@ class Payment(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='payments',
         verbose_name=_('کاربر')
     )
