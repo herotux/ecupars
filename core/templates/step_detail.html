@@ -206,6 +206,20 @@
             <button type="button" class="btn btn-primary" id="toggleAddStepButton">افزودن مرحله جدید</button>
         </form>
         
+
+        <!-- فرم ویرایش گزینه -->
+        <form id="editOptionForm" class="mt-3" style="display:none;">
+            <div class="form-group">
+                <input type="text" class="form-control" id="editOptionText" placeholder="متن گزینه" required>
+                <input type="hidden" id="editOptionId" required>
+                <div id="editStepSelectContainer">
+                    <input type="text" class="form-control" id="editStepSelect" placeholder="شناسه مرحله">
+                    <input type="text" class="form-control" id="editIssueSelect" placeholder="شناسه خطا">
+                    <input type="text" class="form-control" id="editArticleSelect" placeholder="شناسه مقاله">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success mt-3">ویرایش گزینه</button>
+        </form>
         <div id="optionsContainer"></div>
 
         {% else %}
@@ -340,14 +354,15 @@
                             $('#optionsContainer').html('هیچ گزینه‌ای موجود نیست.');
                             return;
                         }
-
-                       // ایجاد HTML برای هر گزینه به صورت کارت
+                        // ایجاد HTML برای هر گزینه به صورت کارت
                         data.options.forEach(function (option) {
-                            console.log(option)
-
-                            
                             const optionCard = `
-                                <div class="card" style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;">
+                                <div class="card" 
+                                    style="padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #007bff;" 
+                                    data-id="${option.id}" 
+                                    data-step-id="${option.next_step ? option.next_step.id : ''}" 
+                                    data-issue-id="${option.issue ? option.issue.id : ''}" 
+                                    data-article-id="${option.article ? option.article.id : ''}">
                                     <a href="${option.option_url}">${option.text}</a>
                                     <div style="margin-top: 10px;">
                                         <button class="edit-btn option btn btn-warning" data-id="${option.id}">ویرایش</button>
@@ -357,7 +372,6 @@
                             `;
                             $('#optionsContainer').append(optionCard);
                         });
-
                     }
                 },
             });
@@ -409,10 +423,17 @@
         });
 
         $('#optionsContainer').on('click', '.edit-btn.option', function () {
-            const optionId = $(this).data('id');
-            const optionText = $(this).closest('.card').find('a').text();
-            $('#optionText').val(optionText);
-            $('#optionForm').data('editing-id', optionId).show(); // ذخیره شناسه در فرم
+            const optionId = $(this).closest('.card').data('id'); // شناسه گزینه
+            const optionText = $(this).closest('.card').find('a').text(); // متن گزینه
+            const stepId = $(this).closest('.card').data('step-id'); // شناسه مرحله
+            const issueId = $(this).closest('.card').data('issue-id'); // شناسه خطا
+            const articleId = $(this).closest('.card').data('article-id'); // شناسه مقاله
+            $('#editOptionText').val(optionText); // متن گزینه
+            $('#editOptionId').val(optionId); // شناسه گزینه
+            $('#editStepSelect').val(stepId); // شناسه مرحله
+            $('#editIssueSelect').val(issueId); // شناسه خطا
+            $('#editArticleSelect').val(articleId); // شناسه مقاله
+            $('#editOptionForm').show(); // نمایش فرم ویرایش
         });
 
         $('#optionsContainer').on('click', '.delete-btn-option', function () {
@@ -435,18 +456,101 @@
             }
         });
 
+         // مدیریت ارسال فرم ویرایش گزینه
+         $('#editOptionForm').on('submit', function (event) {
+            event.preventDefault();
+            const optionId = $('#editOptionId').val();
+            const optionText = $('#editOptionText').val();
+            const stepId = $('#editStepSelect').val();
+            const issueId = $('#editIssueSelect').val();
+            const articleId = $('#editArticleSelect').val();
+
+
+            console.log("Sending data:", {
+                text: optionText,
+                step_id: stepId,
+                issue_id: issueId,
+                article_id: articleId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            });
+
+            $.ajax({
+                url: '/api/update_option/' + optionId + '/',
+                method: 'POST',
+                data: {
+                    text: optionText,
+                    next_step_id: stepId,
+                    issue_id: issueId,
+                    article_id: articleId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        loadOptions(); // بارگذاری مجدد گزینه‌ها
+                        $('#editOptionForm')[0].reset(); // خالی کردن فرم
+                        $('#editOptionForm').hide(); // مخفی کردن فرم
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function () {
+                    alert('خطایی در ویرایش گزینه وجود دارد.');
+                }
+            });
+        });
+
+        // تابع جداگانه برای ایجاد گزینه جدید
+        function createOption(data) {
+            $.ajax({
+                url: '/api/add_option/',
+                method: 'POST',
+                data: data,
+                success: function (response) {
+                    if (response.status === 'success') {
+                        loadOptions(); // بارگذاری مجدد گزینه‌ها
+                        $('#optionText').val(''); // خالی کردن فیلد متن گزینه
+                        $('#stepSelect').val(''); // خالی کردن فیلد شناسه مرحله
+                        $('#issueSelect').val(''); // خالی کردن فیلد شناسه خطا
+                        $('#articleSelect').val(''); // خالی کردن فیلد شناسه مقاله
+                        $('#optionForm').hide(); // مخفی کردن فرم
+                    } else {
+                        alert(response.message); // نمایش پیام خطا
+                    }
+                },
+                error: function () {
+                    alert('خطایی در ایجاد گزینه وجود دارد.');
+                }
+            });
+        }
+
+        // مدیریت رویداد ارسال فرم ایجاد گزینه
         $('#optionForm').on('submit', function (event) {
             event.preventDefault(); // جلوگیری از بارگذاری مجدد صفحه
-            const optionId = $(this).data('editing-id'); // دریافت شناسه ویرایش شده
 
             const optionText = $('#optionText').val();
             const stepId = $('#stepSelect').val(); // شناسه مرحله
-            const nextissueId = $('#issueSelect').val();
-            const solutionId = $('#solutionSelect').val(); // شناسه راهکار
-            const issueId = '{{ step.issue.id }}'; // شناسه مشکل
-            const nextarticleId = $('#articleSelect').val();
-            const questionId = '{{ question.id }}';
+            const nextissueId = $('#issueSelect').val(); // شناسه خطا
+            const nextarticleId = $('#articleSelect').val(); // شناسه مقاله
+            const issueId = '{{ issue.id }}'; // شناسه مشکل
+            const questionId = '{{ question.id }}'; // شناسه سوال
 
+            // اعتبارسنجی متن گزینه
+            if (!optionText) {
+                alert('متن گزینه نمی‌تواند خالی باشد.');
+                return;
+            }
+
+
+            console.log("Sending data:", {
+                text: optionText,
+                issue_id: issueId,
+                nextissueId: nextissueId,
+                nextarticleId: nextarticleId,
+                question_id: questionId,
+                step_id: stepId
+            });
+
+            // ساخت داده‌ها برای ارسال
             const data = {
                 text: optionText,
                 issue_id: issueId,
@@ -456,65 +560,13 @@
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             };
 
-
-            if (optionId) {
-                // اگر شناسه موجود باشد، یعنی می‌خواهیم ویرایش کنیم
-                data.id = optionId; // شناسه گزینه برای ویرایش
-                $.ajax({
-                    url: '/api/update_option/' + optionId + '/',
-                    method: 'POST',
-                    data: data,
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            loadOptions(); // بارگذاری مجدد گزینه‌ها
-                            $('#optionText').val(''); // خالی کردن فیلد ویرایش
-                            $('#optionForm').removeData('editing-id'); // حذف شناسه
-                            $('#optionForm').hide(); // مخفی کردن فرم ویرایش
-                        } else {
-                            alert(response.message); // نمایش خطا در ویرایش
-                        }
-                    },
-                    error: function () {
-                        alert('خطایی در ویرایش گزینه وجود دارد.');
-                    }
-                });
-            } else {
-                // اگر فیلد مرحله فعال باشد، بررسی می‌کنیم
-                if ($('#stepSelectContainer').is(':visible') && stepId) {
-                    data.step_id = stepId; // اضافه کردن شناسه مرحله
-                }
-
-                if ($('#stepSelectContainer').is(':visible') && nextissueId) {
-                    data.nextissueId = nextissueId; // اضافه کردن شناسه خطا
-                }
-                
-                if ($('#stepSelectContainer').is(':visible') && nextarticleId) {
-                    data.nextarticleId = nextarticleId; // اضافه کردن شناسه مقاله
-                }
-
-                // اگر فیلد راهکار فعال باشد، بررسی می‌کنیم
-                if ($('#solutionContainer').is(':visible') && solutionId) {
-                    data.solution_id = solutionId; // اضافه کردن شناسه راهکار
-                }
-                // اگر شناسه وجود نداشته باشد، اضافه کردن گزینه جدید
-                $.ajax({
-                    url: '/api/add_option/',
-                    method: 'POST',
-                    data: data,
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            loadOptions(); // بارگذاری مجدد گزینه‌ها
-                            $('#optionText').val(''); // خالی کردن فیلد
-                            $('#optionForm').hide(); // مخفی کردن فرم
-                        } else {
-                            alert(response.message);
-                        }
-                    },
-                    error: function () {
-                        alert('خطایی در ایجاد گزینه وجود دارد.');
-                    }
-                });
+            // بررسی و اضافه کردن شناسه مرحله (اگر فعال باشد)
+            if ($('#stepSelectContainer').is(':visible') && stepId) {
+                data.step_id = stepId; // اضافه کردن شناسه مرحله
             }
+
+            // ارسال درخواست برای ایجاد گزینه جدید
+            createOption(data);
         });
 
     });
